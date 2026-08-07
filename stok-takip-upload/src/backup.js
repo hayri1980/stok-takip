@@ -6,9 +6,23 @@ const REPO = 'hayri1980/stok-takip-yedek';
 const FILE = 'data/store.json';
 
 let chain = Promise.resolve();
+let lastKey = null;
 
 function token() {
   return process.env.GITHUB_TOKEN || '';
+}
+
+function contentKey(data) {
+  try {
+    const prods = (data.products || []).map(p => {
+      const copy = Object.assign({}, p);
+      delete copy.lastSync;
+      return copy;
+    });
+    return JSON.stringify({ products: prods, settings: data.settings });
+  } catch (e) {
+    return null;
+  }
 }
 
 function queue(fn) {
@@ -54,14 +68,17 @@ function backupNow() {
     return Promise.resolve();
   }
   if (isEmptyData(data)) return Promise.resolve();
+  const key = contentKey(data);
+  if (key && key === lastKey) return Promise.resolve();
   return queue(async () => {
     let sha = null;
     try {
       const current = await githubContents('GET');
       if (current) sha = current.sha;
       await githubContents('PUT', sha);
+      lastKey = key;
     } catch (e) {
-      console.log('Yedekleme hatas�: ' + e.message);
+      console.log('Yedekleme hatası: ' + e.message);
     }
   });
 }
