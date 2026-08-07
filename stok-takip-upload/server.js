@@ -5,6 +5,7 @@ const cron = require('node-cron');
 const db = require('./db');
 const sync = require('./src/sync');
 const notifier = require('./src/notifier');
+const telegramBot = require('./src/telegram');
 
 db.load();
 
@@ -122,6 +123,7 @@ app.listen(port, async () => {
   console.log('');
   db.addLog('Uygulama başlatıldı (port ' + port + ')');
   scheduleCron();
+  telegramBot.start();
   for (const kind of ['trendyol', 'hepsiburada']) {
     try {
       await sync.syncMarketplace(kind);
