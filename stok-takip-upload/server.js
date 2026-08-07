@@ -6,8 +6,7 @@ const db = require('./db');
 const sync = require('./src/sync');
 const notifier = require('./src/notifier');
 const telegramBot = require('./src/telegram');
-
-db.load();
+const backup = require('./src/backup');
 
 const app = express();
 app.use(express.json());
@@ -114,7 +113,10 @@ function scheduleCron() {
 
 const port = process.env.PORT || 3000;
 
-app.listen(port, async () => {
+async function start() {
+  await backup.restore();
+  db.load();
+  app.listen(port, async () => {
   console.log('');
   console.log('=============================================');
   console.log('  STOK TAKİP ÇALIŞIYOR');
@@ -136,4 +138,7 @@ app.listen(port, async () => {
   } catch (e) {
     db.addLog('Stok kontrol hatası: ' + e.message);
   }
-});
+  });
+}
+
+start();
