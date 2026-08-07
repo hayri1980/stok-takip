@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const cron = require('node-cron');
 const db = require('./db');
 const sync = require('./src/sync');
 const notifier = require('./src/notifier');
@@ -89,12 +88,18 @@ app.post('/api/test-telegram', async (req, res) => {
 
 // ---- Zamanlayıcı ----
 let job = null;
+let polling = false;
 
-function scheduleCron() {
-  if (job) job.stop();
-  const interval = Math.max(1, Number(db.getSettings().sync.intervalMinutes) || 30);
-  job = cron.schedule('*/' + interval + ' * * * *', async () => {
-    db.addLog('Otomatik stok kontrolü başladı');
+function getPollMs() {
+  const s = db.getSettings().sync;
+  const sec = Number(s.pollSeconds) || (Number(s.intervalMinutes) > 0 ? Number(s.intervalMinutes) * 60 : 30);
+  return Math.max(5, sec) * 1000;
+}
+
+async function runCheck() {
+  if (polling) return;
+  polling = true;
+  try {
     for (const kind of ['trendyol', 'hepsiburada']) {
       try {
         await sync.syncMarketplace(kind);
@@ -107,8 +112,16 @@ function scheduleCron() {
     } catch (e) {
       db.addLog('Stok kontrol hatası: ' + e.message);
     }
-  });
-  db.addLog('Zamanlayıcı ayarlandı: her ' + interval + ' dakikada bir kontrol');
+  } finally {
+    polling = false;
+  }
+}
+
+function scheduleCron() {
+  if (job) clearInterval(job);
+  const ms = getPollMs();
+  job = setInterval(runCheck, ms);
+  db.addLog('Zamanlayıcı ayarlandı: her ' + ms / 1000 + ' saniyede bir kontrol');
 }
 
 const port = process.env.PORT || 3000;
