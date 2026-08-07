@@ -16,7 +16,7 @@ function defaultData() {
       telegram: { botToken: '', chatId: '', enabled: false },
       trendyol: { apiKey: '', apiSecret: '', sellerId: '' },
       hepsiburada: { username: '', password: '' },
-      sync: { intervalMinutes: 30, threshold: 1 }
+      sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15 }
     },
     log: []
   };
