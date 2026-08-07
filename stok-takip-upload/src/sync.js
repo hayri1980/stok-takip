@@ -38,14 +38,17 @@ async function syncMarketplace(kind) {
   const now = new Date().toISOString();
   let updated = 0;
   let created = 0;
+  let changed = false;
   const sales = [];
 
   for (const [barcode, qty] of stockMap.entries()) {
     const existing = db.findProductByBarcode(barcode);
     if (existing) {
       const oldQty = existing[stockField(kind)];
+      if (oldQty !== null && oldQty !== undefined && Number(oldQty) === qty) continue;
       db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now });
       updated++;
+      changed = true;
       if (oldQty !== null && oldQty !== undefined) {
         const diff = Number(oldQty) - qty;
         if (diff > 0) {
@@ -62,10 +65,13 @@ async function syncMarketplace(kind) {
     } else {
       db.addProduct({ name: barcode + ' (API)', barcode, [stockField(kind)]: qty });
       created++;
+      changed = true;
     }
   }
 
-  db.addLog(kindLabel(kind) + ' senkronu tamam: ' + updated + ' güncellendi, ' + created + ' yeni eklendi');
+  if (changed) {
+    db.addLog(kindLabel(kind) + ' senkronu tamam: ' + updated + ' güncellendi, ' + created + ' yeni eklendi');
+  }
 
   if (sales.length > 0) {
     for (const sale of sales) {
