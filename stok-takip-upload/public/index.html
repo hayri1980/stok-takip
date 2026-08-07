@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stok Takip</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Stok Takip</h1>
+    <nav>
+      <button class="tab-btn active" data-tab="stoklar">Stoklar</button>
+      <button class="tab-btn" data-tab="ayarlar">Ayarlar</button>
+      <button class="tab-btn" data-tab="log">Kayıtlar</button>
+    </nav>
+    <button id="syncBtn" class="btn btn-primary">Şimdi Kontrol Et</button>
+  </header>
+
+  <main>
+    <!-- STOKLAR -->
+    <section id="tab-stoklar" class="tab-content active">
+      <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="Ürün veya barkod ara...">
+        <button id="addBtn" class="btn btn-primary">+ Ürün Ekle</button>
+      </div>
+      <div class="summary" id="summary"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ürün</th>
+              <th>Barkod</th>
+              <th>Trendyol Stok</th>
+              <th>Hepsiburada Stok</th>
+              <th>Son Güncelleme</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="productTable"></tbody>
+        </table>
+      </div>
+      <p id="emptyNote" class="empty-note">Henüz ürün yok. "+ Ürün Ekle" ile ilk ürünü ekle.</p>
+    </section>
+
+    <!-- AYARLAR -->
+    <section id="tab-ayarlar" class="tab-content">
+      <div class="settings-grid">
+        <div class="card">
+          <h2>Telefon Bildirimi (Telegram)</h2>
+          <p class="hint">Stok kritik olduğunda ve satış olduğunda telefonuna bildirim gelir.</p>
+          <label>Bot Token (BotFather'dan al)</label>
+          <input type="password" id="tgBotToken" placeholder="123456:ABC-DEF...">
+          <label>Chat ID (kişisel hesap numaran)</label>
+          <input type="text" id="tgChatId" placeholder="ör. 123456789">
+          <label class="checkbox">
+            <input type="checkbox" id="tgEnabled"> Telegram bildirimleri açık
+          </label>
+          <button id="testTgBtn" class="btn">Test Bildirimi Gönder</button>
+          <p class="hint">Nasıl alacağını bilmiyorsan "Kullanım Rehberi"ni oku.</p>
+        </div>
+
+        <div class="card">
+          <h2>E-posta Bildirimi (Hotmail/Outlook)</h2>
+          <p class="hint">Opsiyonel. Sadece telefon bildirimi istiyorsan bunu boş bırak.</p>
+          <label>Gönderici e-posta (Hotmail adresin)</label>
+          <input type="text" id="mailFrom" placeholder="ornek@hotmail.com">
+          <label>Hotmail parola (App Şifresi önerilir)</label>
+          <input type="password" id="mailPassword" placeholder="********">
+          <label>Bildirimin gideceği e-posta</label>
+          <input type="text" id="mailTo" placeholder="ornek@hotmail.com">
+          <label class="checkbox">
+            <input type="checkbox" id="mailEnabled"> Bildirimler açık
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="mailNotifySales"> Satış olduğunda da haber ver
+          </label>
+          <button id="testMailBtn" class="btn">Test E-postası Gönder</button>
+        </div>
+
+        <div class="card">
+          <h2>Trendyol API</h2>
+          <p class="hint">Trendyol Satıcı Panelinden alınır: Hesap &gt; Ayarlar &gt; API Bilgileri</p>
+          <label>API Anahtarı</label>
+          <input type="text" id="tyApiKey" placeholder="API Key">
+          <label>API Şifresi</label>
+          <input type="password" id="tyApiSecret" placeholder="API Secret">
+          <label>Satıcı Numarası</label>
+          <input type="text" id="tySellerId" placeholder="Satıcı ID (ör. 123456789)">
+        </div>
+
+        <div class="card">
+          <h2>Hepsiburada API</h2>
+          <p class="hint">Hepsiburada Satıcı Panelinden alınır: Entegrasyon &gt; API Bilgileri</p>
+          <label>Kullanıcı Adı (Merchant ID)</label>
+          <input type="text" id="hbUsername" placeholder="Merchant ID">
+          <label>API Parolası</label>
+          <input type="password" id="hbPassword" placeholder="API Key / Parola">
+        </div>
+
+        <div class="card">
+          <h2>Kontrol Sıklığı ve Bildirim</h2>
+          <label>Kaç dakikada bir stok kontrol edilsin?</label>
+          <input type="number" id="syncInterval" min="1" value="30">
+          <label>Stok kaça düşünce e-posta gelsin?</label>
+          <input type="number" id="notifyThreshold" min="0" value="1">
+          <p class="hint">Örn: 1 yazarsan stok 1 ve 0 olunca mail atar. 0 yazarsan sadece stok bitince atar.</p>
+          <button id="saveSettingsBtn" class="btn btn-primary">Ayarları Kaydet</button>
+          <p id="saveMsg" class="save-msg"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOG -->
+    <section id="tab-log" class="tab-content">
+      <div class="card">
+        <h2>Kayıtlar</h2>
+        <div id="logList"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Ürün Ekle/Düzenle Modal -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="modalTitle">Ürün Ekle</h2>
+      <input type="hidden" id="pId">
+      <label>Ürün Adı</label>
+      <input type="text" id="pName" placeholder="Ürün adı">
+      <label>Barkod</label>
+      <input type="text" id="pBarcode" placeholder="Barkod numarası">
+      <div class="two-col">
+        <div>
+          <label>Trendyol Stok (elle)</label>
+          <input type="number" id="pTyStock" min="0" placeholder="Boş bırak: bilinmiyor">
+        </div>
+        <div>
+          <label>Hepsiburada Stok (elle)</label>
+          <input type="number" id="pHbStock" min="0" placeholder="Boş bırak: bilinmiyor">
+        </div>
+      </div>
+      <p class="hint">API bağlıysa stoklar otomatik güncellenir. Bu alanlar elle stok girmek için.</p>
+      <div class="modal-actions">
+        <button id="cancelBtn" class="btn">Vazgeç</button>
+        <button id="saveProductBtn" class="btn btn-primary">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
