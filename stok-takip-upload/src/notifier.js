@@ -40,13 +40,13 @@ async function sendEmail(subject, html) {
   }
 }
 
-async function sendTelegram(text) {
+async function sendTelegramTo(chatId, text) {
   const tg = db.getSettings().telegram;
   if (!tg.enabled) {
     db.addLog('Telegram bildirimi gönderilmedi (Telegram kapalı)');
     return { sent: false, reason: 'Telegram bildirimleri kapalı' };
   }
-  if (!tg.botToken || !tg.chatId) {
+  if (!tg.botToken || !chatId) {
     db.addLog('Telegram bildirimi gönderilmedi (ayarlar eksik)');
     return { sent: false, reason: 'Telegram ayarları eksik' };
   }
@@ -56,16 +56,19 @@ async function sendTelegram(text) {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: tg.chatId, text, parse_mode: 'HTML' })
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.description || 'Telegram hatası');
-    db.addLog('Telegram bildirimi gönderildi');
     return { sent: true };
   } catch (e) {
     db.addLog('Telegram GÖNDERİLEMEDİ: ' + e.message);
     return { sent: false, reason: e.message };
   }
+}
+
+function sendTelegram(text) {
+  return sendTelegramTo(db.getSettings().telegram.chatId, text);
 }
 
 async function notify(subject, html, text) {
@@ -86,4 +89,4 @@ function sendTestTelegram() {
   return sendTelegram('Stok Takip test mesajı. Bildirimler çalışıyor.');
 }
 
-module.exports = { notify, sendTestMail, sendTestTelegram };
+module.exports = { notify, sendTestMail, sendTestTelegram, sendTelegramTo };
