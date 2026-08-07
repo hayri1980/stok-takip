@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const backup = require('./src/backup');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'store.json');
@@ -48,6 +49,7 @@ function save() {
   const tmp = DATA_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(state, null, 2), 'utf8');
   fs.renameSync(tmp, DATA_FILE);
+  backup.backupNow();
 }
 
 function genId() {
