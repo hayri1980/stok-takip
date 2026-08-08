@@ -1,1 +1,92 @@
-Y29uc3Qgbm9kZW1haWxlciA9IHJlcXVpcmUoJ25vZGVtYWlsZXInKTsKY29uc3QgZGIgPSByZXF1aXJlKCcuLi9kYicpOwoKZnVuY3Rpb24gYnVpbGRUcmFuc3BvcnQobWFpbCkgewogIHJldHVybiBub2RlbWFpbGVyLmNyZWF0ZVRyYW5zcG9ydCh7CiAgICBob3N0OiAnc210cC1tYWlsLm91dGxvb2suY29tJywKICAgIHBvcnQ6IDU4NywKICAgIHNlY3VyZTogZmFsc2UsCiAgICB0bHM6IHsgY2lwaGVyczogJ1NTTHYzJyB9LAogICAgYXV0aDogeyB1c2VyOiBtYWlsLmZyb20sIHBhc3M6IG1haWwucGFzc3dvcmQgfQogIH0pOwp9Cgphc3luYyBmdW5jdGlvbiBzZW5kRW1haWwoc3ViamVjdCwgaHRtbCkgewogIGNvbnN0IG1haWwgPSBkYi5nZXRTZXR0aW5ncygpLm1haWw7CiAgaWYgKCFtYWlsLmVuYWJsZWQpIHsKICAgIGRiLmFkZExvZygnRS1wb3N0YSBnw7ZuZGVyaWxtZWRpIChiaWxkaXJpbWxlciBrYXBhbMSxKScpOwogICAgcmV0dXJuIHsgc2VudDogZmFsc2UsIHJlYXNvbjogJ0UtcG9zdGEgYmlsZGlyaW1sZXJpIGthcGFsxLEnIH07CiAgfQogIGlmICghbWFpbC5mcm9tIHx8ICFtYWlsLnBhc3N3b3JkIHx8ICFtYWlsLnRvKSB7CiAgICBkYi5hZGRMb2coJ0UtcG9zdGEgZ8O2bmRlcmlsbWVkaSAoYXlhcmxhciBla3NpayknKTsKICAgIHJldHVybiB7IHNlbnQ6IGZhbHNlLCByZWFzb246ICdFLXBvc3RhIGF5YXJsYXLEsSBla3NpaycgfTsKICB9CgogIGNvbnN0IHRyYW5zcG9ydCA9IGJ1aWxkVHJhbnNwb3J0KG1haWwpOwogIHRyeSB7CiAgICBhd2FpdCB0cmFuc3BvcnQuc2VuZE1haWwoewogICAgICBmcm9tOiBgU3RvayBUYWtpcCA8JHttYWlsLmZyb219PmAsCiAgICAgIHRvOiBtYWlsLnRvLAogICAgICBzdWJqZWN0LAogICAgICBodG1sCiAgICB9KTsKICAgIGRiLmFkZExvZygnRS1wb3N0YSBnw7ZuZGVyaWxkaTogJyArIHN1YmplY3QpOwogICAgcmV0dXJuIHsgc2VudDogdHJ1ZSB9OwogIH0gY2F0Y2ggKGUpIHsKICAgIGRiLmFkZExvZygnRS1wb3N0YSBHw5ZOREVSxLBMRU1FRMSwOiAnICsgZS5tZXNzYWdlKTsKICAgIHJldHVybiB7IHNlbnQ6IGZhbHNlLCByZWFzb246IGUubWVzc2FnZSB9OwogIH0gZmluYWxseSB7CiAgICB0cmFuc3BvcnQuY2xvc2UoKTsKICB9Cn0KCmFzeW5jIGZ1bmN0aW9uIHNlbmRUZWxlZ3JhbVRvKGNoYXRJZCwgdGV4dCkgewogIGNvbnN0IHRnID0gZGIuZ2V0U2V0dGluZ3MoKS50ZWxlZ3JhbTsKICBpZiAoIXRnLmVuYWJsZWQpIHsKICAgIGRiLmFkZExvZygnVGVsZWdyYW0gYmlsZGlyaW1pIGfDtm5kZXJpbG1lZGkgKFRlbGVncmFtIGthcGFsxLEpJyk7CiAgICByZXR1cm4geyBzZW50OiBmYWxzZSwgcmVhc29uOiAnVGVsZWdyYW0gYmlsZGlyaW1sZXJpIGthcGFsxLEnIH07CiAgfQogIGlmICghdGcuYm90VG9rZW4gfHwgIWNoYXRJZCkgewogICAgZGIuYWRkTG9nKCdUZWxlZ3JhbSBiaWxkaXJpbWkgZ8O2bmRlcmlsbWVkaSAoYXlhcmxhciBla3NpayknKTsKICAgIHJldHVybiB7IHNlbnQ6IGZhbHNlLCByZWFzb246ICdUZWxlZ3JhbSBheWFybGFyxLEgZWtzaWsnIH07CiAgfQoKICB0cnkgewogICAgY29uc3QgdXJsID0gJ2h0dHBzOi8vYXBpLnRlbGVncmFtLm9yZy9ib3QnICsgdGcuYm90VG9rZW4gKyAnL3NlbmRNZXNzYWdlJzsKICAgIGNvbnN0IHJlcyA9IGF3YWl0IGZldGNoKHVybCwgewogICAgICBtZXRob2Q6ICdQT1NUJywKICAgICAgaGVhZGVyczogeyAnQ29udGVudC1UeXBlJzogJ2FwcGxpY2F0aW9uL2pzb24nIH0sCiAgICAgIGJvZHk6IEpTT04uc3RyaW5naWZ5KHsgY2hhdF9pZDogY2hhdElkLCB0ZXh0LCBwYXJzZV9tb2RlOiAnSFRNTCcgfSkKICAgIH0pOwogICAgY29uc3QgZGF0YSA9IGF3YWl0IHJlcy5qc29uKCk7CiAgICBpZiAoIWRhdGEub2spIHRocm93IG5ldyBFcnJvcihkYXRhLmRlc2NyaXB0aW9uIHx8ICdUZWxlZ3JhbSBoYXRhc8SxJyk7CiAgICByZXR1cm4geyBzZW50OiB0cnVlIH07CiAgfSBjYXRjaCAoZSkgewogICAgZGIuYWRkTG9nKCdUZWxlZ3JhbSBHw5ZOREVSxLBMRU1FRMSwOiAnICsgZS5tZXNzYWdlKTsKICAgIHJldHVybiB7IHNlbnQ6IGZhbHNlLCByZWFzb246IGUubWVzc2FnZSB9OwogIH0KfQoKZnVuY3Rpb24gc2VuZFRlbGVncmFtKHRleHQpIHsKICByZXR1cm4gc2VuZFRlbGVncmFtVG8oZGIuZ2V0U2V0dGluZ3MoKS50ZWxlZ3JhbS5jaGF0SWQsIHRleHQpOwp9Cgphc3luYyBmdW5jdGlvbiBub3RpZnkoc3ViamVjdCwgaHRtbCwgdGV4dCkgewogIGNvbnN0IHJlc3VsdHMgPSB7fTsKICByZXN1bHRzLmVtYWlsID0gYXdhaXQgc2VuZEVtYWlsKHN1YmplY3QsIGh0bWwpOwogIGlmICh0ZXh0KSByZXN1bHRzLnRlbGVncmFtID0gYXdhaXQgc2VuZFRlbGVncmFtKHRleHQpOwogIHJldHVybiByZXN1bHRzOwp9CgpmdW5jdGlvbiBzZW5kVGVzdE1haWwoKSB7CiAgcmV0dXJuIHNlbmRFbWFpbCgKICAgICdTdG9rIFRha2lwIHRlc3QgbWVzYWrEsScsCiAgICAnPGgzPk1lcmhhYmEhPC9oMz48cD5CdSBiaXIgPGI+dGVzdCBlLXBvc3Rhc8SxZMSxcjwvYj4uIFN0b2sgVGFraXAgdXlndWxhbWFzxLFuxLFuIGJpbGRpcmltbGVyaSDDp2FsxLHFn8SxeW9yLjwvcD4nCiAgKTsKfQoKZnVuY3Rpb24gc2VuZFRlc3RUZWxlZ3JhbSgpIHsKICByZXR1cm4gc2VuZFRlbGVncmFtKCdTdG9rIFRha2lwIHRlc3QgbWVzYWrEsS4gQmlsZGlyaW1sZXIgw6dhbMSxxZ/EsXlvci4nKTsKfQoKbW9kdWxlLmV4cG9ydHMgPSB7IG5vdGlmeSwgc2VuZFRlc3RNYWlsLCBzZW5kVGVzdFRlbGVncmFtLCBzZW5kVGVsZWdyYW1UbyB9Owo=
+const nodemailer = require('nodemailer');
+const db = require('../db');
+
+function buildTransport(mail) {
+  return nodemailer.createTransport({
+    host: 'smtp-mail.outlook.com',
+    port: 587,
+    secure: false,
+    tls: { ciphers: 'SSLv3' },
+    auth: { user: mail.from, pass: mail.password }
+  });
+}
+
+async function sendEmail(subject, html) {
+  const mail = db.getSettings().mail;
+  if (!mail.enabled) {
+    db.addLog('E-posta gönderilmedi (bildirimler kapalı)');
+    return { sent: false, reason: 'E-posta bildirimleri kapalı' };
+  }
+  if (!mail.from || !mail.password || !mail.to) {
+    db.addLog('E-posta gönderilmedi (ayarlar eksik)');
+    return { sent: false, reason: 'E-posta ayarları eksik' };
+  }
+
+  const transport = buildTransport(mail);
+  try {
+    await transport.sendMail({
+      from: `Stok Takip <${mail.from}>`,
+      to: mail.to,
+      subject,
+      html
+    });
+    db.addLog('E-posta gönderildi: ' + subject);
+    return { sent: true };
+  } catch (e) {
+    db.addLog('E-posta GÖNDERİLEMEDİ: ' + e.message);
+    return { sent: false, reason: e.message };
+  } finally {
+    transport.close();
+  }
+}
+
+async function sendTelegramTo(chatId, text) {
+  const tg = db.getSettings().telegram;
+  if (!tg.enabled) {
+    db.addLog('Telegram bildirimi gönderilmedi (Telegram kapalı)');
+    return { sent: false, reason: 'Telegram bildirimleri kapalı' };
+  }
+  if (!tg.botToken || !chatId) {
+    db.addLog('Telegram bildirimi gönderilmedi (ayarlar eksik)');
+    return { sent: false, reason: 'Telegram ayarları eksik' };
+  }
+
+  try {
+    const url = 'https://api.telegram.org/bot' + tg.botToken + '/sendMessage';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description || 'Telegram hatası');
+    return { sent: true };
+  } catch (e) {
+    db.addLog('Telegram GÖNDERİLEMEDİ: ' + e.message);
+    return { sent: false, reason: e.message };
+  }
+}
+
+function sendTelegram(text) {
+  return sendTelegramTo(db.getSettings().telegram.chatId, text);
+}
+
+async function notify(subject, html, text) {
+  const results = {};
+  results.email = await sendEmail(subject, html);
+  if (text) results.telegram = await sendTelegram(text);
+  return results;
+}
+
+function sendTestMail() {
+  return sendEmail(
+    'Stok Takip test mesajı',
+    '<h3>Merhaba!</h3><p>Bu bir <b>test e-postasıdır</b>. Stok Takip uygulamasının bildirimleri çalışıyor.</p>'
+  );
+}
+
+function sendTestTelegram() {
+  return sendTelegram('Stok Takip test mesajı. Bildirimler çalışıyor.');
+}
+
+module.exports = { notify, sendTestMail, sendTestTelegram, sendTelegramTo };

@@ -1,1 +1,187 @@
-Y29uc3QgZGIgPSByZXF1aXJlKCcuLi9kYicpOwpjb25zdCB0cmVuZHlvbCA9IHJlcXVpcmUoJy4vdHJlbmR5b2wnKTsKY29uc3QgaGVwc2lidXJhZGEgPSByZXF1aXJlKCcuL2hlcHNpYnVyYWRhJyk7CmNvbnN0IG5vdGlmaWVyID0gcmVxdWlyZSgnLi9ub3RpZmllcicpOwoKZnVuY3Rpb24ga2luZExhYmVsKGtpbmQpIHsKICByZXR1cm4ga2luZCA9PT0gJ3RyZW5keW9sJyA/ICdUcmVuZHlvbCcgOiAnSGVwc2lidXJhZGEnOwp9CgpmdW5jdGlvbiBzdG9ja0ZpZWxkKGtpbmQpIHsKICByZXR1cm4ga2luZCArICdTdG9jayc7Cn0KCmZ1bmN0aW9uIG5vdGlmaWVkRmllbGQoa2luZCkgewogIHJldHVybiBraW5kICsgJ05vdGlmaWVkJzsKfQoKYXN5bmMgZnVuY3Rpb24gc3luY01hcmtldHBsYWNlKGtpbmQpIHsKICBjb25zdCBzZXR0aW5ncyA9IGRiLmdldFNldHRpbmdzKCk7CiAgbGV0IHN0b2NrTWFwOwoKICBpZiAoa2luZCA9PT0gJ3RyZW5keW9sJykgewogICAgY29uc3QgY2ZnID0gc2V0dGluZ3MudHJlbmR5b2w7CiAgICBpZiAoIWNmZy5hcGlLZXkgfHwgIWNmZy5hcGlTZWNyZXQgfHwgIWNmZy5zZWxsZXJJZCkgewogICAgICBkYi5hZGRMb2coJ1RyZW5keW9sIGF5YXJsYXLEsSBla3Npaywgc2Vua3JvbiBhdGxhbmTEsScpOwogICAgICByZXR1cm4geyBza2lwcGVkOiB0cnVlLCByZWFzb246ICdUcmVuZHlvbCBBUEkgYXlhcmxhcsSxIGVrc2lrJyB9OwogICAgfQogICAgc3RvY2tNYXAgPSBhd2FpdCB0cmVuZHlvbC5mZXRjaFN0b2NrKGNmZy5zZWxsZXJJZCwgY2ZnLmFwaUtleSwgY2ZnLmFwaVNlY3JldCk7CiAgfSBlbHNlIHsKICAgIGNvbnN0IGNmZyA9IHNldHRpbmdzLmhlcHNpYnVyYWRhOwogICAgaWYgKCFjZmcudXNlcm5hbWUgfHwgIWNmZy5wYXNzd29yZCkgewogICAgICBkYi5hZGRMb2coJ0hlcHNpYnVyYWRhIGF5YXJsYXLEsSBla3Npaywgc2Vua3JvbiBhdGxhbmTEsScpOwogICAgICByZXR1cm4geyBza2lwcGVkOiB0cnVlLCByZWFzb246ICdIZXBzaWJ1cmFkYSBBUEkgYXlhcmxhcsSxIGVrc2lrJyB9OwogICAgfQogICAgc3RvY2tNYXAgPSBhd2FpdCBoZXBzaWJ1cmFkYS5mZXRjaFN0b2NrKGNmZy51c2VybmFtZSwgY2ZnLnBhc3N3b3JkKTsKICB9CgogIGNvbnN0IG5vdyA9IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKTsKICBsZXQgdXBkYXRlZCA9IDA7CiAgbGV0IGNyZWF0ZWQgPSAwOwogIGxldCBjaGFuZ2VkID0gZmFsc2U7CiAgY29uc3Qgc2FsZXMgPSBbXTsKCiAgZm9yIChjb25zdCBbYmFyY29kZSwgcXR5XSBvZiBzdG9ja01hcC5lbnRyaWVzKCkpIHsKICAgIGNvbnN0IGV4aXN0aW5nID0gZGIuZmluZFByb2R1Y3RCeUJhcmNvZGUoYmFyY29kZSk7CiAgICBpZiAoZXhpc3RpbmcpIHsKICAgICAgY29uc3Qgb2xkUXR5ID0gZXhpc3Rpbmdbc3RvY2tGaWVsZChraW5kKV07CiAgICAgIGlmIChvbGRRdHkgIT09IG51bGwgJiYgb2xkUXR5ICE9PSB1bmRlZmluZWQgJiYgTnVtYmVyKG9sZFF0eSkgPT09IHF0eSkgY29udGludWU7CiAgICAgIGRiLnVwZGF0ZVByb2R1Y3QoZXhpc3RpbmcuaWQsIHsgW3N0b2NrRmllbGQoa2luZCldOiBxdHksIGxhc3RTeW5jOiBub3cgfSk7CiAgICAgIHVwZGF0ZWQrKzsKICAgICAgY2hhbmdlZCA9IHRydWU7CiAgICAgIGlmIChvbGRRdHkgIT09IG51bGwgJiYgb2xkUXR5ICE9PSB1bmRlZmluZWQpIHsKICAgICAgICBjb25zdCBkaWZmID0gTnVtYmVyKG9sZFF0eSkgLSBxdHk7CiAgICAgICAgaWYgKGRpZmYgPiAwKSB7CiAgICAgICAgICBzYWxlcy5wdXNoKHsKICAgICAgICAgICAgbmFtZTogZXhpc3RpbmcubmFtZSwKICAgICAgICAgICAgYmFyY29kZSwKICAgICAgICAgICAgbWFya2V0OiBraW5kTGFiZWwoa2luZCksCiAgICAgICAgICAgIGRpZmYsCiAgICAgICAgICAgIG9sZFF0eTogTnVtYmVyKG9sZFF0eSksCiAgICAgICAgICAgIG5ld1F0eTogcXR5CiAgICAgICAgICB9KTsKICAgICAgICB9CiAgICAgIH0KICAgIH0gZWxzZSB7CiAgICAgIGRiLmFkZFByb2R1Y3QoeyBuYW1lOiBiYXJjb2RlICsgJyAoQVBJKScsIGJhcmNvZGUsIFtzdG9ja0ZpZWxkKGtpbmQpXTogcXR5IH0pOwogICAgICBjcmVhdGVkKys7CiAgICAgIGNoYW5nZWQgPSB0cnVlOwogICAgfQogIH0KCiAgaWYgKGNoYW5nZWQpIHsKICAgIGRiLmFkZExvZyhraW5kTGFiZWwoa2luZCkgKyAnIHNlbmtyb251IHRhbWFtOiAnICsgdXBkYXRlZCArICcgZ8O8bmNlbGxlbmRpLCAnICsgY3JlYXRlZCArICcgeWVuaSBla2xlbmRpJyk7CiAgfQoKICBpZiAoc2FsZXMubGVuZ3RoID4gMCkgewogICAgZm9yIChjb25zdCBzYWxlIG9mIHNhbGVzKSB7CiAgICAgIGF3YWl0IG5vdGlmeVNhbGUoc2FsZSk7CiAgICB9CiAgICBkYi5hZGRMb2coc2FsZXMubGVuZ3RoICsgJyBzYXTEscWfL2F6YWxtYSB0ZXNwaXQgZWRpbGRpLCBiaWxkaXJpbSBnw7ZuZGVyaWxkaScpOwogIH0KCiAgcmV0dXJuIHsgdXBkYXRlZCwgY3JlYXRlZCwgc2FsZXM6IHNhbGVzLmxlbmd0aCB9Owp9CgpmdW5jdGlvbiBub3RpZnlTYWxlKHNhbGUpIHsKICBjb25zdCBzdWJqZWN0ID0gJ1NhdMSxxZ86ICcgKyBzYWxlLm5hbWUgKyAnICgnICsgc2FsZS5tYXJrZXQgKyAnKSc7CiAgY29uc3QgaHRtbCA9CiAgICAnPGgzPkJpciBzYXTEscWfIGdlcsOnZWtsZcWfdGk8L2gzPicgKwogICAgJzxwPjxiPsOccsO8bjo8L2I+ICcgKyBzYWxlLm5hbWUgKyAnPC9wPicgKwogICAgJzxwPjxiPkJhcmtvZDo8L2I+ICcgKyBzYWxlLmJhcmNvZGUgKyAnPC9wPicgKwogICAgJzxwPjxiPlBhemFyIHllcmk6PC9iPiAnICsgc2FsZS5tYXJrZXQgKyAnPC9wPicgKwogICAgJzxwPjxiPlNhdMSxbGFuIGFkZXQ6PC9iPiAnICsgc2FsZS5kaWZmICsgJzwvcD4nICsKICAgICc8cD48Yj7Dlm5jZWtpIHN0b2s6PC9iPiAnICsgc2FsZS5vbGRRdHkgKyAnIOKGkiA8Yj5ZZW5pIHN0b2s6PC9iPiAnICsgc2FsZS5uZXdRdHkgKyAnPC9wPic7CiAgY29uc3QgdGV4dCA9CiAgICAnU0FUSVM6ICcgKyBzYWxlLm5hbWUgKyAnICgnICsgc2FsZS5tYXJrZXQgKyAnKVxuJyArCiAgICAnQmFya29kOiAnICsgc2FsZS5iYXJjb2RlICsgJ1xuJyArCiAgICAnU2F0aWxhbiBhZGV0OiAnICsgc2FsZS5kaWZmICsgJ1xuJyArCiAgICAnU3RvazogJyArIHNhbGUub2xkUXR5ICsgJyAtPiAnICsgc2FsZS5uZXdRdHk7CiAgcmV0dXJuIG5vdGlmaWVyLm5vdGlmeShzdWJqZWN0LCBodG1sLCB0ZXh0KTsKfQoKYXN5bmMgZnVuY3Rpb24gY2hlY2tTdG9ja3MoKSB7CiAgY29uc3Qgc2V0dGluZ3MgPSBkYi5nZXRTZXR0aW5ncygpOwogIGNvbnN0IHRocmVzaG9sZCA9IE1hdGgubWF4KDAsIE51bWJlcihzZXR0aW5ncy5zeW5jLnRocmVzaG9sZCkgfHwgMSk7CiAgY29uc3QgcHJvZHVjdHMgPSBkYi5nZXRQcm9kdWN0cygpOwogIGZvciAoY29uc3QgcCBvZiBwcm9kdWN0cykgewogICAgZm9yIChjb25zdCBraW5kIG9mIFsndHJlbmR5b2wnLCAnaGVwc2lidXJhZGEnXSkgewogICAgICBjb25zdCBxdHkgPSBwW3N0b2NrRmllbGQoa2luZCldOwogICAgICBpZiAocXR5ID09PSBudWxsIHx8IHF0eSA9PT0gdW5kZWZpbmVkKSBjb250aW51ZTsKICAgICAgY29uc3Qgc3RvY2sgPSBOdW1iZXIocXR5KTsKCiAgICAgIGlmIChzdG9jayA8PSB0aHJlc2hvbGQpIHsKICAgICAgICBpZiAoIXBbbm90aWZpZWRGaWVsZChraW5kKV0pIHsKICAgICAgICAgIGRiLnVwZGF0ZVByb2R1Y3QocC5pZCwgeyBbbm90aWZpZWRGaWVsZChraW5kKV06IHRydWUgfSk7CiAgICAgICAgICBjb25zdCBtYXJrZXQgPSBraW5kTGFiZWwoa2luZCk7CiAgICAgICAgICBjb25zdCBzdWJqZWN0ID0gJ0tSxLBUxLBLIFNUT0s6ICcgKyBwLm5hbWUgKyAnICgnICsgbWFya2V0ICsgJyknOwogICAgICAgICAgY29uc3QgaHRtbCA9CiAgICAgICAgICAgICc8aDM+RGlra2F0ISBTdG9rIGtyaXRpayBzZXZpeWVkZTwvaDM+JyArCiAgICAgICAgICAgICc8cD48Yj7DnHLDvG46PC9iPiAnICsgcC5uYW1lICsgJzwvcD4nICsKICAgICAgICAgICAgJzxwPjxiPkJhcmtvZDo8L2I+ICcgKyBwLmJhcmNvZGUgKyAnPC9wPicgKwogICAgICAgICAgICAnPHA+PGI+UGF6YXIgeWVyaTo8L2I+ICcgKyBtYXJrZXQgKyAnPC9wPicgKwogICAgICAgICAgICAnPHA+PGI+S2FsYW4gc3Rvazo8L2I+ICcgKyBzdG9jayArICc8L3A+JyArCiAgICAgICAgICAgICc8cCBzdHlsZT0iY29sb3I6I2MwMzkyYiI+PGI+JyArIG1hcmtldCArICcgbWHEn2F6YXPEsW5kYSBzdG9rICcgKyB0aHJlc2hvbGQgKyAnIHZlIGFsdMSxbmEgZMO8xZ90w7wuIEzDvHRmZW4gc3RvayBnaXJpxZ9pIHlhcC48L2I+PC9wPic7CiAgICAgICAgICBjb25zdCB0ZXh0ID0KICAgICAgICAgICAgJ0tSSVRJSyBTVE9LOiAnICsgcC5uYW1lICsgJyAoJyArIG1hcmtldCArICcpXG4nICsKICAgICAgICAgICAgJ0JhcmtvZDogJyArIHAuYmFyY29kZSArICdcbicgKwogICAgICAgICAgICAnS2FsYW4gc3RvazogJyArIHN0b2NrICsgJ1xuJyArCiAgICAgICAgICAgIG1hcmtldCArICcgbWFnYXphc2luZGEgc3RvayAnICsgdGhyZXNob2xkICsgJyB2ZSBhbHRpbmEgZHVzdHUuIEx1dGZlbiBzdG9rIGdpcmlzaSB5YXAuJzsKICAgICAgICAgIGF3YWl0IG5vdGlmaWVyLm5vdGlmeShzdWJqZWN0LCBodG1sLCB0ZXh0KTsKICAgICAgICB9CiAgICAgIH0gZWxzZSB7CiAgICAgICAgaWYgKHBbbm90aWZpZWRGaWVsZChraW5kKV0pIHsKICAgICAgICAgIGRiLnVwZGF0ZVByb2R1Y3QocC5pZCwgeyBbbm90aWZpZWRGaWVsZChraW5kKV06IGZhbHNlIH0pOwogICAgICAgIH0KICAgICAgfQogICAgfQogIH0KfQoKYXN5bmMgZnVuY3Rpb24gY2hlY2tRdWVzdGlvbnMoKSB7CiAgY29uc3Qgc2V0dGluZ3MgPSBkYi5nZXRTZXR0aW5ncygpOwogIGNvbnN0IGNmZyA9IHNldHRpbmdzLnRyZW5keW9sOwogIGlmICghY2ZnLmFwaUtleSB8fCAhY2ZnLmFwaVNlY3JldCB8fCAhY2ZnLnNlbGxlcklkKSB7CiAgICByZXR1cm4geyBza2lwcGVkOiB0cnVlLCByZWFzb246ICdUcmVuZHlvbCBBUEkgYXlhcmxhcsSxIGVrc2lrJyB9OwogIH0KCiAgbGV0IHF1ZXN0aW9uczsKICB0cnkgewogICAgcXVlc3Rpb25zID0gYXdhaXQgdHJlbmR5b2wuZmV0Y2hRdWVzdGlvbnMoY2ZnLnNlbGxlcklkLCBjZmcuYXBpS2V5LCBjZmcuYXBpU2VjcmV0KTsKICB9IGNhdGNoIChlKSB7CiAgICBkYi5hZGRMb2coJ1RyZW5keW9sIHNvcnUgw6dla21lIGhhdGFzxLE6ICcgKyBlLm1lc3NhZ2UpOwogICAgcmV0dXJuIHsgZXJyb3I6IGUubWVzc2FnZSB9OwogIH0KCiAgY29uc3Qgbm90aWZpZWQgPSBuZXcgU2V0KGRiLmdldFFuYU5vdGlmaWVkSWRzKCkpOwogIGNvbnN0IGZyZXNoID0gcXVlc3Rpb25zLmZpbHRlcihxID0+ICFub3RpZmllZC5oYXMocS5pZCkpOwogIGxldCBzZW50ID0gMDsKCiAgZm9yIChjb25zdCBxIG9mIGZyZXNoKSB7CiAgICBjb25zdCBzdWJqZWN0ID0gJ1lFTsSwIFNPUlU6ICcgKyBxLnByb2R1Y3ROYW1lOwogICAgY29uc3QgaHRtbCA9CiAgICAgICc8aDM+VHJlbmR5b2wgw7x6ZXJpbmRlbiB5ZW5pIGJpciDDvHLDvG4gc29ydXN1IGdlbGRpPC9oMz4nICsKICAgICAgJzxwPjxiPsOccsO8bjo8L2I+ICcgKyBxLnByb2R1Y3ROYW1lICsgJzwvcD4nICsKICAgICAgJzxwPjxiPlNvcnU6PC9iPiAnICsgcS5xdWVzdGlvbiArICc8L3A+JyArCiAgICAgICc8cD48Yj5UYXJpaDo8L2I+ICcgKyBxLmNyZWF0ZWREYXRlICsgJzwvcD4nICsKICAgICAgJzxwPjxiPlNvcnUgSUQ6PC9iPiAnICsgcS5pZCArICc8L3A+JyArCiAgICAgICc8cCBzdHlsZT0iY29sb3I6I2MwMzkyYiI+PGI+TMO8dGZlbiBUcmVuZHlvbCBwYW5lbGluZGVuIGNldmFwbGF5xLFuLjwvYj48L3A+JzsKICAgIGNvbnN0IHRleHQgPQogICAgICAnWUVOSSBTT1JVIChUcmVuZHlvbClcbicgKwogICAgICAnVXJ1bjogJyArIHEucHJvZHVjdE5hbWUgKyAnXG4nICsKICAgICAgJ1NvcnU6ICcgKyBxLnF1ZXN0aW9uICsgJ1xuJyArCiAgICAgICdUYXJpaDogJyArIHEuY3JlYXRlZERhdGUgKyAnXG4nICsKICAgICAgJ0x1dGZlbiBUcmVuZHlvbCBwYW5lbGluZGVuIGNldmFwbGF5aW4uJzsKICAgIGNvbnN0IHJlc3VsdCA9IGF3YWl0IG5vdGlmaWVyLm5vdGlmeShzdWJqZWN0LCBodG1sLCB0ZXh0KTsKICAgIGlmICgocmVzdWx0LmVtYWlsICYmIHJlc3VsdC5lbWFpbC5zZW50KSB8fCAocmVzdWx0LnRlbGVncmFtICYmIHJlc3VsdC50ZWxlZ3JhbS5zZW50KSkgc2VudCsrOwogIH0KCiAgaWYgKGZyZXNoLmxlbmd0aCA+IDApIHsKICAgIGRiLmFkZFFuYU5vdGlmaWVkSWRzKGZyZXNoLm1hcChxID0+IHEuaWQpKTsKICAgIGRiLmFkZExvZyhmcmVzaC5sZW5ndGggKyAnIHllbmkgc29ydSBidWx1bmR1LCAnICsgc2VudCArICcgYmlsZGlyaW0gZ8O2bmRlcmlsZGknKTsKICB9CgogIHJldHVybiB7IHRvdGFsOiBxdWVzdGlvbnMubGVuZ3RoLCBmcmVzaDogZnJlc2gubGVuZ3RoLCBzZW50IH07Cn0KCm1vZHVsZS5leHBvcnRzID0geyBzeW5jTWFya2V0cGxhY2UsIGNoZWNrU3RvY2tzLCBjaGVja1F1ZXN0aW9ucyB9Owo=
+const db = require('../db');
+const trendyol = require('./trendyol');
+const hepsiburada = require('./hepsiburada');
+const notifier = require('./notifier');
+
+function kindLabel(kind) {
+  return kind === 'trendyol' ? 'Trendyol' : 'Hepsiburada';
+}
+
+function stockField(kind) {
+  return kind + 'Stock';
+}
+
+function notifiedField(kind) {
+  return kind + 'Notified';
+}
+
+async function syncMarketplace(kind) {
+  const settings = db.getSettings();
+  let stockMap;
+
+  if (kind === 'trendyol') {
+    const cfg = settings.trendyol;
+    if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) {
+      db.addLog('Trendyol ayarları eksik, senkron atlandı');
+      return { skipped: true, reason: 'Trendyol API ayarları eksik' };
+    }
+    stockMap = await trendyol.fetchStock(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
+  } else {
+    const cfg = settings.hepsiburada;
+    if (!cfg.username || !cfg.password) {
+      db.addLog('Hepsiburada ayarları eksik, senkron atlandı');
+      return { skipped: true, reason: 'Hepsiburada API ayarları eksik' };
+    }
+    stockMap = await hepsiburada.fetchStock(cfg.username, cfg.password);
+  }
+
+  const now = new Date().toISOString();
+  let updated = 0;
+  let created = 0;
+  let changed = false;
+  const sales = [];
+
+  for (const [barcode, qty] of stockMap.entries()) {
+    const existing = db.findProductByBarcode(barcode);
+    if (existing) {
+      const oldQty = existing[stockField(kind)];
+      if (oldQty !== null && oldQty !== undefined && Number(oldQty) === qty) continue;
+      db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now });
+      updated++;
+      changed = true;
+      if (oldQty !== null && oldQty !== undefined) {
+        const diff = Number(oldQty) - qty;
+        if (diff > 0) {
+          sales.push({
+            name: existing.name,
+            barcode,
+            market: kindLabel(kind),
+            diff,
+            oldQty: Number(oldQty),
+            newQty: qty
+          });
+        }
+      }
+    } else {
+      db.addProduct({ name: barcode + ' (API)', barcode, [stockField(kind)]: qty });
+      created++;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    db.addLog(kindLabel(kind) + ' senkronu tamam: ' + updated + ' güncellendi, ' + created + ' yeni eklendi');
+  }
+
+  if (sales.length > 0) {
+    for (const sale of sales) {
+      await notifySale(sale);
+    }
+    db.addLog(sales.length + ' satış/azalma tespit edildi, bildirim gönderildi');
+  }
+
+  return { updated, created, sales: sales.length };
+}
+
+function notifySale(sale) {
+  const subject = 'Satış: ' + sale.name + ' (' + sale.market + ')';
+  const html =
+    '<h3>Bir satış gerçekleşti</h3>' +
+    '<p><b>Ürün:</b> ' + sale.name + '</p>' +
+    '<p><b>Barkod:</b> ' + sale.barcode + '</p>' +
+    '<p><b>Pazar yeri:</b> ' + sale.market + '</p>' +
+    '<p><b>Satılan adet:</b> ' + sale.diff + '</p>' +
+    '<p><b>Önceki stok:</b> ' + sale.oldQty + ' → <b>Yeni stok:</b> ' + sale.newQty + '</p>';
+  const text =
+    'SATIS: ' + sale.name + ' (' + sale.market + ')\n' +
+    'Barkod: ' + sale.barcode + '\n' +
+    'Satilan adet: ' + sale.diff + '\n' +
+    'Stok: ' + sale.oldQty + ' -> ' + sale.newQty;
+  return notifier.notify(subject, html, text);
+}
+
+async function checkStocks() {
+  const settings = db.getSettings();
+  const threshold = Math.max(0, Number(settings.sync.threshold) || 1);
+  const products = db.getProducts();
+  for (const p of products) {
+    for (const kind of ['trendyol', 'hepsiburada']) {
+      const qty = p[stockField(kind)];
+      if (qty === null || qty === undefined) continue;
+      const stock = Number(qty);
+
+      if (stock <= threshold) {
+        if (!p[notifiedField(kind)]) {
+          db.updateProduct(p.id, { [notifiedField(kind)]: true });
+          const market = kindLabel(kind);
+          const subject = 'KRİTİK STOK: ' + p.name + ' (' + market + ')';
+          const html =
+            '<h3>Dikkat! Stok kritik seviyede</h3>' +
+            '<p><b>Ürün:</b> ' + p.name + '</p>' +
+            '<p><b>Barkod:</b> ' + p.barcode + '</p>' +
+            '<p><b>Pazar yeri:</b> ' + market + '</p>' +
+            '<p><b>Kalan stok:</b> ' + stock + '</p>' +
+            '<p style="color:#c0392b"><b>' + market + ' mağazasında stok ' + threshold + ' ve altına düştü. Lütfen stok girişi yap.</b></p>';
+          const text =
+            'KRITIK STOK: ' + p.name + ' (' + market + ')\n' +
+            'Barkod: ' + p.barcode + '\n' +
+            'Kalan stok: ' + stock + '\n' +
+            market + ' magazasinda stok ' + threshold + ' ve altina dustu. Lutfen stok girisi yap.';
+          await notifier.notify(subject, html, text);
+        }
+      } else {
+        if (p[notifiedField(kind)]) {
+          db.updateProduct(p.id, { [notifiedField(kind)]: false });
+        }
+      }
+    }
+  }
+}
+
+async function checkQuestions() {
+  const settings = db.getSettings();
+  const cfg = settings.trendyol;
+  if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) {
+    return { skipped: true, reason: 'Trendyol API ayarları eksik' };
+  }
+
+  let questions;
+  try {
+    questions = await trendyol.fetchQuestions(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
+  } catch (e) {
+    db.addLog('Trendyol soru çekme hatası: ' + e.message);
+    return { error: e.message };
+  }
+
+  const notified = new Set(db.getQnaNotifiedIds());
+  const fresh = questions.filter(q => !notified.has(q.id));
+  let sent = 0;
+
+  for (const q of fresh) {
+    const subject = 'YENİ SORU: ' + q.productName;
+    const html =
+      '<h3>Trendyol üzerinden yeni bir ürün sorusu geldi</h3>' +
+      '<p><b>Ürün:</b> ' + q.productName + '</p>' +
+      '<p><b>Soru:</b> ' + q.question + '</p>' +
+      '<p><b>Tarih:</b> ' + q.createdDate + '</p>' +
+      '<p><b>Soru ID:</b> ' + q.id + '</p>' +
+      '<p style="color:#c0392b"><b>Lütfen Trendyol panelinden cevaplayın.</b></p>';
+    const text =
+      'YENI SORU (Trendyol)\n' +
+      'Urun: ' + q.productName + '\n' +
+      'Soru: ' + q.question + '\n' +
+      'Tarih: ' + q.createdDate + '\n' +
+      'Lutfen Trendyol panelinden cevaplayin.';
+    const result = await notifier.notify(subject, html, text);
+    if ((result.email && result.email.sent) || (result.telegram && result.telegram.sent)) sent++;
+  }
+
+  if (fresh.length > 0) {
+    db.addQnaNotifiedIds(fresh.map(q => q.id));
+    db.addLog(fresh.length + ' yeni soru bulundu, ' + sent + ' bildirim gönderildi');
+  }
+
+  return { total: questions.length, fresh: fresh.length, sent };
+}
+
+module.exports = { syncMarketplace, checkStocks, checkQuestions };

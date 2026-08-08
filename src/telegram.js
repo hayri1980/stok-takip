@@ -1,1 +1,139 @@
-Y29uc3QgZGIgPSByZXF1aXJlKCcuLi9kYicpOwpjb25zdCB7IHNlbmRUZWxlZ3JhbVRvIH0gPSByZXF1aXJlKCcuL25vdGlmaWVyJyk7CmNvbnN0IHRyZW5keW9sID0gcmVxdWlyZSgnLi90cmVuZHlvbCcpOwoKbGV0IG9mZnNldCA9IDA7CmxldCBydW5uaW5nID0gZmFsc2U7CgpmdW5jdGlvbiBzbGVlcChtcykgewogIHJldHVybiBuZXcgUHJvbWlzZShyZXNvbHZlID0+IHNldFRpbWVvdXQocmVzb2x2ZSwgbXMpKTsKfQoKZnVuY3Rpb24gZm10U3RvY2soc3RvY2spIHsKICByZXR1cm4gc3RvY2sgPT09IG51bGwgfHwgc3RvY2sgPT09IHVuZGVmaW5lZCA/ICctJyA6IFN0cmluZyhzdG9jayk7Cn0KCmZ1bmN0aW9uIHN0b2NrUmVwb3J0KCkgewogIGNvbnN0IHByb2R1Y3RzID0gZGIuZ2V0UHJvZHVjdHMoKTsKICBjb25zdCB0aHJlc2hvbGQgPSBNYXRoLm1heCgwLCBOdW1iZXIoZGIuZ2V0U2V0dGluZ3MoKS5zeW5jLnRocmVzaG9sZCkgfHwgMSk7CiAgbGV0IGNyaXRpY2FsID0gMDsKICBsZXQgc29sZE91dCA9IDA7CgogIGNvbnN0IGxpbmVzID0gcHJvZHVjdHMubWFwKChwLCBpKSA9PiB7CiAgICBjb25zdCB0eSA9IHAudHJlbmR5b2xTdG9jazsKICAgIGNvbnN0IGhiID0gcC5oZXBzaWJ1cmFkYVN0b2NrOwogICAgbGV0IG1hcmsgPSAnJzsKICAgIGlmICh0eSAhPT0gbnVsbCAmJiB0eSAhPT0gdW5kZWZpbmVkICYmIHR5IDw9IHRocmVzaG9sZCkgbWFyayA9ICcgW0tSSVRJS10nOwogICAgaWYgKGhiICE9PSBudWxsICYmIGhiICE9PSB1bmRlZmluZWQgJiYgaGIgPD0gdGhyZXNob2xkKSBtYXJrID0gbWFyayArICcgW0tSSVRJS10nOwogICAgaWYgKHR5ICE9PSBudWxsICYmIHR5IDw9IDApIHNvbGRPdXQrKzsKICAgIGlmIChoYiAhPT0gbnVsbCAmJiBoYiA8PSAwKSBzb2xkT3V0Kys7CiAgICBpZiAoKHR5ICE9PSBudWxsICYmIHR5IDw9IHRocmVzaG9sZCkgfHwgKGhiICE9PSBudWxsICYmIGhiIDw9IHRocmVzaG9sZCkpIGNyaXRpY2FsKys7CiAgICByZXR1cm4gKGkgKyAxKSArICcpICcgKyBwLm5hbWUgKyAnIHwgVFk6ICcgKyBmbXRTdG9jayh0eSkgKyAnIHwgSEI6ICcgKyBmbXRTdG9jayhoYikgKyBtYXJrOwogIH0pOwoKICBjb25zdCBoZWFkZXIgPSAnU1RPSyBEVVJVTVUgKCcgKyBwcm9kdWN0cy5sZW5ndGggKyAnIHVydW4pJzsKICBpZiAobGluZXMubGVuZ3RoID09PSAwKSByZXR1cm4gaGVhZGVyICsgJ1xuSGVudXogdXJ1biB5b2suJzsKICByZXR1cm4gaGVhZGVyICsgJ1xuJyArIGxpbmVzLmpvaW4oJ1xuJykgKyAnXG4tLS0tXG5Lcml0aWs6ICcgKyBjcml0aWNhbCArICcgfCBCaXRlbjogJyArIHNvbGRPdXQ7Cn0KCmZ1bmN0aW9uIHByb2R1Y3REZXRhaWwocCkgewogIGNvbnN0IHRocmVzaG9sZCA9IE1hdGgubWF4KDAsIE51bWJlcihkYi5nZXRTZXR0aW5ncygpLnN5bmMudGhyZXNob2xkKSB8fCAxKTsKICBjb25zdCB0eSA9IHAudHJlbmR5b2xTdG9jazsKICBjb25zdCBoYiA9IHAuaGVwc2lidXJhZGFTdG9jazsKICBjb25zdCB0eVN0YXR1cyA9IHR5ID09PSBudWxsIHx8IHR5ID09PSB1bmRlZmluZWQgPyAnYmlsaW5taXlvcicgOiAodHkgPD0gdGhyZXNob2xkID8gJ0tSSVRJSycgOiAndmFyJyk7CiAgY29uc3QgaGJTdGF0dXMgPSBoYiA9PT0gbnVsbCB8fCBoYiA9PT0gdW5kZWZpbmVkID8gJ2JpbGlubWl5b3InIDogKGhiIDw9IHRocmVzaG9sZCA/ICdLUklUSUsnIDogJ3ZhcicpOwogIHJldHVybiAnVVJVTjogJyArIHAubmFtZSArCiAgICAnXG5CYXJrb2Q6ICcgKyBwLmJhcmNvZGUgKwogICAgJ1xuVHJlbmR5b2w6ICcgKyBmbXRTdG9jayh0eSkgKyAnICgnICsgdHlTdGF0dXMgKyAnKScgKwogICAgJ1xuSGVwc2lidXJhZGE6ICcgKyBmbXRTdG9jayhoYikgKyAnICgnICsgaGJTdGF0dXMgKyAnKSc7Cn0KCmZ1bmN0aW9uIGhlbHBUZXh0KCkgewogIHJldHVybiAnS29tdXRsYXI6XG4nICsKICAgICcvc3RvayAtIHR1bSB1cnVubGVyaW4gc3RvayBkdXJ1bXVcbicgKwogICAgJy9zdG9rIEJBUktPRCAtIHRlayB1cnVudW4gc3Rva3UgKG9ybmVrOiAvc3RvayAxMFRYNClcbicgKwogICAgJy9zb3J1bGFyIC0gYmVrbGV5ZW4gVHJlbmR5b2wgdXJ1biBzb3J1bGFyaVxuJyArCiAgICAnL3lhcmRpbSAtIGJ1IG1lc2FqJzsKfQoKYXN5bmMgZnVuY3Rpb24gaGFuZGxlTWVzc2FnZShtc2cpIHsKICBjb25zdCB0ZXh0ID0gKG1zZy50ZXh0IHx8ICcnKS50cmltKCk7CiAgaWYgKCF0ZXh0LnN0YXJ0c1dpdGgoJy8nKSkgcmV0dXJuOwogIGNvbnN0IGNoYXRJZCA9IG1zZy5jaGF0LmlkOwogIGNvbnN0IHBhcnRzID0gdGV4dC5zcGxpdCgvXHMrLyk7CiAgY29uc3QgY21kID0gcGFydHNbMF0udG9Mb3dlckNhc2UoKTsKCiAgaWYgKGNtZCA9PT0gJy9zdG9rJyB8fCBjbWQgPT09ICcvZHVydW0nIHx8IGNtZCA9PT0gJy9yYXBvcicpIHsKICAgIGNvbnN0IGFyZyA9IHBhcnRzLnNsaWNlKDEpLmpvaW4oJyAnKTsKICAgIGlmIChhcmcpIHsKICAgICAgY29uc3QgdGFyZ2V0ID0gYXJnLnRvTG93ZXJDYXNlKCk7CiAgICAgIGNvbnN0IHByb2R1Y3QgPSBkYi5maW5kUHJvZHVjdEJ5QmFyY29kZShhcmcpIHx8CiAgICAgICAgZGIuZ2V0UHJvZHVjdHMoKS5maW5kKHAgPT4gKHAubmFtZSB8fCAnJykudG9Mb3dlckNhc2UoKSA9PT0gdGFyZ2V0IHx8IChwLmJhcmNvZGUgfHwgJycpLnRvTG93ZXJDYXNlKCkgPT09IHRhcmdldCk7CiAgICAgIGlmIChwcm9kdWN0KSB7CiAgICAgICAgYXdhaXQgc2VuZFRlbGVncmFtVG8oY2hhdElkLCBwcm9kdWN0RGV0YWlsKHByb2R1Y3QpKTsKICAgICAgfSBlbHNlIHsKICAgICAgICBhd2FpdCBzZW5kVGVsZWdyYW1UbyhjaGF0SWQsICdCYXJrb2QgYnVsdW5hbWFkaTogJyArIGFyZyk7CiAgICAgIH0KICAgIH0gZWxzZSB7CiAgICAgIGF3YWl0IHNlbmRUZWxlZ3JhbVRvKGNoYXRJZCwgc3RvY2tSZXBvcnQoKSk7CiAgICB9CiAgfSBlbHNlIGlmIChjbWQgPT09ICcvc29ydWxhcicgfHwgY21kID09PSAnL3FhJykgewogICAgY29uc3QgY2ZnID0gZGIuZ2V0U2V0dGluZ3MoKS50cmVuZHlvbDsKICAgIGlmICghY2ZnLmFwaUtleSB8fCAhY2ZnLmFwaVNlY3JldCB8fCAhY2ZnLnNlbGxlcklkKSB7CiAgICAgIGF3YWl0IHNlbmRUZWxlZ3JhbVRvKGNoYXRJZCwgJ1RyZW5keW9sIEFQSSBheWFybGFyaSBla3Npay4nKTsKICAgICAgcmV0dXJuOwogICAgfQogICAgdHJ5IHsKICAgICAgY29uc3QgcXVlc3Rpb25zID0gYXdhaXQgdHJlbmR5b2wuZmV0Y2hRdWVzdGlvbnMoY2ZnLnNlbGxlcklkLCBjZmcuYXBpS2V5LCBjZmcuYXBpU2VjcmV0KTsKICAgICAgaWYgKHF1ZXN0aW9ucy5sZW5ndGggPT09IDApIHsKICAgICAgICBhd2FpdCBzZW5kVGVsZWdyYW1UbyhjaGF0SWQsICdCZWtsZXllbiBzb3J1IHlvay4nKTsKICAgICAgfSBlbHNlIHsKICAgICAgICBjb25zdCBsaW5lcyA9IHF1ZXN0aW9ucy5tYXAoKHEsIGkpID0+CiAgICAgICAgICAoaSArIDEpICsgJykgJyArIChxLnByb2R1Y3ROYW1lIHx8ICdCaWxpbm1leWVuIHVydW4nKSArICdcbiAgICcgKyBxLnF1ZXN0aW9uCiAgICAgICAgKTsKICAgICAgICBhd2FpdCBzZW5kVGVsZWdyYW1UbyhjaGF0SWQsICdCRUtMRVlFTiBTT1JVTEFSICgnICsgcXVlc3Rpb25zLmxlbmd0aCArICcpXG5cbicgKyBsaW5lcy5qb2luKCdcbicpKTsKICAgICAgfQogICAgfSBjYXRjaCAoZSkgewogICAgICBhd2FpdCBzZW5kVGVsZWdyYW1UbyhjaGF0SWQsICdTb3J1IGNla2lsZW1lZGk6ICcgKyBlLm1lc3NhZ2UpOwogICAgfQogIH0gZWxzZSBpZiAoY21kID09PSAnL3lhcmRpbScgfHwgY21kID09PSAnL2hlbHAnKSB7CiAgICBhd2FpdCBzZW5kVGVsZWdyYW1UbyhjaGF0SWQsIGhlbHBUZXh0KCkpOwogIH0KfQoKYXN5bmMgZnVuY3Rpb24gcG9sbExvb3AoKSB7CiAgd2hpbGUgKHRydWUpIHsKICAgIGNvbnN0IHRnID0gZGIuZ2V0U2V0dGluZ3MoKS50ZWxlZ3JhbTsKICAgIGlmICghdGcuZW5hYmxlZCB8fCAhdGcuYm90VG9rZW4pIHsKICAgICAgYXdhaXQgc2xlZXAoMTAwMDApOwogICAgICBjb250aW51ZTsKICAgIH0KICAgIHRyeSB7CiAgICAgIGNvbnN0IHVybCA9ICdodHRwczovL2FwaS50ZWxlZ3JhbS5vcmcvYm90JyArIHRnLmJvdFRva2VuICsgJy9nZXRVcGRhdGVzP3RpbWVvdXQ9MjUmb2Zmc2V0PScgKyBvZmZzZXQ7CiAgICAgIGNvbnN0IHJlcyA9IGF3YWl0IGZldGNoKHVybCwgeyBzaWduYWw6IEFib3J0U2lnbmFsLnRpbWVvdXQoNDAwMDApIH0pOwogICAgICBjb25zdCBkYXRhID0gYXdhaXQgcmVzLmpzb24oKTsKICAgICAgaWYgKGRhdGEub2sgJiYgQXJyYXkuaXNBcnJheShkYXRhLnJlc3VsdCkpIHsKICAgICAgICBmb3IgKGNvbnN0IHVwZGF0ZSBvZiBkYXRhLnJlc3VsdCkgewogICAgICAgICAgaWYgKHVwZGF0ZS51cGRhdGVfaWQgPj0gb2Zmc2V0KSBvZmZzZXQgPSB1cGRhdGUudXBkYXRlX2lkICsgMTsKICAgICAgICAgIGlmICh1cGRhdGUubWVzc2FnZSkgewogICAgICAgICAgICB0cnkgewogICAgICAgICAgICAgIGF3YWl0IGhhbmRsZU1lc3NhZ2UodXBkYXRlLm1lc3NhZ2UpOwogICAgICAgICAgICB9IGNhdGNoIChlKSB7CiAgICAgICAgICAgICAgZGIuYWRkTG9nKCdUZWxlZ3JhbSBrb211dCBoYXRhc8SxOiAnICsgZS5tZXNzYWdlKTsKICAgICAgICAgICAgfQogICAgICAgICAgfQogICAgICAgIH0KICAgICAgfQogICAgfSBjYXRjaCAoZSkgewogICAgICBhd2FpdCBzbGVlcCgzMDAwKTsKICAgIH0KICB9Cn0KCmZ1bmN0aW9uIHN0YXJ0KCkgewogIGlmIChydW5uaW5nKSByZXR1cm47CiAgcnVubmluZyA9IHRydWU7CiAgcG9sbExvb3AoKTsKfQoKbW9kdWxlLmV4cG9ydHMgPSB7IHN0YXJ0IH07Cg==
+const db = require('../db');
+const { sendTelegramTo } = require('./notifier');
+const trendyol = require('./trendyol');
+
+let offset = 0;
+let running = false;
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function fmtStock(stock) {
+  return stock === null || stock === undefined ? '-' : String(stock);
+}
+
+function stockReport() {
+  const products = db.getProducts();
+  const threshold = Math.max(0, Number(db.getSettings().sync.threshold) || 1);
+  let critical = 0;
+  let soldOut = 0;
+
+  const lines = products.map((p, i) => {
+    const ty = p.trendyolStock;
+    const hb = p.hepsiburadaStock;
+    let mark = '';
+    if (ty !== null && ty !== undefined && ty <= threshold) mark = ' [KRITIK]';
+    if (hb !== null && hb !== undefined && hb <= threshold) mark = mark + ' [KRITIK]';
+    if (ty !== null && ty <= 0) soldOut++;
+    if (hb !== null && hb <= 0) soldOut++;
+    if ((ty !== null && ty <= threshold) || (hb !== null && hb <= threshold)) critical++;
+    return (i + 1) + ') ' + p.name + ' | TY: ' + fmtStock(ty) + ' | HB: ' + fmtStock(hb) + mark;
+  });
+
+  const header = 'STOK DURUMU (' + products.length + ' urun)';
+  if (lines.length === 0) return header + '\nHenuz urun yok.';
+  return header + '\n' + lines.join('\n') + '\n----\nKritik: ' + critical + ' | Biten: ' + soldOut;
+}
+
+function productDetail(p) {
+  const threshold = Math.max(0, Number(db.getSettings().sync.threshold) || 1);
+  const ty = p.trendyolStock;
+  const hb = p.hepsiburadaStock;
+  const tyStatus = ty === null || ty === undefined ? 'bilinmiyor' : (ty <= threshold ? 'KRITIK' : 'var');
+  const hbStatus = hb === null || hb === undefined ? 'bilinmiyor' : (hb <= threshold ? 'KRITIK' : 'var');
+  return 'URUN: ' + p.name +
+    '\nBarkod: ' + p.barcode +
+    '\nTrendyol: ' + fmtStock(ty) + ' (' + tyStatus + ')' +
+    '\nHepsiburada: ' + fmtStock(hb) + ' (' + hbStatus + ')';
+}
+
+function helpText() {
+  return 'Komutlar:\n' +
+    '/stok - tum urunlerin stok durumu\n' +
+    '/stok BARKOD - tek urunun stoku (ornek: /stok 10TX4)\n' +
+    '/sorular - bekleyen Trendyol urun sorulari\n' +
+    '/yardim - bu mesaj';
+}
+
+async function handleMessage(msg) {
+  const text = (msg.text || '').trim();
+  if (!text.startsWith('/')) return;
+  const chatId = msg.chat.id;
+  const parts = text.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+
+  if (cmd === '/stok' || cmd === '/durum' || cmd === '/rapor') {
+    const arg = parts.slice(1).join(' ');
+    if (arg) {
+      const target = arg.toLowerCase();
+      const product = db.findProductByBarcode(arg) ||
+        db.getProducts().find(p => (p.name || '').toLowerCase() === target || (p.barcode || '').toLowerCase() === target);
+      if (product) {
+        await sendTelegramTo(chatId, productDetail(product));
+      } else {
+        await sendTelegramTo(chatId, 'Barkod bulunamadi: ' + arg);
+      }
+    } else {
+      await sendTelegramTo(chatId, stockReport());
+    }
+  } else if (cmd === '/sorular' || cmd === '/qa') {
+    const cfg = db.getSettings().trendyol;
+    if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) {
+      await sendTelegramTo(chatId, 'Trendyol API ayarlari eksik.');
+      return;
+    }
+    try {
+      const questions = await trendyol.fetchQuestions(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
+      if (questions.length === 0) {
+        await sendTelegramTo(chatId, 'Bekleyen soru yok.');
+      } else {
+        const lines = questions.map((q, i) =>
+          (i + 1) + ') ' + (q.productName || 'Bilinmeyen urun') + '\n   ' + q.question
+        );
+        await sendTelegramTo(chatId, 'BEKLEYEN SORULAR (' + questions.length + ')\n\n' + lines.join('\n'));
+      }
+    } catch (e) {
+      await sendTelegramTo(chatId, 'Soru cekilemedi: ' + e.message);
+    }
+  } else if (cmd === '/yardim' || cmd === '/help') {
+    await sendTelegramTo(chatId, helpText());
+  }
+}
+
+async function pollLoop() {
+  while (true) {
+    const tg = db.getSettings().telegram;
+    if (!tg.enabled || !tg.botToken) {
+      await sleep(10000);
+      continue;
+    }
+    try {
+      const url = 'https://api.telegram.org/bot' + tg.botToken + '/getUpdates?timeout=25&offset=' + offset;
+      const res = await fetch(url, { signal: AbortSignal.timeout(40000) });
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.result)) {
+        for (const update of data.result) {
+          if (update.update_id >= offset) offset = update.update_id + 1;
+          if (update.message) {
+            try {
+              await handleMessage(update.message);
+            } catch (e) {
+              db.addLog('Telegram komut hatası: ' + e.message);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      await sleep(3000);
+    }
+  }
+}
+
+function start() {
+  if (running) return;
+  running = true;
+  pollLoop();
+}
+
+module.exports = { start };

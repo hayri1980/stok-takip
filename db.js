@@ -1,1 +1,396 @@
-Y29uc3QgZnMgPSByZXF1aXJlKCdmcycpOwpjb25zdCBwYXRoID0gcmVxdWlyZSgncGF0aCcpOwpjb25zdCBjcnlwdG8gPSByZXF1aXJlKCdjcnlwdG8nKTsKY29uc3QgYmFja3VwID0gcmVxdWlyZSgnLi9zcmMvYmFja3VwJyk7Cgpjb25zdCBEQVRBX0RJUiA9IHBhdGguam9pbihfX2Rpcm5hbWUsICdkYXRhJyk7CmNvbnN0IERBVEFfRklMRSA9IHBhdGguam9pbihEQVRBX0RJUiwgJ3N0b3JlLmpzb24nKTsKCmxldCBzdGF0ZSA9IG51bGw7CgpmdW5jdGlvbiBkZWZhdWx0RGF0YSgpIHsKICByZXR1cm4gewogICAgcHJvZHVjdHM6IFtdLAogICAgc2V0dGluZ3M6IHsKICAgICAgbWFpbDogeyBmcm9tOiAnJywgcGFzc3dvcmQ6ICcnLCB0bzogJycsIGVuYWJsZWQ6IGZhbHNlLCBub3RpZnlTYWxlczogdHJ1ZSB9LAogICAgICB0ZWxlZ3JhbTogeyBib3RUb2tlbjogJycsIGNoYXRJZDogJycsIGVuYWJsZWQ6IGZhbHNlIH0sCiAgICAgIHRyZW5keW9sOiB7IGFwaUtleTogJycsIGFwaVNlY3JldDogJycsIHNlbGxlcklkOiAnJyB9LAogICAgICBoZXBzaWJ1cmFkYTogeyB1c2VybmFtZTogJycsIHBhc3N3b3JkOiAnJyB9LAogICAgICBzeW5jOiB7IGludGVydmFsTWludXRlczogMzAsIHRocmVzaG9sZDogMSwgcG9sbFNlY29uZHM6IDE1IH0KICAgIH0sCiAgICBsb2c6IFtdLAogICAgcW5hTm90aWZpZWRJZHM6IFtdLAogICAgICBzaG9wOiB7CiAgICAgICAgcHJvZHVjdHM6IFtdLAogICAgICAgIG9yZGVyczogW10sCiAgICAgICAgc3RhdHM6IHsgdmlzaXRzOiAwLCBkYWlseToge30gfSwKICAgICAgICBzZXR0aW5nczogewogICAgICAgICAgc3RvcmVOYW1lOiAnQ2FwYXJpY2knLAogICAgICAgICAgZG9tYWluOiAnY2FwYXJpY2kuY29tJywKICAgICAgICAgIHBob25lOiAnJywKICAgICAgICAgIHdoYXRzYXBwOiAnJywKICAgICAgICAgIGFkZHJlc3M6ICcnLAogICAgICAgICAgaWJhbjogJycsCiAgICAgICAgICBpYmFuSG9sZGVyOiAnJywKICAgICAgICAgIGNhcmdvRmVlOiAwLAogICAgICAgICAgZnJlZVNoaXBwaW5nVGhyZXNob2xkOiAwLAogICAgICAgICAgY2FyZ29Db21wYW55OiAnU8O8cmF0IEthcmdvJywKICAgICAgICAgIGNhcmdvVHJhY2tpbmdVcmw6ICdodHRwczovL2dvbmRlcml0YWtpcC5zdXJhdGthcmdvLmNvbS50ci9Tb3JndS8nLAogICAgICAgICAgaXl6aWNvOiB7IGFwaUtleTogJycsIHNlY3JldEtleTogJycsIGJhc2VVcmw6ICdodHRwczovL3NhbmRib3gtYXBpLml5emljby5jb20nLCBlbmFibGVkOiBmYWxzZSB9LAogICAgICAgICAgYmlyZmF0dXJhOiB7IGVuZHBvaW50OiAnJywgdXNlcm5hbWU6ICcnLCBwYXNzd29yZDogJycsIGVuYWJsZWQ6IGZhbHNlLCBpbnZvaWNlVHlwZTogJ2VhcnNpdicsIHRheFJhdGU6IDIwIH0sCiAgICAgICAgICBub3RpZnlUZWxlZ3JhbTogdHJ1ZSwKICAgICAgICAgIG1ldGFEZXNjcmlwdGlvbjogJ8Swc3RhdnJpdCwgdXNrdW1ydSwgbMO8ZmVyLCBwYWxhbXV0LCDDp2luZWtvcCB2ZSBrb2x5b3ogw6dhcGFyaSBtb2RlbGxlcmkuIDcgbGksIDEwIGx1LCAxNSBsaSDDp2FwYXJpLCDDp2FwYXJpIGvDtnN0ZWtsZXJpIHZlIHllbWxpIGRpcCB0YWvEsW1sYXLEsSB1eWd1biBmaXlhdGEuIEvEsXnEsSB2ZSB0ZWtuZSDDp2FwYXJpIHNldGxlcmkuJywKICAgICAgICAgIG1ldGFLZXl3b3JkczogJ8OnYXBhcmksIGlzdGF2cml0IMOnYXBhcmlzaSwgZ2VjZSBpc3RhdnJpdCDDp2FwYXJpc2ksIGdlY2Ugw6dhcGFyaXNpLCB1c2t1bXJ1IMOnYXBhcmlzaSwga29seW96IMOnYXBhcmlzaSwgw6dpbmVrb3Agw6dhcGFyaXNpLCBsw7xmZXIgw6dhcGFyaXNpLCBwYWxhbXV0IMOnYXBhcmlzaSwgZ8O8bcO8xZ8gw6dhcGFyaXNpLCDDp2FwYXJpIGvDtnN0ZWtsZXJpLCA3IGxpIGlzdGF2cml0IMOnYXBhcmlzaSwgMTAgbHUgaXN0YXZyaXQgw6dhcGFyaXNpLCBrxLF5xLEgw6dhcGFyaXNpLCB0ZWtuZSDDp2FwYXJpc2ksIDE1IGxpIMOnYXBhcmksIHllbWxpIGRpcCB0YWvEsW1sYXLEsSwgb2x0YSwgYmFsxLFrw6fEsWzEsWsgbWFsemVtZWxlcmknCiAgICAgICAgfQogICAgICB9CiAgfTsKfQoKZnVuY3Rpb24gbG9hZCgpIHsKICBpZiAoc3RhdGUpIHJldHVybiBzdGF0ZTsKICBpZiAoIWZzLmV4aXN0c1N5bmMoREFUQV9GSUxFKSkgewogICAgc3RhdGUgPSBkZWZhdWx0RGF0YSgpOwogICAgc2F2ZSgpOwogICAgcmV0dXJuIHN0YXRlOwogIH0KICB0cnkgewogICAgc3RhdGUgPSBKU09OLnBhcnNlKGZzLnJlYWRGaWxlU3luYyhEQVRBX0ZJTEUsICd1dGY4JykpOwogIH0gY2F0Y2ggKGUpIHsKICAgIHN0YXRlID0gZGVmYXVsdERhdGEoKTsKICAgIHNhdmUoKTsKICAgIHJldHVybiBzdGF0ZTsKICB9CiAgY29uc3QgZGVmID0gZGVmYXVsdERhdGEoKTsKICBzdGF0ZS5zZXR0aW5ncyA9IG1lcmdlU2V0dGluZ3MoZGVmLnNldHRpbmdzLCBzdGF0ZS5zZXR0aW5ncyB8fCB7fSk7CiAgaWYgKCFBcnJheS5pc0FycmF5KHN0YXRlLnByb2R1Y3RzKSkgc3RhdGUucHJvZHVjdHMgPSBbXTsKICBpZiAoIUFycmF5LmlzQXJyYXkoc3RhdGUubG9nKSkgc3RhdGUubG9nID0gW107CiAgaWYgKCFBcnJheS5pc0FycmF5KHN0YXRlLnFuYU5vdGlmaWVkSWRzKSkgc3RhdGUucW5hTm90aWZpZWRJZHMgPSBbXTsKICBpZiAoIXN0YXRlLnNob3ApIHN0YXRlLnNob3AgPSB7fTsKICBpZiAoIUFycmF5LmlzQXJyYXkoc3RhdGUuc2hvcC5wcm9kdWN0cykpIHN0YXRlLnNob3AucHJvZHVjdHMgPSBbXTsKICBpZiAoIUFycmF5LmlzQXJyYXkoc3RhdGUuc2hvcC5vcmRlcnMpKSBzdGF0ZS5zaG9wLm9yZGVycyA9IFtdOwogIGlmICghc3RhdGUuc2hvcC5zdGF0cykgc3RhdGUuc2hvcC5zdGF0cyA9IHsgdmlzaXRzOiAwLCBkYWlseToge30gfTsKICBzdGF0ZS5zaG9wLnNldHRpbmdzID0gbWVyZ2VTaG9wU2V0dGluZ3MoZGVmLnNob3Auc2V0dGluZ3MsIHN0YXRlLnNob3Auc2V0dGluZ3MgfHwge30pOwogIHNhdmUoKTsKICByZXR1cm4gc3RhdGU7Cn0KCmZ1bmN0aW9uIHNhdmUoKSB7CiAgaWYgKCFmcy5leGlzdHNTeW5jKERBVEFfRElSKSkgZnMubWtkaXJTeW5jKERBVEFfRElSLCB7IHJlY3Vyc2l2ZTogdHJ1ZSB9KTsKICBjb25zdCB0bXAgPSBEQVRBX0ZJTEUgKyAnLnRtcCc7CiAgZnMud3JpdGVGaWxlU3luYyh0bXAsIEpTT04uc3RyaW5naWZ5KHN0YXRlLCBudWxsLCAyKSwgJ3V0ZjgnKTsKICBmcy5yZW5hbWVTeW5jKHRtcCwgREFUQV9GSUxFKTsKICBiYWNrdXAuYmFja3VwTm93KCk7Cn0KCmZ1bmN0aW9uIGdlbklkKCkgewogIHJldHVybiBjcnlwdG8ucmFuZG9tVVVJRCgpOwp9CgpmdW5jdGlvbiBhZGRMb2cobWVzc2FnZSkgewogIGxvYWQoKTsKICBzdGF0ZS5sb2cudW5zaGlmdCh7IHRpbWU6IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKSwgbWVzc2FnZSB9KTsKICBpZiAoc3RhdGUubG9nLmxlbmd0aCA+IDUwMCkgc3RhdGUubG9nID0gc3RhdGUubG9nLnNsaWNlKDAsIDUwMCk7CiAgc2F2ZSgpOwogIHJldHVybiBzdGF0ZS5sb2c7Cn0KCmZ1bmN0aW9uIGRlZmF1bHRQcm9kdWN0KGRhdGEpIHsKICByZXR1cm4gewogICAgaWQ6IGdlbklkKCksCiAgICBuYW1lOiBkYXRhLm5hbWUgfHwgJycsCiAgICBiYXJjb2RlOiAoZGF0YS5iYXJjb2RlIHx8ICcnKS50cmltKCksCiAgICB0cmVuZHlvbFN0b2NrOiBkYXRhLnRyZW5keW9sU3RvY2sgIT09IHVuZGVmaW5lZCAmJiBkYXRhLnRyZW5keW9sU3RvY2sgIT09IG51bGwgPyBOdW1iZXIoZGF0YS50cmVuZHlvbFN0b2NrKSA6IG51bGwsCiAgICBoZXBzaWJ1cmFkYVN0b2NrOiBkYXRhLmhlcHNpYnVyYWRhU3RvY2sgIT09IHVuZGVmaW5lZCAmJiBkYXRhLmhlcHNpYnVyYWRhU3RvY2sgIT09IG51bGwgPyBOdW1iZXIoZGF0YS5oZXBzaWJ1cmFkYVN0b2NrKSA6IG51bGwsCiAgICB0cmVuZHlvbE5vdGlmaWVkOiBmYWxzZSwKICAgIGhlcHNpYnVyYWRhTm90aWZpZWQ6IGZhbHNlLAogICAgbGFzdFN5bmM6IG51bGwsCiAgICBjcmVhdGVkQXQ6IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKQogIH07Cn0KCmZ1bmN0aW9uIGdldFByb2R1Y3RzKCkgewogIGxvYWQoKTsKICByZXR1cm4gc3RhdGUucHJvZHVjdHM7Cn0KCmZ1bmN0aW9uIGZpbmRQcm9kdWN0QnlCYXJjb2RlKGJhcmNvZGUpIHsKICBsb2FkKCk7CiAgcmV0dXJuIHN0YXRlLnByb2R1Y3RzLmZpbmQocCA9PiBwLmJhcmNvZGUgPT09IGJhcmNvZGUpIHx8IG51bGw7Cn0KCmZ1bmN0aW9uIGdldFByb2R1Y3QoaWQpIHsKICBsb2FkKCk7CiAgcmV0dXJuIHN0YXRlLnByb2R1Y3RzLmZpbmQocCA9PiBwLmlkID09PSBpZCkgfHwgbnVsbDsKfQoKZnVuY3Rpb24gYWRkUHJvZHVjdChkYXRhKSB7CiAgbG9hZCgpOwogIGNvbnN0IHByb2R1Y3QgPSBkZWZhdWx0UHJvZHVjdChkYXRhKTsKICBzdGF0ZS5wcm9kdWN0cy5wdXNoKHByb2R1Y3QpOwogIHNhdmUoKTsKICByZXR1cm4gcHJvZHVjdDsKfQoKZnVuY3Rpb24gdXBkYXRlUHJvZHVjdChpZCwgZGF0YSkgewogIGxvYWQoKTsKICBjb25zdCBpZHggPSBzdGF0ZS5wcm9kdWN0cy5maW5kSW5kZXgocCA9PiBwLmlkID09PSBpZCk7CiAgaWYgKGlkeCA9PT0gLTEpIHJldHVybiBudWxsOwogIGNvbnN0IGN1cnJlbnQgPSBzdGF0ZS5wcm9kdWN0c1tpZHhdOwogIGNvbnN0IG1lcmdlZCA9IHsgLi4uY3VycmVudCwgLi4uZGF0YSwgaWQ6IGN1cnJlbnQuaWQsIGNyZWF0ZWRBdDogY3VycmVudC5jcmVhdGVkQXQgfTsKICBpZiAoZGF0YS5iYXJjb2RlICE9PSB1bmRlZmluZWQpIG1lcmdlZC5iYXJjb2RlID0gU3RyaW5nKGRhdGEuYmFyY29kZSkudHJpbSgpOwogIGlmIChkYXRhLm5hbWUgIT09IHVuZGVmaW5lZCkgbWVyZ2VkLm5hbWUgPSBkYXRhLm5hbWU7CiAgaWYgKGRhdGEudHJlbmR5b2xTdG9jayAhPT0gdW5kZWZpbmVkKSBtZXJnZWQudHJlbmR5b2xTdG9jayA9IGRhdGEudHJlbmR5b2xTdG9jayA9PT0gbnVsbCA/IG51bGwgOiBOdW1iZXIoZGF0YS50cmVuZHlvbFN0b2NrKTsKICBpZiAoZGF0YS5oZXBzaWJ1cmFkYVN0b2NrICE9PSB1bmRlZmluZWQpIG1lcmdlZC5oZXBzaWJ1cmFkYVN0b2NrID0gZGF0YS5oZXBzaWJ1cmFkYVN0b2NrID09PSBudWxsID8gbnVsbCA6IE51bWJlcihkYXRhLmhlcHNpYnVyYWRhU3RvY2spOwogIHN0YXRlLnByb2R1Y3RzW2lkeF0gPSBtZXJnZWQ7CiAgc2F2ZSgpOwogIHJldHVybiBtZXJnZWQ7Cn0KCmZ1bmN0aW9uIGRlbGV0ZVByb2R1Y3QoaWQpIHsKICBsb2FkKCk7CiAgc3RhdGUucHJvZHVjdHMgPSBzdGF0ZS5wcm9kdWN0cy5maWx0ZXIocCA9PiBwLmlkICE9PSBpZCk7CiAgc2F2ZSgpOwp9CgpmdW5jdGlvbiBnZXRTZXR0aW5ncygpIHsKICBsb2FkKCk7CiAgcmV0dXJuIHN0YXRlLnNldHRpbmdzOwp9CgpmdW5jdGlvbiBzZXRTZXR0aW5ncyhwYXJ0aWFsKSB7CiAgbG9hZCgpOwogIHN0YXRlLnNldHRpbmdzID0gbWVyZ2VTZXR0aW5ncyhzdGF0ZS5zZXR0aW5ncywgcGFydGlhbCk7CiAgc2F2ZSgpOwogIHJldHVybiBzdGF0ZS5zZXR0aW5nczsKfQoKZnVuY3Rpb24gbWVyZ2VTZXR0aW5ncyhiYXNlLCBwYXJ0aWFsKSB7CiAgY29uc3Qgb3V0ID0gewogICAgbWFpbDogeyAuLi5iYXNlLm1haWwsIC4uLihwYXJ0aWFsLm1haWwgfHwge30pIH0sCiAgICB0ZWxlZ3JhbTogeyAuLi5iYXNlLnRlbGVncmFtLCAuLi4ocGFydGlhbC50ZWxlZ3JhbSB8fCB7fSkgfSwKICAgIHRyZW5keW9sOiB7IC4uLmJhc2UudHJlbmR5b2wsIC4uLihwYXJ0aWFsLnRyZW5keW9sIHx8IHt9KSB9LAogICAgaGVwc2lidXJhZGE6IHsgLi4uYmFzZS5oZXBzaWJ1cmFkYSwgLi4uKHBhcnRpYWwuaGVwc2lidXJhZGEgfHwge30pIH0sCiAgICBzeW5jOiB7IC4uLmJhc2Uuc3luYywgLi4uKHBhcnRpYWwuc3luYyB8fCB7fSkgfQogIH07CiAgcmV0dXJuIG91dDsKfQoKZnVuY3Rpb24gZ2V0TG9nKCkgewogIGxvYWQoKTsKICByZXR1cm4gc3RhdGUubG9nOwp9CgpmdW5jdGlvbiBnZXRRbmFOb3RpZmllZElkcygpIHsKICBsb2FkKCk7CiAgcmV0dXJuIHN0YXRlLnFuYU5vdGlmaWVkSWRzOwp9CgpmdW5jdGlvbiBhZGRRbmFOb3RpZmllZElkcyhpZHMpIHsKICBsb2FkKCk7CiAgY29uc3Qgc2V0ID0gbmV3IFNldChzdGF0ZS5xbmFOb3RpZmllZElkcyk7CiAgZm9yIChjb25zdCBpZCBvZiBpZHMpIHNldC5hZGQoU3RyaW5nKGlkKSk7CiAgc3RhdGUucW5hTm90aWZpZWRJZHMgPSBBcnJheS5mcm9tKHNldCkuc2xpY2UoLTUwMCk7CiAgc2F2ZSgpOwogIHJldHVybiBzdGF0ZS5xbmFOb3RpZmllZElkczsKfQoKLy8gLS0tLSBNYcSfYXphIC0tLS0KZnVuY3Rpb24gbWVyZ2VTaG9wU2V0dGluZ3MoYmFzZSwgcGFydGlhbCkgewogIHJldHVybiB7CiAgICAuLi5iYXNlLAogICAgLi4uKHBhcnRpYWwgfHwge30pLAogICAgaXl6aWNvOiB7IC4uLmJhc2UuaXl6aWNvLCAuLi4oKHBhcnRpYWwgfHwge30pLml5emljbyB8fCB7fSkgfSwKICAgIGJpcmZhdHVyYTogeyAuLi5iYXNlLmJpcmZhdHVyYSwgLi4uKChwYXJ0aWFsIHx8IHt9KS5iaXJmYXR1cmEgfHwge30pIH0KICB9Owp9CgpmdW5jdGlvbiBnZXRTaG9wUHJvZHVjdHMoKSB7CiAgbG9hZCgpOwogIHJldHVybiBzdGF0ZS5zaG9wLnByb2R1Y3RzOwp9CgpmdW5jdGlvbiBnZXRTaG9wUHJvZHVjdChpZCkgewogIGxvYWQoKTsKICByZXR1cm4gc3RhdGUuc2hvcC5wcm9kdWN0cy5maW5kKHAgPT4gcC5pZCA9PT0gaWQpIHx8IG51bGw7Cn0KCmZ1bmN0aW9uIGFkZFNob3BQcm9kdWN0KGRhdGEpIHsKICBsb2FkKCk7CiAgY29uc3QgcHJvZHVjdCA9IHsKICAgIGlkOiBnZW5JZCgpLAogICAgbmFtZTogKGRhdGEubmFtZSB8fCAnJykudHJpbSgpLAogICAgYmFyY29kZTogKGRhdGEuYmFyY29kZSB8fCAnJykudHJpbSgpLAogICAgcHJpY2U6IE51bWJlcihkYXRhLnByaWNlKSB8fCAwLAogICAgc3RvY2s6IGRhdGEuc3RvY2sgIT09IHVuZGVmaW5lZCAmJiBkYXRhLnN0b2NrICE9PSBudWxsID8gTnVtYmVyKGRhdGEuc3RvY2spIDogbnVsbCwKICAgIGNhdGVnb3J5OiAoZGF0YS5jYXRlZ29yeSB8fCAnJykudHJpbSgpLAogICAgaW1hZ2VzOiBBcnJheS5pc0FycmF5KGRhdGEuaW1hZ2VzKSA/IGRhdGEuaW1hZ2VzLnNsaWNlKDAsIDYpIDogW10sCiAgICBkZXNjcmlwdGlvbjogZGF0YS5kZXNjcmlwdGlvbiB8fCAnJywKICAgIHZpc2libGU6IGRhdGEudmlzaWJsZSAhPT0gZmFsc2UsCiAgICBmZWF0dXJlZDogISFkYXRhLmZlYXR1cmVkLAogICAgc291cmNlOiBkYXRhLnNvdXJjZSB8fCAnbWFudWFsJywKICAgIHNvbGQ6IDAsCiAgICBjcmVhdGVkQXQ6IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKSwKICAgIHVwZGF0ZWRBdDogbmV3IERhdGUoKS50b0lTT1N0cmluZygpCiAgfTsKICBzdGF0ZS5zaG9wLnByb2R1Y3RzLnB1c2gocHJvZHVjdCk7CiAgc2F2ZSgpOwogIHJldHVybiBwcm9kdWN0Owp9CgpmdW5jdGlvbiB1cGRhdGVTaG9wUHJvZHVjdChpZCwgZGF0YSkgewogIGxvYWQoKTsKICBjb25zdCBpZHggPSBzdGF0ZS5zaG9wLnByb2R1Y3RzLmZpbmRJbmRleChwID0+IHAuaWQgPT09IGlkKTsKICBpZiAoaWR4ID09PSAtMSkgcmV0dXJuIG51bGw7CiAgY29uc3QgY3VycmVudCA9IHN0YXRlLnNob3AucHJvZHVjdHNbaWR4XTsKICBjb25zdCBtZXJnZWQgPSB7IC4uLmN1cnJlbnQsIC4uLmRhdGEsIGlkOiBjdXJyZW50LmlkLCBjcmVhdGVkQXQ6IGN1cnJlbnQuY3JlYXRlZEF0IH07CiAgaWYgKGRhdGEubmFtZSAhPT0gdW5kZWZpbmVkKSBtZXJnZWQubmFtZSA9IFN0cmluZyhkYXRhLm5hbWUpLnRyaW0oKTsKICBpZiAoZGF0YS5iYXJjb2RlICE9PSB1bmRlZmluZWQpIG1lcmdlZC5iYXJjb2RlID0gU3RyaW5nKGRhdGEuYmFyY29kZSkudHJpbSgpOwogIGlmIChkYXRhLnByaWNlICE9PSB1bmRlZmluZWQpIG1lcmdlZC5wcmljZSA9IE51bWJlcihkYXRhLnByaWNlKSB8fCAwOwogIGlmIChkYXRhLnN0b2NrICE9PSB1bmRlZmluZWQpIG1lcmdlZC5zdG9jayA9IGRhdGEuc3RvY2sgPT09IG51bGwgPyBudWxsIDogTnVtYmVyKGRhdGEuc3RvY2spOwogIGlmIChkYXRhLmNhdGVnb3J5ICE9PSB1bmRlZmluZWQpIG1lcmdlZC5jYXRlZ29yeSA9IFN0cmluZyhkYXRhLmNhdGVnb3J5KS50cmltKCk7CiAgaWYgKGRhdGEuaW1hZ2VzICE9PSB1bmRlZmluZWQpIG1lcmdlZC5pbWFnZXMgPSBBcnJheS5pc0FycmF5KGRhdGEuaW1hZ2VzKSA/IGRhdGEuaW1hZ2VzLnNsaWNlKDAsIDYpIDogW107CiAgaWYgKGRhdGEudmlzaWJsZSAhPT0gdW5kZWZpbmVkKSBtZXJnZWQudmlzaWJsZSA9ICEhZGF0YS52aXNpYmxlOwogIGlmIChkYXRhLmZlYXR1cmVkICE9PSB1bmRlZmluZWQpIG1lcmdlZC5mZWF0dXJlZCA9ICEhZGF0YS5mZWF0dXJlZDsKICBtZXJnZWQudXBkYXRlZEF0ID0gbmV3IERhdGUoKS50b0lTT1N0cmluZygpOwogIHN0YXRlLnNob3AucHJvZHVjdHNbaWR4XSA9IG1lcmdlZDsKICBzYXZlKCk7CiAgcmV0dXJuIG1lcmdlZDsKfQoKZnVuY3Rpb24gZGVsZXRlU2hvcFByb2R1Y3QoaWQpIHsKICBsb2FkKCk7CiAgc3RhdGUuc2hvcC5wcm9kdWN0cyA9IHN0YXRlLnNob3AucHJvZHVjdHMuZmlsdGVyKHAgPT4gcC5pZCAhPT0gaWQpOwogIHNhdmUoKTsKfQoKZnVuY3Rpb24gZ2V0U2hvcE9yZGVycygpIHsKICBsb2FkKCk7CiAgcmV0dXJuIHN0YXRlLnNob3Aub3JkZXJzOwp9CgpmdW5jdGlvbiBnZXRTaG9wT3JkZXIoaWQpIHsKICBsb2FkKCk7CiAgcmV0dXJuIHN0YXRlLnNob3Aub3JkZXJzLmZpbmQobyA9PiBvLmlkID09PSBpZCkgfHwgbnVsbDsKfQoKZnVuY3Rpb24gYWRkU2hvcE9yZGVyKGRhdGEpIHsKICBsb2FkKCk7CiAgY29uc3Qgbm93ID0gbmV3IERhdGUoKS50b0lTT1N0cmluZygpOwogIGNvbnN0IG9yZGVyID0gewogICAgaWQ6IGdlbklkKCksCiAgICBvcmRlck5vOiAnUycgKyBEYXRlLm5vdygpLnRvU3RyaW5nKDM2KS50b1VwcGVyQ2FzZSgpLAogICAgaXRlbXM6IEFycmF5LmlzQXJyYXkoZGF0YS5pdGVtcykgPyBkYXRhLml0ZW1zIDogW10sCiAgICBjdXN0b21lcjogZGF0YS5jdXN0b21lciB8fCB7fSwKICAgIHBheW1lbnRNZXRob2Q6IGRhdGEucGF5bWVudE1ldGhvZCB8fCAnZWZ0JywKICAgIHN1YnRvdGFsOiBOdW1iZXIoZGF0YS5zdWJ0b3RhbCkgfHwgMCwKICAgIGNhcmdvRmVlOiBOdW1iZXIoZGF0YS5jYXJnb0ZlZSkgfHwgMCwKICAgIHRvdGFsOiBOdW1iZXIoZGF0YS50b3RhbCkgfHwgMCwKICAgIHN0YXR1czogJ2Jla2xpeW9yJywKICAgIGNhcmdvTnVtYmVyOiAnJywKICAgIGNhcmdvQ29tcGFueTogJycsCiAgICBjcmVhdGVkQXQ6IG5vdywKICAgIHVwZGF0ZWRBdDogbm93CiAgfTsKICBzdGF0ZS5zaG9wLm9yZGVycy51bnNoaWZ0KG9yZGVyKTsKICBzYXZlKCk7CiAgcmV0dXJuIG9yZGVyOwp9CgpmdW5jdGlvbiB1cGRhdGVTaG9wT3JkZXIoaWQsIGRhdGEpIHsKICBsb2FkKCk7CiAgY29uc3QgaWR4ID0gc3RhdGUuc2hvcC5vcmRlcnMuZmluZEluZGV4KG8gPT4gby5pZCA9PT0gaWQpOwogIGlmIChpZHggPT09IC0xKSByZXR1cm4gbnVsbDsKICBzdGF0ZS5zaG9wLm9yZGVyc1tpZHhdID0geyAuLi5zdGF0ZS5zaG9wLm9yZGVyc1tpZHhdLCAuLi5kYXRhLCBpZCwgdXBkYXRlZEF0OiBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCkgfTsKICBzYXZlKCk7CiAgcmV0dXJuIHN0YXRlLnNob3Aub3JkZXJzW2lkeF07Cn0KCmZ1bmN0aW9uIGdldFNob3BTZXR0aW5ncygpIHsKICBsb2FkKCk7CiAgcmV0dXJuIHN0YXRlLnNob3Auc2V0dGluZ3M7Cn0KCmZ1bmN0aW9uIHNldFNob3BTZXR0aW5ncyhwYXJ0aWFsKSB7CiAgbG9hZCgpOwogIHN0YXRlLnNob3Auc2V0dGluZ3MgPSBtZXJnZVNob3BTZXR0aW5ncyhzdGF0ZS5zaG9wLnNldHRpbmdzLCBwYXJ0aWFsKTsKICBzYXZlKCk7CiAgcmV0dXJuIHN0YXRlLnNob3Auc2V0dGluZ3M7Cn0KCmZ1bmN0aW9uIGluY3JlbWVudFNob3BQcm9kdWN0U29sZChpZCwgcXR5KSB7CiAgbG9hZCgpOwogIGNvbnN0IHAgPSBzdGF0ZS5zaG9wLnByb2R1Y3RzLmZpbmQoeCA9PiB4LmlkID09PSBpZCk7CiAgaWYgKCFwKSByZXR1cm4gbnVsbDsKICBwLnNvbGQgPSAoTnVtYmVyKHAuc29sZCkgfHwgMCkgKyBNYXRoLm1heCgwLCBOdW1iZXIocXR5KSB8fCAwKTsKICBwLnVwZGF0ZWRBdCA9IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKTsKICBzYXZlKCk7CiAgcmV0dXJuIHA7Cn0KCmZ1bmN0aW9uIGRheUtleShkKSB7CiAgY29uc3QgeSA9IGQuZ2V0VVRDRnVsbFllYXIoKTsKICBjb25zdCBtID0gU3RyaW5nKGQuZ2V0VVRDTW9udGgoKSArIDEpLnBhZFN0YXJ0KDIsICcwJyk7CiAgY29uc3QgZGF5ID0gU3RyaW5nKGQuZ2V0VVRDRGF0ZSgpKS5wYWRTdGFydCgyLCAnMCcpOwogIHJldHVybiB5ICsgJy0nICsgbSArICctJyArIGRheTsKfQoKZnVuY3Rpb24gcmVjb3JkU2hvcFZpc2l0KCkgewogIGxvYWQoKTsKICBjb25zdCBrZXkgPSBkYXlLZXkobmV3IERhdGUoKSk7CiAgc3RhdGUuc2hvcC5zdGF0cy52aXNpdHMgPSAoc3RhdGUuc2hvcC5zdGF0cy52aXNpdHMgfHwgMCkgKyAxOwogIGlmICghc3RhdGUuc2hvcC5zdGF0cy5kYWlseSkgc3RhdGUuc2hvcC5zdGF0cy5kYWlseSA9IHt9OwogIHN0YXRlLnNob3Auc3RhdHMuZGFpbHlba2V5XSA9IChzdGF0ZS5zaG9wLnN0YXRzLmRhaWx5W2tleV0gfHwgMCkgKyAxOwogIHNhdmUoKTsKICByZXR1cm4gc3RhdGUuc2hvcC5zdGF0czsKfQoKZnVuY3Rpb24gZ2V0U2hvcFN0YXRzKCkgewogIGxvYWQoKTsKICBjb25zdCBzID0gc3RhdGUuc2hvcC5zdGF0cyB8fCB7IHZpc2l0czogMCwgZGFpbHk6IHt9IH07CiAgY29uc3QgdG9kYXkgPSBkYXlLZXkobmV3IERhdGUoKSk7CiAgY29uc3QgZGFpbHkgPSBbXTsKICBmb3IgKGxldCBpID0gMTM7IGkgPj0gMDsgaS0tKSB7CiAgICBjb25zdCBrID0gZGF5S2V5KG5ldyBEYXRlKERhdGUubm93KCkgLSBpICogODY0MDAwMDApKTsKICAgIGRhaWx5LnB1c2goeyBkYXk6IGssIGNvdW50OiBzLmRhaWx5W2tdIHx8IDAgfSk7CiAgfQogIGNvbnN0IG9yZGVycyA9IHN0YXRlLnNob3Aub3JkZXJzOwogIHJldHVybiB7CiAgICB2aXNpdHNUb3RhbDogcy52aXNpdHMgfHwgMCwKICAgIHRvZGF5OiBzLmRhaWx5W3RvZGF5XSB8fCAwLAogICAgZGFpbHksCiAgICBvcmRlcnNUb3RhbDogb3JkZXJzLmxlbmd0aCwKICAgIHJldmVudWU6IG9yZGVycy5yZWR1Y2UoKHN1bSwgbykgPT4gc3VtICsgKE51bWJlcihvLnRvdGFsKSB8fCAwKSwgMCksCiAgICBzb2xkVG90YWw6IHN0YXRlLnNob3AucHJvZHVjdHMucmVkdWNlKChzdW0sIHApID0+IHN1bSArIChOdW1iZXIocC5zb2xkKSB8fCAwKSwgMCkKICB9Owp9Cgptb2R1bGUuZXhwb3J0cyA9IHsKICBsb2FkLAogIHNhdmUsCiAgYWRkTG9nLAogIGdldFByb2R1Y3RzLAogIGZpbmRQcm9kdWN0QnlCYXJjb2RlLAogIGdldFByb2R1Y3QsCiAgYWRkUHJvZHVjdCwKICB1cGRhdGVQcm9kdWN0LAogIGRlbGV0ZVByb2R1Y3QsCiAgZ2V0U2V0dGluZ3MsCiAgc2V0U2V0dGluZ3MsCiAgZ2V0TG9nLAogIGdldFFuYU5vdGlmaWVkSWRzLAogIGFkZFFuYU5vdGlmaWVkSWRzLAogIGdldFNob3BQcm9kdWN0cywKICBnZXRTaG9wUHJvZHVjdCwKICBhZGRTaG9wUHJvZHVjdCwKICB1cGRhdGVTaG9wUHJvZHVjdCwKICBkZWxldGVTaG9wUHJvZHVjdCwKICBnZXRTaG9wT3JkZXJzLAogIGdldFNob3BPcmRlciwKICBhZGRTaG9wT3JkZXIsCiAgdXBkYXRlU2hvcE9yZGVyLAogIGdldFNob3BTZXR0aW5ncywKICBzZXRTaG9wU2V0dGluZ3MsCiAgaW5jcmVtZW50U2hvcFByb2R1Y3RTb2xkLAogIHJlY29yZFNob3BWaXNpdCwKICBnZXRTaG9wU3RhdHMKfTsK
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const backup = require('./src/backup');
+
+const DATA_DIR = path.join(__dirname, 'data');
+const DATA_FILE = path.join(DATA_DIR, 'store.json');
+
+let state = null;
+
+function defaultData() {
+  return {
+    products: [],
+    settings: {
+      mail: { from: '', password: '', to: '', enabled: false, notifySales: true },
+      telegram: { botToken: '', chatId: '', enabled: false },
+      trendyol: { apiKey: '', apiSecret: '', sellerId: '' },
+      hepsiburada: { username: '', password: '' },
+      sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15 }
+    },
+    log: [],
+    qnaNotifiedIds: [],
+      shop: {
+        products: [],
+        orders: [],
+        stats: { visits: 0, daily: {} },
+        settings: {
+          storeName: 'Caparici',
+          domain: 'caparici.com',
+          phone: '',
+          whatsapp: '',
+          address: '',
+          iban: '',
+          ibanHolder: '',
+          cargoFee: 0,
+          freeShippingThreshold: 0,
+          cargoCompany: 'Sürat Kargo',
+          cargoTrackingUrl: 'https://gonderitakip.suratkargo.com.tr/Sorgu/',
+          iyzico: { apiKey: '', secretKey: '', baseUrl: 'https://sandbox-api.iyzico.com', enabled: false },
+          birfatura: { endpoint: '', username: '', password: '', enabled: false, invoiceType: 'earsiv', taxRate: 20 },
+          notifyTelegram: true,
+          metaDescription: 'İstavrit, uskumru, lüfer, palamut, çinekop ve kolyoz çapari modelleri. 7 li, 10 lu, 15 li çapari, çapari köstekleri ve yemli dip takımları uygun fiyata. Kıyı ve tekne çapari setleri.',
+          metaKeywords: 'çapari, istavrit çaparisi, gece istavrit çaparisi, gece çaparisi, uskumru çaparisi, kolyoz çaparisi, çinekop çaparisi, lüfer çaparisi, palamut çaparisi, gümüş çaparisi, çapari köstekleri, 7 li istavrit çaparisi, 10 lu istavrit çaparisi, kıyı çaparisi, tekne çaparisi, 15 li çapari, yemli dip takımları, olta, balıkçılık malzemeleri'
+        }
+      }
+  };
+}
+
+function load() {
+  if (state) return state;
+  if (!fs.existsSync(DATA_FILE)) {
+    state = defaultData();
+    save();
+    return state;
+  }
+  try {
+    state = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+  } catch (e) {
+    state = defaultData();
+    save();
+    return state;
+  }
+  const def = defaultData();
+  state.settings = mergeSettings(def.settings, state.settings || {});
+  if (!Array.isArray(state.products)) state.products = [];
+  if (!Array.isArray(state.log)) state.log = [];
+  if (!Array.isArray(state.qnaNotifiedIds)) state.qnaNotifiedIds = [];
+  if (!state.shop) state.shop = {};
+  if (!Array.isArray(state.shop.products)) state.shop.products = [];
+  if (!Array.isArray(state.shop.orders)) state.shop.orders = [];
+  if (!state.shop.stats) state.shop.stats = { visits: 0, daily: {} };
+  state.shop.settings = mergeShopSettings(def.shop.settings, state.shop.settings || {});
+  save();
+  return state;
+}
+
+function save() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  const tmp = DATA_FILE + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(state, null, 2), 'utf8');
+  fs.renameSync(tmp, DATA_FILE);
+  backup.backupNow();
+}
+
+function genId() {
+  return crypto.randomUUID();
+}
+
+function addLog(message) {
+  load();
+  state.log.unshift({ time: new Date().toISOString(), message });
+  if (state.log.length > 500) state.log = state.log.slice(0, 500);
+  save();
+  return state.log;
+}
+
+function defaultProduct(data) {
+  return {
+    id: genId(),
+    name: data.name || '',
+    barcode: (data.barcode || '').trim(),
+    trendyolStock: data.trendyolStock !== undefined && data.trendyolStock !== null ? Number(data.trendyolStock) : null,
+    hepsiburadaStock: data.hepsiburadaStock !== undefined && data.hepsiburadaStock !== null ? Number(data.hepsiburadaStock) : null,
+    trendyolNotified: false,
+    hepsiburadaNotified: false,
+    lastSync: null,
+    createdAt: new Date().toISOString()
+  };
+}
+
+function getProducts() {
+  load();
+  return state.products;
+}
+
+function findProductByBarcode(barcode) {
+  load();
+  return state.products.find(p => p.barcode === barcode) || null;
+}
+
+function getProduct(id) {
+  load();
+  return state.products.find(p => p.id === id) || null;
+}
+
+function addProduct(data) {
+  load();
+  const product = defaultProduct(data);
+  state.products.push(product);
+  save();
+  return product;
+}
+
+function updateProduct(id, data) {
+  load();
+  const idx = state.products.findIndex(p => p.id === id);
+  if (idx === -1) return null;
+  const current = state.products[idx];
+  const merged = { ...current, ...data, id: current.id, createdAt: current.createdAt };
+  if (data.barcode !== undefined) merged.barcode = String(data.barcode).trim();
+  if (data.name !== undefined) merged.name = data.name;
+  if (data.trendyolStock !== undefined) merged.trendyolStock = data.trendyolStock === null ? null : Number(data.trendyolStock);
+  if (data.hepsiburadaStock !== undefined) merged.hepsiburadaStock = data.hepsiburadaStock === null ? null : Number(data.hepsiburadaStock);
+  state.products[idx] = merged;
+  save();
+  return merged;
+}
+
+function deleteProduct(id) {
+  load();
+  state.products = state.products.filter(p => p.id !== id);
+  save();
+}
+
+function getSettings() {
+  load();
+  return state.settings;
+}
+
+function setSettings(partial) {
+  load();
+  state.settings = mergeSettings(state.settings, partial);
+  save();
+  return state.settings;
+}
+
+function mergeSettings(base, partial) {
+  const out = {
+    mail: { ...base.mail, ...(partial.mail || {}) },
+    telegram: { ...base.telegram, ...(partial.telegram || {}) },
+    trendyol: { ...base.trendyol, ...(partial.trendyol || {}) },
+    hepsiburada: { ...base.hepsiburada, ...(partial.hepsiburada || {}) },
+    sync: { ...base.sync, ...(partial.sync || {}) }
+  };
+  return out;
+}
+
+function getLog() {
+  load();
+  return state.log;
+}
+
+function getQnaNotifiedIds() {
+  load();
+  return state.qnaNotifiedIds;
+}
+
+function addQnaNotifiedIds(ids) {
+  load();
+  const set = new Set(state.qnaNotifiedIds);
+  for (const id of ids) set.add(String(id));
+  state.qnaNotifiedIds = Array.from(set).slice(-500);
+  save();
+  return state.qnaNotifiedIds;
+}
+
+// ---- Mağaza ----
+function mergeShopSettings(base, partial) {
+  return {
+    ...base,
+    ...(partial || {}),
+    iyzico: { ...base.iyzico, ...((partial || {}).iyzico || {}) },
+    birfatura: { ...base.birfatura, ...((partial || {}).birfatura || {}) }
+  };
+}
+
+function getShopProducts() {
+  load();
+  return state.shop.products;
+}
+
+function getShopProduct(id) {
+  load();
+  return state.shop.products.find(p => p.id === id) || null;
+}
+
+function addShopProduct(data) {
+  load();
+  const product = {
+    id: genId(),
+    name: (data.name || '').trim(),
+    barcode: (data.barcode || '').trim(),
+    price: Number(data.price) || 0,
+    stock: data.stock !== undefined && data.stock !== null ? Number(data.stock) : null,
+    category: (data.category || '').trim(),
+    images: Array.isArray(data.images) ? data.images.slice(0, 6) : [],
+    description: data.description || '',
+    visible: data.visible !== false,
+    featured: !!data.featured,
+    source: data.source || 'manual',
+    sold: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  state.shop.products.push(product);
+  save();
+  return product;
+}
+
+function updateShopProduct(id, data) {
+  load();
+  const idx = state.shop.products.findIndex(p => p.id === id);
+  if (idx === -1) return null;
+  const current = state.shop.products[idx];
+  const merged = { ...current, ...data, id: current.id, createdAt: current.createdAt };
+  if (data.name !== undefined) merged.name = String(data.name).trim();
+  if (data.barcode !== undefined) merged.barcode = String(data.barcode).trim();
+  if (data.price !== undefined) merged.price = Number(data.price) || 0;
+  if (data.stock !== undefined) merged.stock = data.stock === null ? null : Number(data.stock);
+  if (data.category !== undefined) merged.category = String(data.category).trim();
+  if (data.images !== undefined) merged.images = Array.isArray(data.images) ? data.images.slice(0, 6) : [];
+  if (data.visible !== undefined) merged.visible = !!data.visible;
+  if (data.featured !== undefined) merged.featured = !!data.featured;
+  merged.updatedAt = new Date().toISOString();
+  state.shop.products[idx] = merged;
+  save();
+  return merged;
+}
+
+function deleteShopProduct(id) {
+  load();
+  state.shop.products = state.shop.products.filter(p => p.id !== id);
+  save();
+}
+
+function getShopOrders() {
+  load();
+  return state.shop.orders;
+}
+
+function getShopOrder(id) {
+  load();
+  return state.shop.orders.find(o => o.id === id) || null;
+}
+
+function addShopOrder(data) {
+  load();
+  const now = new Date().toISOString();
+  const order = {
+    id: genId(),
+    orderNo: 'S' + Date.now().toString(36).toUpperCase(),
+    items: Array.isArray(data.items) ? data.items : [],
+    customer: data.customer || {},
+    paymentMethod: data.paymentMethod || 'eft',
+    subtotal: Number(data.subtotal) || 0,
+    cargoFee: Number(data.cargoFee) || 0,
+    total: Number(data.total) || 0,
+    status: 'bekliyor',
+    cargoNumber: '',
+    cargoCompany: '',
+    createdAt: now,
+    updatedAt: now
+  };
+  state.shop.orders.unshift(order);
+  save();
+  return order;
+}
+
+function updateShopOrder(id, data) {
+  load();
+  const idx = state.shop.orders.findIndex(o => o.id === id);
+  if (idx === -1) return null;
+  state.shop.orders[idx] = { ...state.shop.orders[idx], ...data, id, updatedAt: new Date().toISOString() };
+  save();
+  return state.shop.orders[idx];
+}
+
+function getShopSettings() {
+  load();
+  return state.shop.settings;
+}
+
+function setShopSettings(partial) {
+  load();
+  state.shop.settings = mergeShopSettings(state.shop.settings, partial);
+  save();
+  return state.shop.settings;
+}
+
+function incrementShopProductSold(id, qty) {
+  load();
+  const p = state.shop.products.find(x => x.id === id);
+  if (!p) return null;
+  p.sold = (Number(p.sold) || 0) + Math.max(0, Number(qty) || 0);
+  p.updatedAt = new Date().toISOString();
+  save();
+  return p;
+}
+
+function dayKey(d) {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function recordShopVisit() {
+  load();
+  const key = dayKey(new Date());
+  state.shop.stats.visits = (state.shop.stats.visits || 0) + 1;
+  if (!state.shop.stats.daily) state.shop.stats.daily = {};
+  state.shop.stats.daily[key] = (state.shop.stats.daily[key] || 0) + 1;
+  save();
+  return state.shop.stats;
+}
+
+function getShopStats() {
+  load();
+  const s = state.shop.stats || { visits: 0, daily: {} };
+  const today = dayKey(new Date());
+  const daily = [];
+  for (let i = 13; i >= 0; i--) {
+    const k = dayKey(new Date(Date.now() - i * 86400000));
+    daily.push({ day: k, count: s.daily[k] || 0 });
+  }
+  const orders = state.shop.orders;
+  return {
+    visitsTotal: s.visits || 0,
+    today: s.daily[today] || 0,
+    daily,
+    ordersTotal: orders.length,
+    revenue: orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0),
+    soldTotal: state.shop.products.reduce((sum, p) => sum + (Number(p.sold) || 0), 0)
+  };
+}
+
+module.exports = {
+  load,
+  save,
+  addLog,
+  getProducts,
+  findProductByBarcode,
+  getProduct,
+  addProduct,
+  updateProduct,
+  deleteProduct,
+  getSettings,
+  setSettings,
+  getLog,
+  getQnaNotifiedIds,
+  addQnaNotifiedIds,
+  getShopProducts,
+  getShopProduct,
+  addShopProduct,
+  updateShopProduct,
+  deleteShopProduct,
+  getShopOrders,
+  getShopOrder,
+  addShopOrder,
+  updateShopOrder,
+  getShopSettings,
+  setShopSettings,
+  incrementShopProductSold,
+  recordShopVisit,
+  getShopStats
+};

@@ -1,1 +1,107 @@
-IyBTdG9rIFRha2lwCgpUcmVuZHlvbCB2ZSBIZXBzaWJ1cmFkYSBtYcSfYXphbGFyxLFuZGFraSBzdG9rbGFyxLFuxLEgdGVrIHllcmRlbiB0YWtpcCBlZGVyLiBTdG9rIGtyaXRpayBzZXZpeWV5ZSBkw7zFn8O8bmNlIHZlIHNhdMSxxZ8gb2xkdcSfdW5kYSAqKlRlbGVncmFtIMO8emVyaW5kZW4gdGVsZWZvbnVuYSoqIGJpbGRpcmltIGfDtm5kZXJpci4KCiMjIMOWemVsbGlrbGVyCi0gVHJlbmR5b2wgdmUgSGVwc2lidXJhZGEnZGFuIHN0b2tsYXLEsSBvdG9tYXRpayDDp2VrZXIgKEFQSSkKLSBIZXIgw7xyw7xuw7xuIHN0b2t1bnUgbWHEn2F6YSBiYXrEsW5kYSBnw7ZzdGVyaXIgKMO2ci4gIlggw7xyw7xuw7wgVHJlbmR5b2wnZGEgNCwgSGVwc2lidXJhZGEnZGEgMTIiKQotIFN0b2sga3JpdGlrIHNldml5ZXllIGTDvMWfw7xuY2UgKHZhcnNhecSxbGFuOiAxIHZlIGFsdMSxKSBiaWxkaXJpbSBhdGFyCi0gU3RvayBkw7zFn8O8bmNlIChzYXTEscWfIG9sZHXEn3VudSBhbmxhcnPEsW4pIGJpbGRpcmltIGF0YXIKLSBLb250cm9sIHPEsWtsxLHEn8SxIGF5YXJsYW5hYmlsaXIgKHZhcnNhecSxbGFuOiAzMCBkYWtpa2FkYSBiaXIpCi0gRWxsZSBzdG9rIGdpcm1lIChBUEkgb2xtYWRhbiBkYSDDp2FsxLHFn8SxcikKCiMjIEJpbGdpc2F5YXLEsW5kYSDDp2FsxLHFn3TEsXJtYSAodGVzdCBpw6dpbikKMS4gYFN0b2stVGFraXAtQmFzbGF0LmJhdGAgZG9zeWFzxLFuYSDDp2lmdCB0xLFrbGEuCjIuIFRhcmF5xLFjxLFkYSBgaHR0cDovL2xvY2FsaG9zdDozMDAwYCBhw6cuCjMuIEJpdHRpOiBidSBwZW5jZXJlIGthcGFuxLFuY2EgcHJvZ3JhbSBrYXBhbsSxci4KCj4gTm90OiBQcm9ncmFtIGJpbGdpc2F5YXLEsW5kYSDDp2FsxLHFn8SxcmtlbiBiaWxkaXJpbSBnw7ZuZGVyaXIuIEJpbGdpc2F5YXIga2FwYWzEsXlrZW4gw6dhbMSxxZ9tYXouCj4gQmlsZ2lzYXlhcsSxbiBrYXBhbMSxIG9sc2EgYmlsZSA3LzI0IMOnYWzEscWfbWFzxLEgacOnaW4gYcWfYcSfxLFkYWtpICLDnGNyZXRzaXogc3VudWN1eWEga3VydWx1bSIgYsO2bMO8bcO8bsO8IHlhcC4KCiMjIFRlbGVncmFtIGJpbGRpcmltaSBrdXJtYSAodGVsZWZvbnVuYSBnZWxtZXNpIGnDp2luKQoKMS4gVGVsZWZvbnVuYSAqKlRlbGVncmFtKiogdXlndWxhbWFzxLFuxLEga3VyLCBoZXNhcCBhw6cuCjIuIFRlbGVncmFtJ2RhICoqQm90RmF0aGVyKionxLEgYXJhIChhcmFtYSBrdXR1c3VuYSBgQEJvdEZhdGhlcmAgeWF6KS4KMy4gYC9uZXdib3RgIHlheiwgRW50ZXInYSBiYXMuCjQuIEJvdHVuYSBiaXIgaXNpbSB2ZXIgKMO2cjogYFN0b2sgVGFraXAgQm90YCksIHNvbnJhIGJpciBrdWxsYW7EsWPEsSBhZMSxIGlzdGUgKMO2cjogYHN0b2t0YWtpcGJvdGltYCkuIFNvbnVuZGEgKipUT0tFTioqIHZlcmlyOgogICBgYGAKICAgMTIzNDU2Nzg5MDpBQUhkZmtqc2RoZmtqc2RoZi4uLgogICBgYGAKICAgQnUgVE9LRU4nxLEga29weWFsYS4KNS4gQm90dW4gc29oYmV0aW5pIGHDpywgb25hIGhlcmhhbmdpIGJpciBtZXNhaiB5YXogKMO2cjogYG1lcmhhYmFgKS4gKirFnmFydDogw7ZuY2UgbWVzYWogYXRtYWzEsXPEsW4uKioKNi4gxZ5pbWRpIENoYXQgSUQnbmkgYWwuIFRhcmF5xLFjxLFkYSDFn3VyYXnEsSBhw6cgKFRPS0VOIHllcmluZSBrZW5kaSB0b2tlbifEsW7EsSB5YXopOgogICBgYGAKICAgaHR0cHM6Ly9hcGkudGVsZWdyYW0ub3JnL2JvdFRPS0VOL2dldFVwZGF0ZXMKICAgYGBgCiAgIFNheWZhZGEgYCJjaGF0Ijp7ImlkIjoxMjM0NTY3ODlgIGdpYmkgYmlyIHNhecSxIGfDtnJlY2Vrc2luLiBCdSBzYXnEsSAqKkNoYXQgSUQqKidkaXIuCjcuIFByb2dyYW3EsW4gKipBeWFybGFyKiogc2F5ZmFzxLFuZGE6CiAgIC0gQm90IFRva2VuOiBheiDDtm5jZSBhbGTEscSfxLFuIFRPS0VOCiAgIC0gQ2hhdCBJRDogYXogw7ZuY2UgYnVsZHXEn3VuIHNhecSxCiAgIC0gIlRlbGVncmFtIGJpbGRpcmltbGVyaSBhw6fEsWsiIGt1dHVzdW51IGnFn2FyZXRsZQogICAtICoqQXlhcmxhcsSxIEtheWRldCoqLCBzb25yYSAqKlRlc3QgQmlsZGlyaW1pIEfDtm5kZXIqKidlIGJhcy4KICAgVGVsZWZvbnVuYSB0ZXN0IG1lc2FqxLEgZ2VsaXJzZSBoZXIgxZ9leSBoYXrEsXIuCgo+IFNlcyBhw6dtYWsgacOnaW46IEJvdHVuIHNvaGJldGluaSBhw6cg4oaSIGJvdHVuIGFkxLFuYSBkb2t1biDihpIgQmlsZGlyaW1sZXIg4oaSIFNlc2kgYcOnLgoKIyMgQVBJIGFuYWh0YXJsYXLEsSAoc3Rva2xhcsSxIG90b21hdGlrIMOnZWttZXNpIGnDp2luKQoKQVBJIGFuYWh0YXLEsSBvbG1hZGFuIHByb2dyYW0gc3Rva2xhcsSxIMOnZWtlbWV6OyBzYWRlY2UgZWxsZSBnaXJkacSfaW4gc3Rva2xhcsSxIGfDtnN0ZXJpciB2ZSBlbGxlIGdpcmlsZW4gc3Rva2xhcsSxbiBiaXRpxZ9pbmkvc2F0xLHFn8SxbsSxIGJpbGRpcmlyLiAoQXNsxLFuZGEgc2F0xLHFnyBiaWxkaXJpbWkgc3RvayBkZcSfacWfaW1pbmRlbiBhbGfEsWxhbsSxciwgZWxsZSBnaXJpbGVuIHN0b2tsYXJkYSBkYSBpxZ9lIHlhcmFyLikKCiMjIyBUcmVuZHlvbCBBUEkKMS4gW1RyZW5keW9sIFNhdMSxY8SxIFBhbmVsaV0oaHR0cHM6Ly9tZXJjaGFudHMudHJlbmR5b2wuY29tKSduZSBnaXIuCjIuICoqSGVzYXAqKiDihpIgKipBeWFybGFyKiog4oaSICoqRW50ZWdyYXN5b24gQmlsZ2lsZXJpKiogYsO2bMO8bcO8bmUgZ2l0LgozLiBCdXJhZGEgKipBUEkgQW5haHRhcsSxKiosICoqQVBJIMWeaWZyZXNpKiogdmUgKipTYXTEsWPEsSBOdW1hcmFzxLEqKiBnw7Zyw7xuw7xyLgo0LiBCdSDDvMOnw7xuw7wgcHJvZ3JhbcSxbiAqKkF5YXJsYXIqKiBzYXlmYXPEsW5kYWtpICJUcmVuZHlvbCBBUEkiIGvEsXNtxLFuYSB5YXosIGtheWRldC4KCiMjIyBIZXBzaWJ1cmFkYSBBUEkKMS4gW0hlcHNpYnVyYWRhIFNhdMSxY8SxIFBhbmVsaV0oaHR0cHM6Ly9lY29tLmhlcHNpYnVyYWRhLmNvbSknbmUgZ2lyLgoyLiAqKkVudGVncmFzeW9uKiogbWVuw7xzw7xuZGVuIEFQSSBiaWxnaWxlcmluaSBidWwgKEt1bGxhbsSxY8SxIEFkxLEgPSBNZXJjaGFudCBJRCwgUGFyb2xhID0gQVBJIEtleSkuCjMuIFByb2dyYW3EsW4gKipBeWFybGFyKiogc2F5ZmFzxLFuZGFraSAiSGVwc2lidXJhZGEgQVBJIiBrxLFzbcSxbmEgeWF6LCBrYXlkZXQuCgojIyDDnGNyZXRzaXogc3VudWN1eWEga3VydWx1bSAoUEMga2FwYWzEsXlrZW4gZGUgNy8yNCDDp2FsxLHFn8SxcikKCkJ1IGFkxLFtbGFybGEgcHJvZ3JhbcSxIGhlciB6YW1hbiBhw6fEsWsgb2xhbiDDvGNyZXRzaXogYmlyIHN1bnVjdXlhIGt1cmFyxLF6LgoKIyMjIDEuIEdpdEh1YiBoZXNhYsSxIGHDpwotIFtnaXRodWIuY29tXShodHRwczovL2dpdGh1Yi5jb20pIOKGkiBTaWduIHVwLiDDnGNyZXRzaXouCgojIyMgMi4gS29kdSBHaXRIdWInYSB5w7xrbGUKLSBCaWxnaXNheWFyZGEgYnUga2xhc8O2cmUgKHN0b2stdGFraXApIGdpdCwgYWRyZXMgw6d1YnXEn3VuYSBgY21kYCB5YXrEsXAgRW50ZXInYSBiYXMuCi0gxZ51IGtvbXV0bGFyxLEgc8SxcmF5bGEgw6dhbMSxxZ90xLFyIChnZXJla2lyc2UgW2J1cmF5YSBiYWtdKGh0dHBzOi8vZG9jcy5naXRodWIuY29tL2VuL2dldC1zdGFydGVkL2dldHRpbmctc3RhcnRlZC13aXRoLWdpdC9zZXQtdXAtZ2l0KSk6CiAgYGBgCiAgZ2l0IGluaXQKICBnaXQgYWRkIC4KICBnaXQgY29tbWl0IC1tICJpbGsgc3VydW0iCiAgYGBgCi0gR2l0SHViJ2RhIHllbmkgYmlyIHJlcG8gb2x1xZ90dXIgKGJvxZ8sIGFkxLEgw7ZyOiBgc3Rvay10YWtpcGApLgotIEtvZGRha2kga29tdXRsYXIgcmVwb251IGJhxJ9sYXIsIHNvbnJhOgogIGBgYAogIGdpdCByZW1vdGUgYWRkIG9yaWdpbiBodHRwczovL2dpdGh1Yi5jb20vS1VMTEFOSUNJQURJTi9zdG9rLXRha2lwLmdpdAogIGdpdCBicmFuY2ggLU0gbWFpbgogIGdpdCBwdXNoIC11IG9yaWdpbiBtYWluCiAgYGBgCgojIyMgMy4gUmVuZGVyJ2Ega3VyICjDvGNyZXRzaXopCjEuIFtyZW5kZXIuY29tXShodHRwczovL3JlbmRlci5jb20pIOKGkiAiU2lnbiB1cCIg4oaSICoqR2l0SHViIGlsZSBkZXZhbSBldCoqLCByZXBvJ25hIGVyacWfaW0gaXpuaSB2ZXIuCjIuICoqTmV3ICsqKiDihpIgKipXZWIgU2VydmljZSoqIOKGkiBgc3Rvay10YWtpcGAgcmVwb3N1bnUgc2XDpy4KMy4gQcWfYcSfxLFkYWtpIGdpYmkgZG9sZHVyOgogICAtIE5hbWU6IGBzdG9rLXRha2lwYAogICAtIEJ1aWxkIENvbW1hbmQ6IGBucG0gaW5zdGFsbGAKICAgLSBTdGFydCBDb21tYW5kOiBgbm9kZSBzZXJ2ZXIuanNgCiAgIC0gSW5zdGFuY2UgVHlwZTogKipGcmVlKioKNC4gKipDcmVhdGUgV2ViIFNlcnZpY2UqKidlIGJhcy4KNS4gQml0aW5jZSBzYW5hIGBodHRwczovL3N0b2stdGFraXAub25yZW5kZXIuY29tYCBnaWJpIGJpciBhZHJlcyB2ZXJpci4gQnUgYWRyZXNlIGdpciwgcHJvZ3JhbSDDp2FsxLHFn8SxeW9yIGRlbWVrdGlyLgoKIyMjIDQuIFV5dW1hemRhbiBlbWluIG9sICjDnGNyZXRzaXogVXB0aW1lUm9ib3QpClJlbmRlcifEsW4gw7xjcmV0c2l6IHNlcnZpc2kgMTUgZGFraWthIGnFn2xlbSBnZWxtZXpzZSB1eXVyLiBVeXV0bWFtYWsgacOnaW46CjEuIFt1cHRpbWVyb2JvdC5jb21dKGh0dHBzOi8vdXB0aW1lcm9ib3QuY29tKSDihpIgw7xjcmV0c2l6IGhlc2FwIGHDpy4KMi4gKipBZGQgTmV3IE1vbml0b3IqKjoKICAgLSBNb25pdG9yIFR5cGU6ICoqSFRUUChTKSoqCiAgIC0gVVJMOiBgaHR0cHM6Ly9zdG9rLXRha2lwLm9ucmVuZGVyLmNvbS9oZWFsdGhgCiAgIC0gSW50ZXJ2YWw6ICoqNSBtaW51dGVzKioKICAgLSAqKkNyZWF0ZSBNb25pdG9yKioKMy4gQXJ0xLFrIHNpdGUgaGVyIDUgZGFraWthZGEgYmlyIHV5YW7EsWsgdHV0dWx1cjsgcHJvZ3JhbSBzw7xyZWtsaSDDp2FsxLHFn8SxciB2ZSBiaWxkaXJpbSBhdGFyLgoKIyMjIE5vdGxhcgotIEF5YXJsYXIgKEFQSSBhbmFodGFybGFyxLEsIFRlbGVncmFtKSBzdW51Y3VkYWtpIHByb2dyYW3EsW4gKipBeWFybGFyKiogc2F5ZmFzxLFuZGFuIGdpcmlsaXIuCi0gVmVyaWxlciBgZGF0YS9zdG9yZS5qc29uYCBkb3N5YXPEsW5kYSBzYWtsYW7EsXIuIFJlbmRlcifEsW4gw7xjcmV0c2l6IHBsYW7EsW5kYSBzdW51Y3UgeWVuaWRlbiBiYcWfbGF5xLFuY2EgZGlzayBpw6dlcmnEn2kgc8SxZsSxcmxhbmFiaWxpcjsgdmVyaWxlcmluaSBrYXliZXRtZW1layBpw6dpbiBpbGVyaWRlIMO8Y3JldGxpIHBsYW5hIGdlw6dpbGViaWxpciB2ZXlhIFRlbGVncmFtIGJpbGRpcmltbGVyaSB5aW5lIGRlIMOnYWzEscWfxLFyLgo=
+# Stok Takip
+
+Trendyol ve Hepsiburada mağazalarındaki stoklarını tek yerden takip eder. Stok kritik seviyeye düşünce ve satış olduğunda **Telegram üzerinden telefonuna** bildirim gönderir.
+
+## Özellikler
+- Trendyol ve Hepsiburada'dan stokları otomatik çeker (API)
+- Her ürünün stokunu mağaza bazında gösterir (ör. "X ürünü Trendyol'da 4, Hepsiburada'da 12")
+- Stok kritik seviyeye düşünce (varsayılan: 1 ve altı) bildirim atar
+- Stok düşünce (satış olduğunu anlarsın) bildirim atar
+- Kontrol sıklığı ayarlanabilir (varsayılan: 30 dakikada bir)
+- Elle stok girme (API olmadan da çalışır)
+
+## Bilgisayarında çalıştırma (test için)
+1. `Stok-Takip-Baslat.bat` dosyasına çift tıkla.
+2. Tarayıcıda `http://localhost:3000` aç.
+3. Bitti: bu pencere kapanınca program kapanır.
+
+> Not: Program bilgisayarında çalışırken bildirim gönderir. Bilgisayar kapalıyken çalışmaz.
+> Bilgisayarın kapalı olsa bile 7/24 çalışması için aşağıdaki "Ücretsiz sunucuya kurulum" bölümünü yap.
+
+## Telegram bildirimi kurma (telefonuna gelmesi için)
+
+1. Telefonuna **Telegram** uygulamasını kur, hesap aç.
+2. Telegram'da **BotFather**'ı ara (arama kutusuna `@BotFather` yaz).
+3. `/newbot` yaz, Enter'a bas.
+4. Botuna bir isim ver (ör: `Stok Takip Bot`), sonra bir kullanıcı adı iste (ör: `stoktakipbotim`). Sonunda **TOKEN** verir:
+   ```
+   1234567890:AAHdfkjsdhfkjsdhf...
+   ```
+   Bu TOKEN'ı kopyala.
+5. Botun sohbetini aç, ona herhangi bir mesaj yaz (ör: `merhaba`). **Şart: önce mesaj atmalısın.**
+6. Şimdi Chat ID'ni al. Tarayıcıda şurayı aç (TOKEN yerine kendi token'ını yaz):
+   ```
+   https://api.telegram.org/botTOKEN/getUpdates
+   ```
+   Sayfada `"chat":{"id":123456789` gibi bir sayı göreceksin. Bu sayı **Chat ID**'dir.
+7. Programın **Ayarlar** sayfasında:
+   - Bot Token: az önce aldığın TOKEN
+   - Chat ID: az önce bulduğun sayı
+   - "Telegram bildirimleri açık" kutusunu işaretle
+   - **Ayarları Kaydet**, sonra **Test Bildirimi Gönder**'e bas.
+   Telefonuna test mesajı gelirse her şey hazır.
+
+> Ses açmak için: Botun sohbetini aç → botun adına dokun → Bildirimler → Sesi aç.
+
+## API anahtarları (stokları otomatik çekmesi için)
+
+API anahtarı olmadan program stokları çekemez; sadece elle girdiğin stokları gösterir ve elle girilen stokların bitişini/satışını bildirir. (Aslında satış bildirimi stok değişiminden algılanır, elle girilen stoklarda da işe yarar.)
+
+### Trendyol API
+1. [Trendyol Satıcı Paneli](https://merchants.trendyol.com)'ne gir.
+2. **Hesap** → **Ayarlar** → **Entegrasyon Bilgileri** bölümüne git.
+3. Burada **API Anahtarı**, **API Şifresi** ve **Satıcı Numarası** görünür.
+4. Bu üçünü programın **Ayarlar** sayfasındaki "Trendyol API" kısmına yaz, kaydet.
+
+### Hepsiburada API
+1. [Hepsiburada Satıcı Paneli](https://ecom.hepsiburada.com)'ne gir.
+2. **Entegrasyon** menüsünden API bilgilerini bul (Kullanıcı Adı = Merchant ID, Parola = API Key).
+3. Programın **Ayarlar** sayfasındaki "Hepsiburada API" kısmına yaz, kaydet.
+
+## Ücretsiz sunucuya kurulum (PC kapalıyken de 7/24 çalışır)
+
+Bu adımlarla programı her zaman açık olan ücretsiz bir sunucuya kurarız.
+
+### 1. GitHub hesabı aç
+- [github.com](https://github.com) → Sign up. Ücretsiz.
+
+### 2. Kodu GitHub'a yükle
+- Bilgisayarda bu klasöre (stok-takip) git, adres çubuğuna `cmd` yazıp Enter'a bas.
+- Şu komutları sırayla çalıştır (gerekirse [buraya bak](https://docs.github.com/en/get-started/getting-started-with-git/set-up-git)):
+  ```
+  git init
+  git add .
+  git commit -m "ilk surum"
+  ```
+- GitHub'da yeni bir repo oluştur (boş, adı ör: `stok-takip`).
+- Koddaki komutlar reponu bağlar, sonra:
+  ```
+  git remote add origin https://github.com/KULLANICIADIN/stok-takip.git
+  git branch -M main
+  git push -u origin main
+  ```
+
+### 3. Render'a kur (ücretsiz)
+1. [render.com](https://render.com) → "Sign up" → **GitHub ile devam et**, repo'na erişim izni ver.
+2. **New +** → **Web Service** → `stok-takip` reposunu seç.
+3. Aşağıdaki gibi doldur:
+   - Name: `stok-takip`
+   - Build Command: `npm install`
+   - Start Command: `node server.js`
+   - Instance Type: **Free**
+4. **Create Web Service**'e bas.
+5. Bitince sana `https://stok-takip.onrender.com` gibi bir adres verir. Bu adrese gir, program çalışıyor demektir.
+
+### 4. Uyumazdan emin ol (Ücretsiz UptimeRobot)
+Render'ın ücretsiz servisi 15 dakika işlem gelmezse uyur. Uyutmamak için:
+1. [uptimerobot.com](https://uptimerobot.com) → ücretsiz hesap aç.
+2. **Add New Monitor**:
+   - Monitor Type: **HTTP(S)**
+   - URL: `https://stok-takip.onrender.com/health`
+   - Interval: **5 minutes**
+   - **Create Monitor**
+3. Artık site her 5 dakikada bir uyanık tutulur; program sürekli çalışır ve bildirim atar.
+
+### Notlar
+- Ayarlar (API anahtarları, Telegram) sunucudaki programın **Ayarlar** sayfasından girilir.
+- Veriler `data/store.json` dosyasında saklanır. Render'ın ücretsiz planında sunucu yeniden başlayınca disk içeriği sıfırlanabilir; verilerini kaybetmemek için ileride ücretli plana geçilebilir veya Telegram bildirimleri yine de çalışır.

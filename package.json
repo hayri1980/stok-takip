@@ -1,1 +1,15 @@
-ewogICJuYW1lIjogInN0b2stdGFraXAiLAogICJ2ZXJzaW9uIjogIjEuMC4wIiwKICAiZGVzY3JpcHRpb24iOiAiVHJlbmR5b2wgdmUgSGVwc2lidXJhZGEgc3RvayB0YWtpYmkgdmUgYmlsZGlyaW0gc2lzdGVtaSIsCiAgIm1haW4iOiAic2VydmVyLmpzIiwKICAic2NyaXB0cyI6IHsKICAgICJzdGFydCI6ICJub2RlIHNlcnZlci5qcyIKICB9LAogICJkZXBlbmRlbmNpZXMiOiB7CiAgICAiZG90ZW52IjogIl4xNi40LjUiLAogICAgImV4cHJlc3MiOiAiXjQuMTkuMiIsCiAgICAibm9kZS1jcm9uIjogIl4zLjAuMyIsCiAgICAibm9kZW1haWxlciI6ICJeNi45LjE0IgogIH0KfQo=
+{
+  "name": "stok-takip",
+  "version": "1.0.0",
+  "description": "Trendyol ve Hepsiburada stok takibi ve bildirim sistemi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.14"
+  }
+}

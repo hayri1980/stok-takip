@@ -1,1 +1,11 @@
-c2VydmljZXM6CiAgLSB0eXBlOiB3ZWIKICAgIG5hbWU6IHN0b2stdGFraXAKICAgIHJ1bnRpbWU6IG5vZGUKICAgIHBsYW46IGZyZWUKICAgIGJ1aWxkQ29tbWFuZDogbnBtIGluc3RhbGwKICAgIHN0YXJ0Q29tbWFuZDogbm9kZSBzZXJ2ZXIuanMKICAgIGhlYWx0aENoZWNrUGF0aDogL2hlYWx0aAogICAgZW52VmFyczoKICAgICAgLSBrZXk6IE5PREVfRU5WCiAgICAgICAgdmFsdWU6IHByb2R1Y3Rpb24K
+services:
+  - type: web
+    name: stok-takip
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production

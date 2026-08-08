@@ -1,1 +1,103 @@
-Y29uc3QgZnMgPSByZXF1aXJlKCdmcycpOwpjb25zdCBwYXRoID0gcmVxdWlyZSgncGF0aCcpOwoKY29uc3QgREFUQV9GSUxFID0gcGF0aC5qb2luKF9fZGlybmFtZSwgJy4uJywgJ2RhdGEnLCAnc3RvcmUuanNvbicpOwpjb25zdCBSRVBPID0gJ2hheXJpMTk4MC9zdG9rLXRha2lwLXllZGVrJzsKY29uc3QgRklMRSA9ICdkYXRhL3N0b3JlLmpzb24nOwoKbGV0IGNoYWluID0gUHJvbWlzZS5yZXNvbHZlKCk7CmxldCBsYXN0S2V5ID0gbnVsbDsKCmZ1bmN0aW9uIHRva2VuKCkgewogIHJldHVybiBwcm9jZXNzLmVudi5HSVRIVUJfVE9LRU4gfHwgJyc7Cn0KCmZ1bmN0aW9uIGNvbnRlbnRLZXkoZGF0YSkgewogIHRyeSB7CiAgICBjb25zdCBwcm9kcyA9IChkYXRhLnByb2R1Y3RzIHx8IFtdKS5tYXAocCA9PiB7CiAgICAgIGNvbnN0IGNvcHkgPSBPYmplY3QuYXNzaWduKHt9LCBwKTsKICAgICAgZGVsZXRlIGNvcHkubGFzdFN5bmM7CiAgICAgIHJldHVybiBjb3B5OwogICAgfSk7CiAgICByZXR1cm4gSlNPTi5zdHJpbmdpZnkoeyBwcm9kdWN0czogcHJvZHMsIHNldHRpbmdzOiBkYXRhLnNldHRpbmdzIH0pOwogIH0gY2F0Y2ggKGUpIHsKICAgIHJldHVybiBudWxsOwogIH0KfQoKZnVuY3Rpb24gcXVldWUoZm4pIHsKICBjaGFpbiA9IGNoYWluLnRoZW4oZm4sIGZuKTsKICByZXR1cm4gY2hhaW47Cn0KCmFzeW5jIGZ1bmN0aW9uIGdpdGh1YkNvbnRlbnRzKG1ldGhvZCwgc2hhKSB7CiAgY29uc3QgdXJsID0gJ2h0dHBzOi8vYXBpLmdpdGh1Yi5jb20vcmVwb3MvJyArIFJFUE8gKyAnL2NvbnRlbnRzLycgKyBGSUxFOwogIGNvbnN0IGhlYWRlcnMgPSB7CiAgICBBdXRob3JpemF0aW9uOiAnQmVhcmVyICcgKyB0b2tlbigpLAogICAgJ1VzZXItQWdlbnQnOiAnc3Rvay10YWtpcCcsCiAgICBBY2NlcHQ6ICdhcHBsaWNhdGlvbi92bmQuZ2l0aHViK2pzb24nCiAgfTsKICBjb25zdCBvcHRzID0geyBtZXRob2Q6IG1ldGhvZCwgaGVhZGVyczogaGVhZGVycywgc2lnbmFsOiBBYm9ydFNpZ25hbC50aW1lb3V0KDIwMDAwKSB9OwogIGlmIChtZXRob2QgPT09ICdQVVQnKSB7CiAgICBoZWFkZXJzWydDb250ZW50LVR5cGUnXSA9ICdhcHBsaWNhdGlvbi9qc29uJzsKICAgIGNvbnN0IGNvbnRlbnQgPSBmcy5yZWFkRmlsZVN5bmMoREFUQV9GSUxFLCAndXRmOCcpOwogICAgY29uc3QgYm9keSA9IHsgbWVzc2FnZTogJ290b21hdGlrIHllZGVrJywgY29udGVudDogQnVmZmVyLmZyb20oY29udGVudCkudG9TdHJpbmcoJ2Jhc2U2NCcpIH07CiAgICBpZiAoc2hhKSBib2R5LnNoYSA9IHNoYTsKICAgIG9wdHMuYm9keSA9IEpTT04uc3RyaW5naWZ5KGJvZHkpOwogIH0KICBjb25zdCByZXMgPSBhd2FpdCBmZXRjaCh1cmwsIG9wdHMpOwogIGlmIChyZXMuc3RhdHVzID09PSA0MDQgJiYgbWV0aG9kID09PSAnR0VUJykgcmV0dXJuIG51bGw7CiAgaWYgKCFyZXMub2spIHRocm93IG5ldyBFcnJvcignR2l0SHViICcgKyBtZXRob2QgKyAnICcgKyByZXMuc3RhdHVzKTsKICByZXR1cm4gcmVzLmpzb24oKTsKfQoKZnVuY3Rpb24gaXNFbXB0eURhdGEoZGF0YSkgewogIGlmICghZGF0YSB8fCB0eXBlb2YgZGF0YSAhPT0gJ29iamVjdCcpIHJldHVybiB0cnVlOwogIGlmIChBcnJheS5pc0FycmF5KGRhdGEucHJvZHVjdHMpICYmIGRhdGEucHJvZHVjdHMubGVuZ3RoID4gMCkgcmV0dXJuIGZhbHNlOwogIGNvbnN0IHMgPSBkYXRhLnNldHRpbmdzIHx8IHt9OwogIGlmICgocy50ZWxlZ3JhbSAmJiBzLnRlbGVncmFtLmJvdFRva2VuKSB8fCAocy50cmVuZHlvbCAmJiBzLnRyZW5keW9sLmFwaUtleSkgfHwgKHMubWFpbCAmJiBzLm1haWwuZW5hYmxlZCkpIHJldHVybiBmYWxzZTsKICByZXR1cm4gdHJ1ZTsKfQoKZnVuY3Rpb24gYmFja3VwTm93KCkgewogIGlmICghdG9rZW4oKSB8fCAhZnMuZXhpc3RzU3luYyhEQVRBX0ZJTEUpKSByZXR1cm4gUHJvbWlzZS5yZXNvbHZlKCk7CiAgbGV0IGRhdGE7CiAgdHJ5IHsKICAgIGRhdGEgPSBKU09OLnBhcnNlKGZzLnJlYWRGaWxlU3luYyhEQVRBX0ZJTEUsICd1dGY4JykpOwogIH0gY2F0Y2ggKGUpIHsKICAgIHJldHVybiBQcm9taXNlLnJlc29sdmUoKTsKICB9CiAgaWYgKGlzRW1wdHlEYXRhKGRhdGEpKSByZXR1cm4gUHJvbWlzZS5yZXNvbHZlKCk7CiAgY29uc3Qga2V5ID0gY29udGVudEtleShkYXRhKTsKICBpZiAoa2V5ICYmIGtleSA9PT0gbGFzdEtleSkgcmV0dXJuIFByb21pc2UucmVzb2x2ZSgpOwogIHJldHVybiBxdWV1ZShhc3luYyAoKSA9PiB7CiAgICBsZXQgc2hhID0gbnVsbDsKICAgIHRyeSB7CiAgICAgIGNvbnN0IGN1cnJlbnQgPSBhd2FpdCBnaXRodWJDb250ZW50cygnR0VUJyk7CiAgICAgIGlmIChjdXJyZW50KSBzaGEgPSBjdXJyZW50LnNoYTsKICAgICAgYXdhaXQgZ2l0aHViQ29udGVudHMoJ1BVVCcsIHNoYSk7CiAgICAgIGxhc3RLZXkgPSBrZXk7CiAgICB9IGNhdGNoIChlKSB7CiAgICAgIGNvbnNvbGUubG9nKCdZZWRla2xlbWUgaGF0YXPEsTogJyArIGUubWVzc2FnZSk7CiAgICB9CiAgfSk7Cn0KCmFzeW5jIGZ1bmN0aW9uIHJlc3RvcmUoKSB7CiAgaWYgKCF0b2tlbigpIHx8IGZzLmV4aXN0c1N5bmMoREFUQV9GSUxFKSkgcmV0dXJuIGZhbHNlOwogIHRyeSB7CiAgICBjb25zdCBkYXRhID0gYXdhaXQgZ2l0aHViQ29udGVudHMoJ0dFVCcpOwogICAgaWYgKCFkYXRhKSByZXR1cm4gZmFsc2U7CiAgICBjb25zdCB0ZXh0ID0gQnVmZmVyLmZyb20oZGF0YS5jb250ZW50LnJlcGxhY2UoL1xuL2csICcnKSwgJ2Jhc2U2NCcpLnRvU3RyaW5nKCd1dGY4Jyk7CiAgICBjb25zdCBwYXJzZWQgPSBKU09OLnBhcnNlKHRleHQpOwogICAgaWYgKGlzRW1wdHlEYXRhKHBhcnNlZCkpIHJldHVybiBmYWxzZTsKICAgIGlmICghZnMuZXhpc3RzU3luYyhwYXRoLmRpcm5hbWUoREFUQV9GSUxFKSkpIGZzLm1rZGlyU3luYyhwYXRoLmRpcm5hbWUoREFUQV9GSUxFKSwgeyByZWN1cnNpdmU6IHRydWUgfSk7CiAgICBmcy53cml0ZUZpbGVTeW5jKERBVEFfRklMRSwgdGV4dCwgJ3V0ZjgnKTsKICAgIHJldHVybiB0cnVlOwogIH0gY2F0Y2ggKGUpIHsKICAgIGNvbnNvbGUubG9nKCdHZXJpIHnvv71rbGVtZSBoYXRhc++/vTogJyArIGUubWVzc2FnZSk7CiAgICByZXR1cm4gZmFsc2U7CiAgfQp9Cgptb2R1bGUuZXhwb3J0cyA9IHsgYmFja3VwTm93LCByZXN0b3JlIH07Cg==
+const fs = require('fs');
+const path = require('path');
+
+const DATA_FILE = path.join(__dirname, '..', 'data', 'store.json');
+const REPO = 'hayri1980/stok-takip-yedek';
+const FILE = 'data/store.json';
+
+let chain = Promise.resolve();
+let lastKey = null;
+
+function token() {
+  return process.env.GITHUB_TOKEN || '';
+}
+
+function contentKey(data) {
+  try {
+    const prods = (data.products || []).map(p => {
+      const copy = Object.assign({}, p);
+      delete copy.lastSync;
+      return copy;
+    });
+    return JSON.stringify({ products: prods, settings: data.settings });
+  } catch (e) {
+    return null;
+  }
+}
+
+function queue(fn) {
+  chain = chain.then(fn, fn);
+  return chain;
+}
+
+async function githubContents(method, sha) {
+  const url = 'https://api.github.com/repos/' + REPO + '/contents/' + FILE;
+  const headers = {
+    Authorization: 'Bearer ' + token(),
+    'User-Agent': 'stok-takip',
+    Accept: 'application/vnd.github+json'
+  };
+  const opts = { method: method, headers: headers, signal: AbortSignal.timeout(20000) };
+  if (method === 'PUT') {
+    headers['Content-Type'] = 'application/json';
+    const content = fs.readFileSync(DATA_FILE, 'utf8');
+    const body = { message: 'otomatik yedek', content: Buffer.from(content).toString('base64') };
+    if (sha) body.sha = sha;
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(url, opts);
+  if (res.status === 404 && method === 'GET') return null;
+  if (!res.ok) throw new Error('GitHub ' + method + ' ' + res.status);
+  return res.json();
+}
+
+function isEmptyData(data) {
+  if (!data || typeof data !== 'object') return true;
+  if (Array.isArray(data.products) && data.products.length > 0) return false;
+  const s = data.settings || {};
+  if ((s.telegram && s.telegram.botToken) || (s.trendyol && s.trendyol.apiKey) || (s.mail && s.mail.enabled)) return false;
+  return true;
+}
+
+function backupNow() {
+  if (!token() || !fs.existsSync(DATA_FILE)) return Promise.resolve();
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+  } catch (e) {
+    return Promise.resolve();
+  }
+  if (isEmptyData(data)) return Promise.resolve();
+  const key = contentKey(data);
+  if (key && key === lastKey) return Promise.resolve();
+  return queue(async () => {
+    let sha = null;
+    try {
+      const current = await githubContents('GET');
+      if (current) sha = current.sha;
+      await githubContents('PUT', sha);
+      lastKey = key;
+    } catch (e) {
+      console.log('Yedekleme hatası: ' + e.message);
+    }
+  });
+}
+
+async function restore() {
+  if (!token() || fs.existsSync(DATA_FILE)) return false;
+  try {
+    const data = await githubContents('GET');
+    if (!data) return false;
+    const text = Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
+    const parsed = JSON.parse(text);
+    if (isEmptyData(parsed)) return false;
+    if (!fs.existsSync(path.dirname(DATA_FILE))) fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
+    fs.writeFileSync(DATA_FILE, text, 'utf8');
+    return true;
+  } catch (e) {
+    console.log('Geri y�kleme hatas�: ' + e.message);
+    return false;
+  }
+}
+
+module.exports = { backupNow, restore };
