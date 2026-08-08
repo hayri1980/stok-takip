@@ -138,4 +138,50 @@ async function checkStocks() {
   }
 }
 
-module.exports = { syncMarketplace, checkStocks };
+async function checkQuestions() {
+  const settings = db.getSettings();
+  const cfg = settings.trendyol;
+  if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) {
+    return { skipped: true, reason: 'Trendyol API ayarları eksik' };
+  }
+
+  let questions;
+  try {
+    questions = await trendyol.fetchQuestions(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
+  } catch (e) {
+    db.addLog('Trendyol soru çekme hatası: ' + e.message);
+    return { error: e.message };
+  }
+
+  const notified = new Set(db.getQnaNotifiedIds());
+  const fresh = questions.filter(q => !notified.has(q.id));
+  let sent = 0;
+
+  for (const q of fresh) {
+    const subject = 'YENİ SORU: ' + q.productName;
+    const html =
+      '<h3>Trendyol üzerinden yeni bir ürün sorusu geldi</h3>' +
+      '<p><b>Ürün:</b> ' + q.productName + '</p>' +
+      '<p><b>Soru:</b> ' + q.question + '</p>' +
+      '<p><b>Tarih:</b> ' + q.createdDate + '</p>' +
+      '<p><b>Soru ID:</b> ' + q.id + '</p>' +
+      '<p style="color:#c0392b"><b>Lütfen Trendyol panelinden cevaplayın.</b></p>';
+    const text =
+      'YENI SORU (Trendyol)\n' +
+      'Urun: ' + q.productName + '\n' +
+      'Soru: ' + q.question + '\n' +
+      'Tarih: ' + q.createdDate + '\n' +
+      'Lutfen Trendyol panelinden cevaplayin.';
+    const result = await notifier.notify(subject, html, text);
+    if ((result.email && result.email.sent) || (result.telegram && result.telegram.sent)) sent++;
+  }
+
+  if (fresh.length > 0) {
+    db.addQnaNotifiedIds(fresh.map(q => q.id));
+    db.addLog(fresh.length + ' yeni soru bulundu, ' + sent + ' bildirim gönderildi');
+  }
+
+  return { total: questions.length, fresh: fresh.length, sent };
+}
+
+module.exports = { syncMarketplace, checkStocks, checkQuestions };

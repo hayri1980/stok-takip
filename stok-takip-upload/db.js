@@ -18,7 +18,8 @@ function defaultData() {
       hepsiburada: { username: '', password: '' },
       sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15 }
     },
-    log: []
+    log: [],
+    qnaNotifiedIds: []
   };
 }
 
@@ -40,6 +41,7 @@ function load() {
   state.settings = mergeSettings(def.settings, state.settings || {});
   if (!Array.isArray(state.products)) state.products = [];
   if (!Array.isArray(state.log)) state.log = [];
+  if (!Array.isArray(state.qnaNotifiedIds)) state.qnaNotifiedIds = [];
   save();
   return state;
 }
@@ -150,6 +152,20 @@ function getLog() {
   return state.log;
 }
 
+function getQnaNotifiedIds() {
+  load();
+  return state.qnaNotifiedIds;
+}
+
+function addQnaNotifiedIds(ids) {
+  load();
+  const set = new Set(state.qnaNotifiedIds);
+  for (const id of ids) set.add(String(id));
+  state.qnaNotifiedIds = Array.from(set).slice(-500);
+  save();
+  return state.qnaNotifiedIds;
+}
+
 module.exports = {
   load,
   save,
@@ -162,5 +178,7 @@ module.exports = {
   deleteProduct,
   getSettings,
   setSettings,
-  getLog
+  getLog,
+  getQnaNotifiedIds,
+  addQnaNotifiedIds
 };

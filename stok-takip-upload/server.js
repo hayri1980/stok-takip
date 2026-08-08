@@ -74,6 +74,17 @@ app.post('/api/sync', async (req, res) => {
   res.json(results);
 });
 
+// ---- Soru kontrolü ----
+app.post('/api/sync/questions', async (req, res) => {
+  try {
+    const result = await sync.checkQuestions();
+    res.json(result);
+  } catch (e) {
+    db.addLog('Soru kontrol hatası: ' + e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---- Test e-postası ----
 app.post('/api/test-mail', async (req, res) => {
   const result = await notifier.sendTestMail();
@@ -111,6 +122,11 @@ async function runCheck() {
       await sync.checkStocks();
     } catch (e) {
       db.addLog('Stok kontrol hatası: ' + e.message);
+    }
+    try {
+      await sync.checkQuestions();
+    } catch (e) {
+      db.addLog('Soru kontrol hatası: ' + e.message);
     }
   } finally {
     polling = false;
@@ -150,6 +166,11 @@ async function start() {
     await sync.checkStocks();
   } catch (e) {
     db.addLog('Stok kontrol hatası: ' + e.message);
+  }
+  try {
+    await sync.checkQuestions();
+  } catch (e) {
+    db.addLog('Soru kontrol hatası: ' + e.message);
   }
   });
 }

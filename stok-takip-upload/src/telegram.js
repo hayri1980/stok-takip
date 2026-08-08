@@ -1,5 +1,6 @@
 const db = require('../db');
 const { sendTelegramTo } = require('./notifier');
+const trendyol = require('./trendyol');
 
 let offset = 0;
 let running = false;
@@ -51,6 +52,7 @@ function helpText() {
   return 'Komutlar:\n' +
     '/stok - tum urunlerin stok durumu\n' +
     '/stok BARKOD - tek urunun stoku (ornek: /stok 10TX4)\n' +
+    '/sorular - bekleyen Trendyol urun sorulari\n' +
     '/yardim - bu mesaj';
 }
 
@@ -74,6 +76,25 @@ async function handleMessage(msg) {
       }
     } else {
       await sendTelegramTo(chatId, stockReport());
+    }
+  } else if (cmd === '/sorular' || cmd === '/qa') {
+    const cfg = db.getSettings().trendyol;
+    if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) {
+      await sendTelegramTo(chatId, 'Trendyol API ayarlari eksik.');
+      return;
+    }
+    try {
+      const questions = await trendyol.fetchQuestions(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
+      if (questions.length === 0) {
+        await sendTelegramTo(chatId, 'Bekleyen soru yok.');
+      } else {
+        const lines = questions.map((q, i) =>
+          (i + 1) + ') ' + (q.productName || 'Bilinmeyen urun') + '\n   ' + q.question
+        );
+        await sendTelegramTo(chatId, 'BEKLEYEN SORULAR (' + questions.length + ')\n\n' + lines.join('\n'));
+      }
+    } catch (e) {
+      await sendTelegramTo(chatId, 'Soru cekilemedi: ' + e.message);
     }
   } else if (cmd === '/yardim' || cmd === '/help') {
     await sendTelegramTo(chatId, helpText());
