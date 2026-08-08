@@ -11,7 +11,9 @@
     <h1>Stok Takip</h1>
     <nav>
       <button class="tab-btn active" data-tab="stoklar">Stoklar</button>
+      <button class="tab-btn" data-tab="magaza">Mağaza</button>
       <button class="tab-btn" data-tab="ayarlar">Ayarlar</button>
+      <button class="tab-btn" data-tab="istatistik">İstatistik</button>
       <button class="tab-btn" data-tab="log">Kayıtlar</button>
     </nav>
     <button id="syncBtn" class="btn btn-primary">Şimdi Kontrol Et</button>
@@ -108,6 +110,29 @@
           <button id="saveSettingsBtn" class="btn btn-primary">Ayarları Kaydet</button>
           <p id="saveMsg" class="save-msg"></p>
         </div>
+
+        <div class="card">
+          <h2>e-Fatura (BirFatura)</h2>
+          <p class="hint">BirFatura'ya (destek.birfatura.com / 0 312 870 05 00) "web servis / API entegrasyonu" açtırınca sana verdikleri bilgileri buraya gir.</p>
+          <label>API / Web Servis Adresi (endpoint)</label>
+          <input type="text" id="bfEndpoint" placeholder="https://.../WebService">
+          <label>API Kullanıcı Adı</label>
+          <input type="text" id="bfUsername" placeholder="Kullanıcı adı">
+          <label>API Şifresi</label>
+          <input type="password" id="bfPassword" placeholder="********">
+          <label>Fatura Türü</label>
+          <select id="bfInvoiceType">
+            <option value="earsiv">e-Arşiv Fatura</option>
+            <option value="efatura">e-Fatura</option>
+          </select>
+          <label>KDV Oranı (%)</label>
+          <input type="number" id="bfTaxRate" min="0" max="100" value="20">
+          <label class="checkbox">
+            <input type="checkbox" id="bfEnabled"> BirFatura entegrasyonu açık
+          </label>
+          <button id="saveBfBtn" class="btn btn-primary">BirFatura Ayarlarını Kaydet</button>
+          <p id="bfMsg" class="save-msg"></p>
+        </div>
       </div>
     </section>
 
@@ -116,6 +141,81 @@
       <div class="card">
         <h2>Kayıtlar</h2>
         <div id="logList"></div>
+      </div>
+    </section>
+
+    <!-- MAĞAZA -->
+    <section id="tab-magaza" class="tab-content">
+      <div class="toolbar">
+        <input type="text" id="shopSearch" placeholder="Mağaza ürünü ara...">
+        <button id="addShopBtn" class="btn btn-primary">+ Ürün Ekle</button>
+        <button id="importTrendyolBtn" class="btn">Trendyol'dan İçe Aktar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ürün</th>
+              <th>Kategori</th>
+              <th>Fiyat</th>
+              <th>Stok</th>
+              <th>Satılan</th>
+              <th>Görünürlük</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="shopTable"></tbody>
+        </table>
+      </div>
+      <p id="shopEmpty" class="empty-note">Henüz mağaza ürünü yok. "+ Ürün Ekle" ile ekle ya da "Trendyol'dan İçe Aktar" ile kataloğu getir.</p>
+
+      <div class="card" style="margin-top:20px">
+        <h2>Siparişler</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sipariş</th>
+                <th>Tarih</th>
+                <th>Ürünler</th>
+                <th>Müşteri</th>
+                <th>Ödeme</th>
+                <th>Tutar</th>
+                <th>Durum</th>
+                <th>Kargo No</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="orderTable"></tbody>
+          </table>
+        </div>
+        <p id="orderEmpty" class="empty-note">Henüz sipariş yok.</p>
+      </div>
+    </section>
+
+    <!-- İSTATİSTİK -->
+    <section id="tab-istatistik" class="tab-content">
+      <div class="summary" id="statsCards"></div>
+      <div class="card">
+        <h2>Mağaza Ziyaretçileri (son 14 gün)</h2>
+        <div id="visitChart" class="visit-chart"></div>
+      </div>
+      <div class="card">
+        <h2>Ürün Satışları</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ürün</th>
+                <th>Satılan</th>
+                <th>Stok</th>
+                <th>Fiyat</th>
+                <th>Görünürlük</th>
+              </tr>
+            </thead>
+            <tbody id="sellerTable"></tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>
@@ -143,6 +243,50 @@
       <div class="modal-actions">
         <button id="cancelBtn" class="btn">Vazgeç</button>
         <button id="saveProductBtn" class="btn btn-primary">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mağaza Ürünü Ekle/Düzenle Modal -->
+  <div id="shopModal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="shopModalTitle">Ürün Ekle</h2>
+      <input type="hidden" id="spId">
+      <label>Ürün Adı</label>
+      <input type="text" id="spName" placeholder="Ürün adı">
+      <label>Barkod</label>
+      <input type="text" id="spBarcode" placeholder="Barkod (opsiyonel)">
+      <div class="two-col">
+        <div>
+          <label>Fiyat (TL)</label>
+          <input type="number" id="spPrice" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div>
+          <label>Stok (adet)</label>
+          <input type="number" id="spStock" min="0" placeholder="Boş bırak: sınırsız">
+        </div>
+      </div>
+      <div class="two-col">
+        <div>
+          <label>Kategori</label>
+          <input type="text" id="spCategory" placeholder="örn. Çapari">
+        </div>
+        <div>
+          <label>Görsel URL</label>
+          <input type="text" id="spImage" placeholder="https://... (veya yanından dosya seç)">
+        </div>
+      </div>
+      <label>Görsel Yükle</label>
+      <input type="file" id="spImageFile" accept="image/*">
+      <img id="spImagePreview" class="shop-preview hidden" alt="Önizleme">
+      <label>Açıklama</label>
+      <textarea id="spDescription" rows="3" placeholder="Ürün açıklaması (Google'da da görünür)"></textarea>
+      <label class="checkbox">
+        <input type="checkbox" id="spVisible" checked> Sitede görünsün
+      </label>
+      <div class="modal-actions">
+        <button id="shopCancelBtn" class="btn">Vazgeç</button>
+        <button id="saveShopBtn" class="btn btn-primary">Kaydet</button>
       </div>
     </div>
   </div>

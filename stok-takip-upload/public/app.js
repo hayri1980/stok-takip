@@ -4,7 +4,12 @@ const API = {
   log: '/api/log',
   sync: '/api/sync',
   testMail: '/api/test-mail',
-  testTelegram: '/api/test-telegram'
+  testTelegram: '/api/test-telegram',
+  shopSettings: '/api/shop/admin/settings',
+  shopStats: '/api/shop/admin/stats',
+  shopProducts: '/api/shop/admin/products',
+  shopOrders: '/api/shop/admin/orders',
+  importTrendyol: '/api/shop/admin/import-trendyol'
 };
 
 let products = [];
@@ -30,6 +35,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'log') loadLog();
+    if (btn.dataset.tab === 'istatistik') loadStats();
+    if (btn.dataset.tab === 'magaza') loadShop();
   });
 });
 
@@ -164,6 +171,218 @@ document.getElementById('cancelBtn').addEventListener('click', closeModal);
 document.getElementById('saveProductBtn').addEventListener('click', saveProduct);
 modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
+// ---------- Mağaza Yönetimi ----------
+let shopProducts = [];
+const shopModal = document.getElementById('shopModal');
+
+async function loadShop() {
+  shopProducts = await request(API.shopProducts);
+  renderShop();
+  renderOrders();
+}
+
+function renderShop() {
+  const q = document.getElementById('shopSearch').value.trim().toLowerCase();
+  const list = shopProducts.filter(p =>
+    p.name.toLowerCase().includes(q) || (p.barcode || '').toLowerCase().includes(q)
+  );
+  document.getElementById('shopTable').innerHTML = list.map(p =>
+    '<tr>' +
+      '<td>' + (p.images && p.images[0] ? '<img class="thumb" src="' + escapeHtml(p.images[0]) + '" onerror="this.remove()"> ' : '') + escapeHtml(p.name) + '</td>' +
+      '<td>' + escapeHtml(p.category || '') + '</td>' +
+      '<td>' + fmtTL(p.price) + '</td>' +
+      '<td>' + (p.stock === null || p.stock === undefined ? '—' : p.stock) + '</td>' +
+      '<td>' + (p.sold || 0) + '</td>' +
+      '<td>' + (p.visible ? '<span class="badge ok">Açık</span>' : '<span class="badge danger">Kapalı</span>') + '</td>' +
+      '<td class="actions">' +
+        '<button class="btn small" onclick="openShopEdit(\'' + p.id + '\')">Düzenle</button> ' +
+        '<button class="btn small danger-btn" onclick="removeShopProduct(\'' + p.id + '\')">Sil</button>' +
+      '</td>' +
+    '</tr>'
+  ).join('');
+  document.getElementById('shopEmpty').style.display = list.length ? 'none' : 'block';
+}
+
+function openShopAdd() {
+  document.getElementById('shopModalTitle').textContent = 'Ürün Ekle';
+  document.getElementById('spId').value = '';
+  document.getElementById('spName').value = '';
+  document.getElementById('spBarcode').value = '';
+  document.getElementById('spPrice').value = '';
+  document.getElementById('spStock').value = '';
+  document.getElementById('spCategory').value = '';
+  document.getElementById('spImage').value = '';
+  document.getElementById('spDescription').value = '';
+  document.getElementById('spVisible').checked = true;
+  document.getElementById('spImageFile').value = '';
+  shopModal.classList.remove('hidden');
+  updateShopPreview();
+  document.getElementById('spName').focus();
+}
+
+function openShopEdit(id) {
+  const p = shopProducts.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('shopModalTitle').textContent = 'Ürünü Düzenle';
+  document.getElementById('spId').value = p.id;
+  document.getElementById('spName').value = p.name;
+  document.getElementById('spBarcode').value = p.barcode || '';
+  document.getElementById('spPrice').value = p.price || '';
+  document.getElementById('spStock').value = (p.stock === null || p.stock === undefined) ? '' : p.stock;
+  document.getElementById('spCategory').value = p.category || '';
+  document.getElementById('spImage').value = (p.images && p.images[0]) || '';
+  document.getElementById('spDescription').value = p.description || '';
+  document.getElementById('spVisible').checked = p.visible !== false;
+  document.getElementById('spImageFile').value = '';
+  shopModal.classList.remove('hidden');
+  updateShopPreview();
+}
+
+function closeShopModal() { shopModal.classList.add('hidden'); }
+
+function updateShopPreview() {
+  const url = document.getElementById('spImage').value.trim();
+  const img = document.getElementById('spImagePreview');
+  if (url) { img.src = url; img.classList.remove('hidden'); }
+  else img.classList.add('hidden');
+}
+
+document.getElementById('spImageFile').addEventListener('change', function (e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return alert('Lütfen bir resim dosyası seçin.');
+  if (file.size > 8 * 1024 * 1024) return alert('Resim çok büyük. Maksimum 8 MB.');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 800;
+      let w = img.width, h = img.height;
+      if (w > max || h > max) {
+        const r = Math.min(max / w, max / h);
+        w = Math.round(w * r); h = Math.round(h * r);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      document.getElementById('spImage').value = canvas.toDataURL('image/jpeg', 0.8);
+      updateShopPreview();
+    };
+    img.onerror = () => alert('Resim okunamadı.');
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('spImage').addEventListener('input', updateShopPreview);
+
+async function saveShopProduct() {
+  const id = document.getElementById('spId').value;
+  const name = document.getElementById('spName').value.trim();
+  if (!name) return alert('Ürün adı gerekli.');
+  const stock = document.getElementById('spStock').value;
+  const img = document.getElementById('spImage').value.trim();
+  const body = {
+    name,
+    barcode: document.getElementById('spBarcode').value.trim(),
+    price: Number(document.getElementById('spPrice').value) || 0,
+    stock: stock === '' ? null : Number(stock),
+    category: document.getElementById('spCategory').value.trim(),
+    images: img ? [img] : [],
+    description: document.getElementById('spDescription').value.trim(),
+    visible: document.getElementById('spVisible').checked
+  };
+  if (id) await request(API.shopProducts + '/' + id, 'PUT', body);
+  else await request(API.shopProducts, 'POST', body);
+  closeShopModal();
+  await loadShop();
+}
+
+async function removeShopProduct(id) {
+  if (!confirm('Bu mağaza ürünü silinsin mi?')) return;
+  await request(API.shopProducts + '/' + id, 'DELETE');
+  await loadShop();
+}
+
+async function importTrendyol() {
+  if (!confirm('Trendyol katalogu mağazaya aktarılacak. Yeni ürünler eklenir, mevcutların stoku güncellenir. Devam?')) return;
+  const btn = document.getElementById('importTrendyolBtn');
+  btn.disabled = true;
+  btn.textContent = 'İçe aktarılıyor...';
+  try {
+    const r = await request(API.importTrendyol, 'POST');
+    alert('Eklendi: ' + r.added + ', Güncellendi: ' + r.updated + ' (Toplam: ' + r.total + ' ürün bulundu)');
+    await loadShop();
+  } catch (e) {
+    alert('Hata: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Trendyol'dan İçe Aktar";
+  }
+}
+
+document.getElementById('addShopBtn').addEventListener('click', openShopAdd);
+document.getElementById('shopCancelBtn').addEventListener('click', closeShopModal);
+document.getElementById('saveShopBtn').addEventListener('click', saveShopProduct);
+document.getElementById('importTrendyolBtn').addEventListener('click', importTrendyol);
+document.getElementById('shopSearch').addEventListener('input', renderShop);
+shopModal.addEventListener('click', e => { if (e.target === shopModal) closeShopModal(); });
+
+// ---------- Siparişler ----------
+function orderStatusBadge(s) {
+  if (s === 'odendi') return '<span class="badge ok">Ödendi</span>';
+  if (s === 'tamamlandı') return '<span class="badge ok">Tamamlandı</span>';
+  if (s === 'iptal') return '<span class="badge danger">İptal</span>';
+  return '<span class="badge warn">Bekliyor</span>';
+}
+
+async function renderOrders() {
+  const orders = await request(API.shopOrders);
+  const el = document.getElementById('orderTable');
+  if (!orders.length) {
+    el.innerHTML = '';
+    document.getElementById('orderEmpty').style.display = 'block';
+    return;
+  }
+  document.getElementById('orderEmpty').style.display = 'none';
+  el.innerHTML = orders.map(o =>
+    '<tr>' +
+      '<td class="mono">' + escapeHtml(o.orderNo) + '</td>' +
+      '<td class="muted">' + fmtTime(o.createdAt) + '</td>' +
+      '<td>' + escapeHtml(o.items.map(i => i.name + ' x' + i.qty).join(', ')) + '</td>' +
+      '<td>' + escapeHtml((o.customer.name || '') + ' - ' + (o.customer.phone || '')) + '</td>' +
+      '<td>' + (o.paymentMethod === 'iyzico' ? 'Kart' : 'EFT/Havale') + '</td>' +
+      '<td><b>' + fmtTL(o.total) + '</b></td>' +
+      '<td>' + orderStatusBadge(o.status) + '</td>' +
+      '<td><input class="cargo-input" id="cargo-' + o.id + '" value="' + escapeHtml(o.cargoNumber || '') + '" placeholder="Takip no">' +
+        '<button class="btn small" onclick="saveCargo(\'' + o.id + '\')">Kaydet</button></td>' +
+      '<td class="actions">' +
+        (o.status !== 'tamamlandı'
+          ? '<button class="btn small" onclick="completeOrder(\'' + o.id + '\')">Tamamlandı</button> ' +
+            '<button class="btn small danger-btn" onclick="cancelOrder(\'' + o.id + '\')">İptal</button>'
+          : '<span class="muted">Fatura: ' + escapeHtml(o.faturaNo || '—') + '</span>') +
+      '</td>' +
+    '</tr>'
+  ).join('');
+}
+
+async function saveCargo(id) {
+  const val = document.getElementById('cargo-' + id).value.trim();
+  await request(API.shopOrders + '/' + id, 'PUT', { cargoNumber: val });
+  await renderOrders();
+}
+
+async function completeOrder(id) {
+  await request(API.shopOrders + '/' + id, 'PUT', { status: 'tamamlandı' });
+  await loadShop();
+}
+
+async function cancelOrder(id) {
+  if (!confirm('Sipariş iptal edilsin mi?')) return;
+  await request(API.shopOrders + '/' + id, 'PUT', { status: 'iptal' });
+  await loadShop();
+}
+
 // ---------- Senkron ----------
 document.getElementById('syncBtn').addEventListener('click', async () => {
   const btn = document.getElementById('syncBtn');
@@ -243,6 +462,38 @@ async function saveSettings() {
 
 document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
 
+// ---------- BirFatura ----------
+async function loadBirFatura() {
+  const s = await request(API.shopSettings);
+  const b = s.birfatura || {};
+  document.getElementById('bfEndpoint').value = b.endpoint || '';
+  document.getElementById('bfUsername').value = b.username || '';
+  document.getElementById('bfPassword').value = b.password || '';
+  document.getElementById('bfInvoiceType').value = b.invoiceType || 'earsiv';
+  document.getElementById('bfTaxRate').value = b.taxRate !== undefined ? b.taxRate : 20;
+  document.getElementById('bfEnabled').checked = !!b.enabled;
+}
+
+async function saveBirFatura() {
+  const body = {
+    birfatura: {
+      endpoint: document.getElementById('bfEndpoint').value.trim(),
+      username: document.getElementById('bfUsername').value.trim(),
+      password: document.getElementById('bfPassword').value.trim(),
+      invoiceType: document.getElementById('bfInvoiceType').value,
+      taxRate: Number(document.getElementById('bfTaxRate').value) || 20,
+      enabled: document.getElementById('bfEnabled').checked
+    }
+  };
+  await request(API.shopSettings, 'PUT', body);
+  const msg = document.getElementById('bfMsg');
+  msg.textContent = 'BirFatura ayarları kaydedildi.';
+  msg.style.color = '#2e7d32';
+  setTimeout(() => { msg.textContent = ''; }, 3000);
+}
+
+document.getElementById('saveBfBtn').addEventListener('click', saveBirFatura);
+
 document.getElementById('testMailBtn').addEventListener('click', async () => {
   const btn = document.getElementById('testMailBtn');
   btn.disabled = true;
@@ -273,6 +524,48 @@ document.getElementById('testTgBtn').addEventListener('click', async () => {
   }
 });
 
+// ---------- İstatistik ----------
+function fmtTL(n) {
+  return Number(n || 0).toLocaleString('tr-TR') + ' TL';
+}
+
+async function loadStats() {
+  const [stats, products, orders] = await Promise.all([
+    request(API.shopStats),
+    request(API.shopProducts),
+    request(API.shopOrders)
+  ]);
+  const cards = [
+    { label: 'Toplam Ziyaret', val: stats.visitsTotal },
+    { label: 'Bugünkü Ziyaret', val: stats.today },
+    { label: 'Toplam Satılan', val: stats.soldTotal + ' adet' },
+    { label: 'Toplam Sipariş', val: stats.ordersTotal },
+    { label: 'Toplam Ciro', val: fmtTL(stats.revenue) }
+  ];
+  document.getElementById('statsCards').innerHTML = cards.map(c =>
+    '<span class="pill">' + c.label + ': <b>' + c.val + '</b></span>'
+  ).join('');
+
+  const max = Math.max(1, ...stats.daily.map(d => d.count));
+  document.getElementById('visitChart').innerHTML =
+    '<div class="visit-bars">' + stats.daily.map(d =>
+      '<div class="visit-bar" title="' + d.day + ': ' + d.count + '"><div class="visit-bar-fill" style="height:' + Math.round((d.count / max) * 100) + '%"><b>' + (d.count || '') + '</b></div><small>' + d.day.slice(8) + '</small></div>'
+    ).join('') + '</div>';
+
+  const sellers = products
+    .map(p => ({ name: p.name, sold: Number(p.sold) || 0, stock: p.stock, price: p.price, visible: p.visible }))
+    .sort((a, b) => b.sold - a.sold || a.name.localeCompare(b.name, 'tr'));
+  document.getElementById('sellerTable').innerHTML = sellers.map(p =>
+    '<tr>' +
+      '<td>' + escapeHtml(p.name) + '</td>' +
+      '<td><b>' + p.sold + '</b></td>' +
+      '<td>' + (p.stock === null || p.stock === undefined ? '—' : p.stock) + '</td>' +
+      '<td>' + fmtTL(p.price) + '</td>' +
+      '<td>' + (p.visible ? '<span class="badge ok">Açık</span>' : '<span class="badge danger">Kapalı</span>') + '</td>' +
+    '</tr>'
+  ).join('');
+}
+
 // ---------- Log ----------
 async function loadLog() {
   const items = await request(API.log);
@@ -289,4 +582,6 @@ async function loadLog() {
 // ---------- Başlangıç ----------
 loadProducts();
 loadSettings();
+loadBirFatura();
+loadShop();
 setInterval(loadProducts, 30000);

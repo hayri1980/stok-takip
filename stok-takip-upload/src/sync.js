@@ -184,4 +184,62 @@ async function checkQuestions() {
   return { total: questions.length, fresh: fresh.length, sent };
 }
 
-module.exports = { syncMarketplace, checkStocks, checkQuestions };
+async function syncTrendyolToHepsiburada() {
+  const settings = db.getSettings();
+  const tyCfg = settings.trendyol;
+  const hbCfg = settings.hepsiburada;
+
+  if (!tyCfg.apiKey || !tyCfg.apiSecret || !tyCfg.sellerId) {
+    return { skipped: true, reason: 'Trendyol API ayarları eksik' };
+  }
+  if (!hbCfg.username || !hbCfg.password) {
+    return { skipped: true, reason: 'Hepsiburada API ayarları eksik' };
+  }
+
+  let tyStocks;
+  let hbProducts;
+  try {
+    tyStocks = await trendyol.fetchStock(tyCfg.sellerId, tyCfg.apiKey, tyCfg.apiSecret);
+    hbProducts = await hepsiburada.fetchProducts(hbCfg.username, hbCfg.password);
+  } catch (e) {
+    db.addLog('Trendyol→Hepsiburada senkron hatası: ' + e.message);
+    return { error: e.message };
+  }
+
+  const byBarcode = hbProducts.byBarcode;
+  const bySku = hbProducts.bySku;
+  let updated = 0;
+  let matched = 0;
+  let notListed = 0;
+  const errors = [];
+
+  for (const [barcode, qty] of tyStocks.entries()) {
+    const key = String(barcode).trim();
+    const hbItem = byBarcode.get(key) || bySku.get(key);
+    if (!hbItem) {
+      notListed++;
+      continue;
+    }
+    matched++;
+    try {
+      await hepsiburada.updateStock(hbCfg.username, hbCfg.password, hbItem.sku, qty, hbItem.price);
+      updated++;
+      const existing = db.findProductByBarcode(key);
+      if (existing) {
+        db.updateProduct(existing.id, { hepsiburadaStock: qty, lastSync: new Date().toISOString() });
+      }
+    } catch (e) {
+      errors.push(key + ': ' + e.message);
+    }
+  }
+
+  if (updated > 0 || errors.length > 0) {
+    const msg = 'Trendyol→Hepsiburada stok yazıldı: ' + updated + ' güncellendi, ' +
+      matched + ' eşleşti, ' + notListed + ' HB\'de listelenmiyor (atlandı)';
+    db.addLog(msg + (errors.length > 0 ? ', ' + errors.length + ' hata' : ''));
+  }
+
+  return { updated, matched, notListed, errors };
+}
+
+module.exports = { syncMarketplace, checkStocks, checkQuestions, syncTrendyolToHepsiburada };

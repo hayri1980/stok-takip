@@ -19,7 +19,30 @@ function defaultData() {
       sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15 }
     },
     log: [],
-    qnaNotifiedIds: []
+    qnaNotifiedIds: [],
+      shop: {
+        products: [],
+        orders: [],
+        stats: { visits: 0, daily: {} },
+        settings: {
+          storeName: 'Caparici',
+          domain: 'caparici.com',
+          phone: '',
+          whatsapp: '',
+          address: '',
+          iban: '',
+          ibanHolder: '',
+          cargoFee: 0,
+          freeShippingThreshold: 0,
+          cargoCompany: 'Sürat Kargo',
+          cargoTrackingUrl: 'https://gonderitakip.suratkargo.com.tr/Sorgu/',
+          iyzico: { apiKey: '', secretKey: '', baseUrl: 'https://sandbox-api.iyzico.com', enabled: false },
+          birfatura: { endpoint: '', username: '', password: '', enabled: false, invoiceType: 'earsiv', taxRate: 20 },
+          notifyTelegram: true,
+          metaDescription: 'İstavrit, uskumru, lüfer, palamut, çinekop ve kolyoz çapari modelleri. 7 li, 10 lu, 15 li çapari, çapari köstekleri ve yemli dip takımları uygun fiyata. Kıyı ve tekne çapari setleri.',
+          metaKeywords: 'çapari, istavrit çaparisi, gece istavrit çaparisi, gece çaparisi, uskumru çaparisi, kolyoz çaparisi, çinekop çaparisi, lüfer çaparisi, palamut çaparisi, gümüş çaparisi, çapari köstekleri, 7 li istavrit çaparisi, 10 lu istavrit çaparisi, kıyı çaparisi, tekne çaparisi, 15 li çapari, yemli dip takımları, olta, balıkçılık malzemeleri'
+        }
+      }
   };
 }
 
@@ -42,6 +65,11 @@ function load() {
   if (!Array.isArray(state.products)) state.products = [];
   if (!Array.isArray(state.log)) state.log = [];
   if (!Array.isArray(state.qnaNotifiedIds)) state.qnaNotifiedIds = [];
+  if (!state.shop) state.shop = {};
+  if (!Array.isArray(state.shop.products)) state.shop.products = [];
+  if (!Array.isArray(state.shop.orders)) state.shop.orders = [];
+  if (!state.shop.stats) state.shop.stats = { visits: 0, daily: {} };
+  state.shop.settings = mergeShopSettings(def.shop.settings, state.shop.settings || {});
   save();
   return state;
 }
@@ -87,7 +115,8 @@ function getProducts() {
 
 function findProductByBarcode(barcode) {
   load();
-  return state.products.find(p => p.barcode === barcode) || null;
+  const needle = String(barcode || '').toLowerCase();
+  return state.products.find(p => String(p.barcode || '').toLowerCase() === needle) || null;
 }
 
 function getProduct(id) {
@@ -166,6 +195,176 @@ function addQnaNotifiedIds(ids) {
   return state.qnaNotifiedIds;
 }
 
+// ---- Mağaza ----
+function mergeShopSettings(base, partial) {
+  return {
+    ...base,
+    ...(partial || {}),
+    iyzico: { ...base.iyzico, ...((partial || {}).iyzico || {}) },
+    birfatura: { ...base.birfatura, ...((partial || {}).birfatura || {}) }
+  };
+}
+
+function getShopProducts() {
+  load();
+  return state.shop.products;
+}
+
+function getShopProduct(id) {
+  load();
+  return state.shop.products.find(p => p.id === id) || null;
+}
+
+function addShopProduct(data) {
+  load();
+  const product = {
+    id: genId(),
+    name: (data.name || '').trim(),
+    barcode: (data.barcode || '').trim(),
+    price: Number(data.price) || 0,
+    stock: data.stock !== undefined && data.stock !== null ? Number(data.stock) : null,
+    category: (data.category || '').trim(),
+    images: Array.isArray(data.images) ? data.images.slice(0, 6) : [],
+    description: data.description || '',
+    visible: data.visible !== false,
+    featured: !!data.featured,
+    source: data.source || 'manual',
+    sold: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  state.shop.products.push(product);
+  save();
+  return product;
+}
+
+function updateShopProduct(id, data) {
+  load();
+  const idx = state.shop.products.findIndex(p => p.id === id);
+  if (idx === -1) return null;
+  const current = state.shop.products[idx];
+  const merged = { ...current, ...data, id: current.id, createdAt: current.createdAt };
+  if (data.name !== undefined) merged.name = String(data.name).trim();
+  if (data.barcode !== undefined) merged.barcode = String(data.barcode).trim();
+  if (data.price !== undefined) merged.price = Number(data.price) || 0;
+  if (data.stock !== undefined) merged.stock = data.stock === null ? null : Number(data.stock);
+  if (data.category !== undefined) merged.category = String(data.category).trim();
+  if (data.images !== undefined) merged.images = Array.isArray(data.images) ? data.images.slice(0, 6) : [];
+  if (data.visible !== undefined) merged.visible = !!data.visible;
+  if (data.featured !== undefined) merged.featured = !!data.featured;
+  merged.updatedAt = new Date().toISOString();
+  state.shop.products[idx] = merged;
+  save();
+  return merged;
+}
+
+function deleteShopProduct(id) {
+  load();
+  state.shop.products = state.shop.products.filter(p => p.id !== id);
+  save();
+}
+
+function getShopOrders() {
+  load();
+  return state.shop.orders;
+}
+
+function getShopOrder(id) {
+  load();
+  return state.shop.orders.find(o => o.id === id) || null;
+}
+
+function addShopOrder(data) {
+  load();
+  const now = new Date().toISOString();
+  const order = {
+    id: genId(),
+    orderNo: 'S' + Date.now().toString(36).toUpperCase(),
+    items: Array.isArray(data.items) ? data.items : [],
+    customer: data.customer || {},
+    paymentMethod: data.paymentMethod || 'eft',
+    subtotal: Number(data.subtotal) || 0,
+    cargoFee: Number(data.cargoFee) || 0,
+    total: Number(data.total) || 0,
+    status: 'bekliyor',
+    cargoNumber: '',
+    cargoCompany: '',
+    createdAt: now,
+    updatedAt: now
+  };
+  state.shop.orders.unshift(order);
+  save();
+  return order;
+}
+
+function updateShopOrder(id, data) {
+  load();
+  const idx = state.shop.orders.findIndex(o => o.id === id);
+  if (idx === -1) return null;
+  state.shop.orders[idx] = { ...state.shop.orders[idx], ...data, id, updatedAt: new Date().toISOString() };
+  save();
+  return state.shop.orders[idx];
+}
+
+function getShopSettings() {
+  load();
+  return state.shop.settings;
+}
+
+function setShopSettings(partial) {
+  load();
+  state.shop.settings = mergeShopSettings(state.shop.settings, partial);
+  save();
+  return state.shop.settings;
+}
+
+function incrementShopProductSold(id, qty) {
+  load();
+  const p = state.shop.products.find(x => x.id === id);
+  if (!p) return null;
+  p.sold = (Number(p.sold) || 0) + Math.max(0, Number(qty) || 0);
+  p.updatedAt = new Date().toISOString();
+  save();
+  return p;
+}
+
+function dayKey(d) {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function recordShopVisit() {
+  load();
+  const key = dayKey(new Date());
+  state.shop.stats.visits = (state.shop.stats.visits || 0) + 1;
+  if (!state.shop.stats.daily) state.shop.stats.daily = {};
+  state.shop.stats.daily[key] = (state.shop.stats.daily[key] || 0) + 1;
+  save();
+  return state.shop.stats;
+}
+
+function getShopStats() {
+  load();
+  const s = state.shop.stats || { visits: 0, daily: {} };
+  const today = dayKey(new Date());
+  const daily = [];
+  for (let i = 13; i >= 0; i--) {
+    const k = dayKey(new Date(Date.now() - i * 86400000));
+    daily.push({ day: k, count: s.daily[k] || 0 });
+  }
+  const orders = state.shop.orders;
+  return {
+    visitsTotal: s.visits || 0,
+    today: s.daily[today] || 0,
+    daily,
+    ordersTotal: orders.length,
+    revenue: orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0),
+    soldTotal: state.shop.products.reduce((sum, p) => sum + (Number(p.sold) || 0), 0)
+  };
+}
+
 module.exports = {
   load,
   save,
@@ -180,5 +379,19 @@ module.exports = {
   setSettings,
   getLog,
   getQnaNotifiedIds,
-  addQnaNotifiedIds
+  addQnaNotifiedIds,
+  getShopProducts,
+  getShopProduct,
+  addShopProduct,
+  updateShopProduct,
+  deleteShopProduct,
+  getShopOrders,
+  getShopOrder,
+  addShopOrder,
+  updateShopOrder,
+  getShopSettings,
+  setShopSettings,
+  incrementShopProductSold,
+  recordShopVisit,
+  getShopStats
 };

@@ -115,7 +115,8 @@ function getProducts() {
 
 function findProductByBarcode(barcode) {
   load();
-  return state.products.find(p => p.barcode === barcode) || null;
+  const needle = String(barcode || '').toLowerCase();
+  return state.products.find(p => String(p.barcode || '').toLowerCase() === needle) || null;
 }
 
 function getProduct(id) {
