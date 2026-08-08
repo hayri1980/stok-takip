@@ -120,4 +120,20 @@ async function fetchProductCatalog(sellerId, apiKey, apiSecret) {
   return products;
 }
 
-module.exports = { fetchStock, fetchQuestions, fetchProductCatalog };
+async function updateStock(sellerId, apiKey, apiSecret, barcode, quantity) {
+  const auth = 'Basic ' + Buffer.from(apiKey + ':' + apiSecret).toString('base64');
+  const headers = {
+    'Authorization': auth,
+    'x-seller-id': String(sellerId),
+    'User-Agent': 'StokTakip-v1'
+  };
+  const qty = Math.max(0, parseInt(quantity, 10));
+  const url = `${BASE}/inventory/suppliers/${sellerId}/products/${encodeURIComponent(barcode)}/quantity?quantity=${qty}&isUpdatedPrice=false`;
+  const res = await fetch(url, { method: 'PUT', headers });
+  if (!res.ok) {
+    throw new Error('Trendyol stok güncelleme hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
+  }
+  return true;
+}
+
+module.exports = { fetchStock, fetchQuestions, fetchProductCatalog, updateStock };

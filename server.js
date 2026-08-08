@@ -120,10 +120,10 @@ app.post('/api/sync', async (req, res) => {
     db.addLog('Stok kontrol hatası: ' + e.message);
   }
   try {
-    results.push = await sync.syncTrendyolToHepsiburada();
+    results.push = await sync.syncSharedStock();
   } catch (e) {
     results.push = { error: e.message };
-    db.addLog('Trendyol→Hepsiburada yazma hatası: ' + e.message);
+    db.addLog('Ortak stok yazma hatası: ' + e.message);
   }
   res.json(results);
 });
@@ -400,9 +400,9 @@ async function runCheck() {
     db.addLog('Stok kontrol hatası: ' + e.message);
   }
   try {
-    await sync.syncTrendyolToHepsiburada();
+    await sync.syncSharedStock();
   } catch (e) {
-    db.addLog('Trendyol→Hepsiburada yazma hatası: ' + e.message);
+    db.addLog('Ortak stok yazma hatası: ' + e.message);
   }
   try {
     await sync.checkQuestions();
@@ -449,9 +449,9 @@ async function start() {
     db.addLog('Stok kontrol hatası: ' + e.message);
   }
   try {
-    await sync.syncTrendyolToHepsiburada();
+    await sync.syncSharedStock();
   } catch (e) {
-    db.addLog('Trendyol→Hepsiburada yazma hatası: ' + e.message);
+    db.addLog('Ortak stok yazma hatası: ' + e.message);
   }
   try {
     await sync.checkQuestions();

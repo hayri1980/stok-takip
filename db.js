@@ -101,6 +101,7 @@ function defaultProduct(data) {
     barcode: (data.barcode || '').trim(),
     trendyolStock: data.trendyolStock !== undefined && data.trendyolStock !== null ? Number(data.trendyolStock) : null,
     hepsiburadaStock: data.hepsiburadaStock !== undefined && data.hepsiburadaStock !== null ? Number(data.hepsiburadaStock) : null,
+    sharedStock: data.sharedStock !== undefined && data.sharedStock !== null ? Number(data.sharedStock) : null,
     trendyolNotified: false,
     hepsiburadaNotified: false,
     lastSync: null,
@@ -142,6 +143,7 @@ function updateProduct(id, data) {
   if (data.name !== undefined) merged.name = data.name;
   if (data.trendyolStock !== undefined) merged.trendyolStock = data.trendyolStock === null ? null : Number(data.trendyolStock);
   if (data.hepsiburadaStock !== undefined) merged.hepsiburadaStock = data.hepsiburadaStock === null ? null : Number(data.hepsiburadaStock);
+  if (data.sharedStock !== undefined) merged.sharedStock = data.sharedStock === null ? null : Number(data.sharedStock);
   state.products[idx] = merged;
   save();
   return merged;
