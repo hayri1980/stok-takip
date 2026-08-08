@@ -146,12 +146,14 @@ tr:hover td { background: #f8fafc; }
 
 .card input[type="text"],
 .card input[type="password"],
-.card input[type="number"] {
+.card input[type="number"],
+.card select {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-size: 14px;
+  background: #fff;
 }
 
 .card .btn { margin-top: 16px; }
@@ -202,10 +204,53 @@ tr:hover td { background: #f8fafc; }
   border-radius: 8px;
   font-size: 14px;
 }
+.modal-box textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+.thumb { width: 34px; height: 34px; object-fit: cover; border-radius: 6px; vertical-align: middle; margin-right: 6px; }
+.cargo-input { width: 110px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; margin-right: 4px; }
+.shop-preview { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; margin-top: 10px; border: 1px solid #cbd5e1; }
 
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+.visit-chart { margin-top: 12px; overflow-x: auto; }
+.visit-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 180px;
+  padding-top: 8px;
+}
+.visit-bar {
+  flex: 1;
+  min-width: 22px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+.visit-bar-fill {
+  width: 100%;
+  min-height: 2px;
+  background: #2563eb;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  transition: height .3s;
+}
+.visit-bar-fill b { font-size: 11px; color: #2563eb; padding-top: 2px; }
+.visit-bar small { font-size: 10px; color: #94a3b8; }
 
 @media (max-width: 700px) {
   .settings-grid { grid-template-columns: 1fr; }
