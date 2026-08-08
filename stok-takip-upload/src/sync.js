@@ -184,7 +184,7 @@ async function checkQuestions() {
   return { total: questions.length, fresh: fresh.length, sent };
 }
 
-async function syncTrendyolToHepsiburada() {
+async function syncSharedStock() {
   const settings = db.getSettings();
   const tyCfg = settings.trendyol;
   const hbCfg = settings.hepsiburada;
@@ -202,18 +202,18 @@ async function syncTrendyolToHepsiburada() {
     tyStocks = await trendyol.fetchStock(tyCfg.sellerId, tyCfg.apiKey, tyCfg.apiSecret);
     hbProducts = await hepsiburada.fetchProducts(hbCfg.username, hbCfg.password);
   } catch (e) {
-    db.addLog('Trendyol→Hepsiburada senkron hatası: ' + e.message);
+    db.addLog('Ortak stok senkron hatası: ' + e.message);
     return { error: e.message };
   }
 
   const byBarcode = hbProducts.byBarcode;
   const bySku = hbProducts.bySku;
-  let updated = 0;
+  let written = 0;
   let matched = 0;
   let notListed = 0;
   const errors = [];
 
-  for (const [barcode, qty] of tyStocks.entries()) {
+  for (const [barcode, tyQty] of tyStocks.entries()) {
     const key = String(barcode).trim();
     const hbItem = byBarcode.get(key) || bySku.get(key);
     if (!hbItem) {
@@ -221,25 +221,71 @@ async function syncTrendyolToHepsiburada() {
       continue;
     }
     matched++;
-    try {
-      await hepsiburada.updateStock(hbCfg.username, hbCfg.password, hbItem.sku, qty, hbItem.price);
-      updated++;
-      const existing = db.findProductByBarcode(key);
-      if (existing) {
-        db.updateProduct(existing.id, { hepsiburadaStock: qty, lastSync: new Date().toISOString() });
+
+    const hbQty = hbItem.qty;
+    if (hbQty === null || hbQty === undefined) continue;
+
+    const existing = db.findProductByBarcode(key);
+    const shared = existing ? existing.sharedStock : null;
+
+    let target;
+    let touchTy = false;
+    let touchHb = false;
+
+    if (shared !== null && shared !== undefined) {
+      const tyChanged = Number(tyQty) !== Number(shared);
+      const hbChanged = Number(hbQty) !== Number(shared);
+      if (tyChanged && !hbChanged) {
+        target = Number(tyQty);
+        touchHb = true;
+      } else if (hbChanged && !tyChanged) {
+        target = Number(hbQty);
+        touchTy = true;
+      } else if (tyChanged && hbChanged) {
+        target = Math.min(Number(tyQty), Number(hbQty));
+        touchTy = Number(tyQty) !== target;
+        touchHb = Number(hbQty) !== target;
+      } else {
+        continue;
       }
+    } else {
+      if (Number(tyQty) === Number(hbQty)) {
+        target = Number(tyQty);
+      } else {
+        target = Math.min(Number(tyQty), Number(hbQty));
+        touchTy = Number(tyQty) !== target;
+        touchHb = Number(hbQty) !== target;
+      }
+    }
+
+    try {
+      if (touchTy) {
+        await trendyol.updateStock(tyCfg.sellerId, tyCfg.apiKey, tyCfg.apiSecret, key, target);
+      }
+      if (touchHb) {
+        await hepsiburada.updateStock(hbCfg.username, hbCfg.password, hbItem.sku, target, hbItem.price);
+      }
+      if (existing) {
+        db.updateProduct(existing.id, {
+          trendyolStock: target,
+          hepsiburadaStock: target,
+          sharedStock: target,
+          lastSync: new Date().toISOString()
+        });
+      }
+      written++;
     } catch (e) {
       errors.push(key + ': ' + e.message);
     }
   }
 
-  if (updated > 0 || errors.length > 0) {
-    const msg = 'Trendyol→Hepsiburada stok yazıldı: ' + updated + ' güncellendi, ' +
+  if (written > 0 || errors.length > 0) {
+    const msg = 'Ortak stok senkronu: ' + written + ' ürün eşitlendi, ' +
       matched + ' eşleşti, ' + notListed + ' HB\'de listelenmiyor (atlandı)';
     db.addLog(msg + (errors.length > 0 ? ', ' + errors.length + ' hata' : ''));
   }
 
-  return { updated, matched, notListed, errors };
+  return { written, matched, notListed, errors };
 }
 
-module.exports = { syncMarketplace, checkStocks, checkQuestions, syncTrendyolToHepsiburada };
+module.exports = { syncMarketplace, checkStocks, checkQuestions, syncSharedStock };
