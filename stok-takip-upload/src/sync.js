@@ -242,20 +242,14 @@ async function syncSharedStock() {
         target = Number(hbQty);
         touchTy = true;
       } else if (tyChanged && hbChanged) {
-        target = Math.min(Number(tyQty), Number(hbQty));
-        touchTy = Number(tyQty) !== target;
+        target = Number(tyQty);
         touchHb = Number(hbQty) !== target;
       } else {
         continue;
       }
     } else {
-      if (Number(tyQty) === Number(hbQty)) {
-        target = Number(tyQty);
-      } else {
-        target = Math.min(Number(tyQty), Number(hbQty));
-        touchTy = Number(tyQty) !== target;
-        touchHb = Number(hbQty) !== target;
-      }
+      target = Number(tyQty);
+      touchHb = Number(hbQty) !== target;
     }
 
     try {
