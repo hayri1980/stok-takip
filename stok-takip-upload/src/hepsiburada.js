@@ -94,4 +94,36 @@ async function updateStock(username, password, sku, availableStock, price) {
   return true;
 }
 
-module.exports = { fetchStock, fetchProducts, updateStock };
+async function createProduct(username, password, p) {
+  const auth = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
+  const headers = {
+    'Authorization': auth,
+    'Content-Type': 'application/json',
+    'User-Agent': 'StokTakip-v1'
+  };
+  const mapping = p.mapping || {};
+  const body = {
+    merchant: String(username),
+    items: [{
+      merchantSku: p.barcode,
+      categoryId: Number(mapping.categoryId),
+      productName: p.title,
+      brand: mapping.brand || '',
+      attributes: [],
+      vatRate: Number(mapping.vatRate) || 20,
+      price: Number(p.price) || 0,
+      availableStock: Math.max(0, Number(p.quantity) || 0)
+    }]
+  };
+  const res = await fetch(`${BASE}/product/api/products/import`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    throw new Error('Hepsiburada ürün oluşturma hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
+  }
+  return true;
+}
+
+module.exports = { fetchStock, fetchProducts, updateStock, createProduct };

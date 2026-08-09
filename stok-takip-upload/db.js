@@ -16,7 +16,21 @@ function defaultData() {
       telegram: { botToken: '', chatId: '', enabled: false },
       trendyol: { apiKey: '', apiSecret: '', sellerId: '' },
       hepsiburada: { username: '', password: '' },
-      sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15 }
+      pttavm: { apiKey: '', accessToken: '' },
+      idefix: { apiKey: '', apiSecret: '', vendorId: '' },
+      n11: { appKey: '', appSecret: '' },
+      ciceksepeti: { apiKey: '' },
+      sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15 },
+      productPush: {
+        enabled: false,
+        mappings: {
+          hepsiburada: { categoryId: '', brand: '', vatRate: 20 },
+          pttavm: { categoryId: '', brand: '', vatRate: 20 },
+          idefix: { categoryId: '', brandId: '', vatRate: 20, cargoCompanyId: 0, shipmentAddressId: 0, returnAddressId: 0 },
+          n11: { categoryId: '', brand: '', shipmentTemplate: '', currencyType: 'TRY' },
+          ciceksepeti: { categoryId: '', deliveryType: 2, deliveryMessageType: 5 }
+        }
+      }
     },
     log: [],
     qnaNotifiedIds: [],
@@ -101,9 +115,18 @@ function defaultProduct(data) {
     barcode: (data.barcode || '').trim(),
     trendyolStock: data.trendyolStock !== undefined && data.trendyolStock !== null ? Number(data.trendyolStock) : null,
     hepsiburadaStock: data.hepsiburadaStock !== undefined && data.hepsiburadaStock !== null ? Number(data.hepsiburadaStock) : null,
+    pttavmStock: data.pttavmStock !== undefined && data.pttavmStock !== null ? Number(data.pttavmStock) : null,
+    idefixStock: data.idefixStock !== undefined && data.idefixStock !== null ? Number(data.idefixStock) : null,
+    n11Stock: data.n11Stock !== undefined && data.n11Stock !== null ? Number(data.n11Stock) : null,
+    ciceksepetiStock: data.ciceksepetiStock !== undefined && data.ciceksepetiStock !== null ? Number(data.ciceksepetiStock) : null,
     sharedStock: data.sharedStock !== undefined && data.sharedStock !== null ? Number(data.sharedStock) : null,
+    pushed: data.pushed && typeof data.pushed === 'object' ? data.pushed : {},
     trendyolNotified: false,
     hepsiburadaNotified: false,
+    pttavmNotified: false,
+    idefixNotified: false,
+    n11Notified: false,
+    ciceksepetiNotified: false,
     lastSync: null,
     createdAt: new Date().toISOString()
   };
@@ -143,7 +166,12 @@ function updateProduct(id, data) {
   if (data.name !== undefined) merged.name = data.name;
   if (data.trendyolStock !== undefined) merged.trendyolStock = data.trendyolStock === null ? null : Number(data.trendyolStock);
   if (data.hepsiburadaStock !== undefined) merged.hepsiburadaStock = data.hepsiburadaStock === null ? null : Number(data.hepsiburadaStock);
+  if (data.pttavmStock !== undefined) merged.pttavmStock = data.pttavmStock === null ? null : Number(data.pttavmStock);
+  if (data.idefixStock !== undefined) merged.idefixStock = data.idefixStock === null ? null : Number(data.idefixStock);
+  if (data.n11Stock !== undefined) merged.n11Stock = data.n11Stock === null ? null : Number(data.n11Stock);
+  if (data.ciceksepetiStock !== undefined) merged.ciceksepetiStock = data.ciceksepetiStock === null ? null : Number(data.ciceksepetiStock);
   if (data.sharedStock !== undefined) merged.sharedStock = data.sharedStock === null ? null : Number(data.sharedStock);
+  if (data.pushed !== undefined && data.pushed && typeof data.pushed === 'object') merged.pushed = data.pushed;
   state.products[idx] = merged;
   save();
   return merged;
@@ -173,9 +201,23 @@ function mergeSettings(base, partial) {
     telegram: { ...base.telegram, ...(partial.telegram || {}) },
     trendyol: { ...base.trendyol, ...(partial.trendyol || {}) },
     hepsiburada: { ...base.hepsiburada, ...(partial.hepsiburada || {}) },
-    sync: { ...base.sync, ...(partial.sync || {}) }
+    pttavm: { ...base.pttavm, ...(partial.pttavm || {}) },
+    idefix: { ...base.idefix, ...(partial.idefix || {}) },
+    n11: { ...base.n11, ...(partial.n11 || {}) },
+    ciceksepeti: { ...base.ciceksepeti, ...(partial.ciceksepeti || {}) },
+    sync: { ...base.sync, ...(partial.sync || {}) },
+    productPush: mergeProductPush(base.productPush || {}, partial.productPush || {})
   };
   return out;
+}
+
+function mergeProductPush(base, partial) {
+  const keys = ['hepsiburada', 'pttavm', 'idefix', 'n11', 'ciceksepeti'];
+  const mappings = {};
+  for (const k of keys) {
+    mappings[k] = { ...(base.mappings && base.mappings[k]), ...(partial.mappings && partial.mappings[k]) };
+  }
+  return { ...base, ...partial, mappings };
 }
 
 function getLog() {

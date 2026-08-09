@@ -69,11 +69,21 @@ function renderProducts() {
   tbody.innerHTML = filtered.map(p => {
     const ty = stockCell(p.trendyolStock);
     const hb = stockCell(p.hepsiburadaStock);
+    const ptt = stockCell(p.pttavmStock);
+    const ide = stockCell(p.idefixStock);
+    const n11 = stockCell(p.n11Stock);
+    const cs = stockCell(p.ciceksepetiStock);
+    const shared = stockCell(p.sharedStock);
     return '<tr>' +
       '<td>' + escapeHtml(p.name) + '</td>' +
       '<td class="mono">' + escapeHtml(p.barcode) + '</td>' +
       '<td>' + ty + '</td>' +
       '<td>' + hb + '</td>' +
+      '<td>' + ptt + '</td>' +
+      '<td>' + ide + '</td>' +
+      '<td>' + n11 + '</td>' +
+      '<td>' + cs + '</td>' +
+      '<td>' + shared + '</td>' +
       '<td class="muted">' + fmtTime(p.lastSync) + '</td>' +
       '<td class="actions">' +
         '<button class="btn small" onclick="openEdit(\'' + p.id + '\')">Düzenle</button> ' +
@@ -89,7 +99,7 @@ function renderSummary() {
   const total = products.length;
   let out = 0, low = 0;
   for (const p of products) {
-    for (const s of [p.trendyolStock, p.hepsiburadaStock]) {
+    for (const s of [p.trendyolStock, p.hepsiburadaStock, p.pttavmStock, p.idefixStock, p.n11Stock, p.ciceksepetiStock]) {
       if (s === null || s === undefined) continue;
       if (s <= 0) out++;
       else if (s <= notifyThreshold) low++;
@@ -120,6 +130,10 @@ function openAdd() {
   document.getElementById('pBarcode').value = '';
   document.getElementById('pTyStock').value = '';
   document.getElementById('pHbStock').value = '';
+  document.getElementById('pPttavmStock').value = '';
+  document.getElementById('pIdefixStock').value = '';
+  document.getElementById('pN11Stock').value = '';
+  document.getElementById('pCsStock').value = '';
   modal.classList.remove('hidden');
   document.getElementById('pName').focus();
 }
@@ -133,6 +147,10 @@ function openEdit(id) {
   document.getElementById('pBarcode').value = p.barcode;
   document.getElementById('pTyStock').value = p.trendyolStock === null ? '' : p.trendyolStock;
   document.getElementById('pHbStock').value = p.hepsiburadaStock === null ? '' : p.hepsiburadaStock;
+  document.getElementById('pPttavmStock').value = p.pttavmStock === null ? '' : p.pttavmStock;
+  document.getElementById('pIdefixStock').value = p.idefixStock === null ? '' : p.idefixStock;
+  document.getElementById('pN11Stock').value = p.n11Stock === null ? '' : p.n11Stock;
+  document.getElementById('pCsStock').value = p.ciceksepetiStock === null ? '' : p.ciceksepetiStock;
   modal.classList.remove('hidden');
 }
 
@@ -148,8 +166,16 @@ async function saveProduct() {
   };
   const ty = document.getElementById('pTyStock').value;
   const hb = document.getElementById('pHbStock').value;
+  const ptt = document.getElementById('pPttavmStock').value;
+  const ide = document.getElementById('pIdefixStock').value;
+  const n11 = document.getElementById('pN11Stock').value;
+  const cs = document.getElementById('pCsStock').value;
   body.trendyolStock = ty === '' ? null : Number(ty);
   body.hepsiburadaStock = hb === '' ? null : Number(hb);
+  body.pttavmStock = ptt === '' ? null : Number(ptt);
+  body.idefixStock = ide === '' ? null : Number(ide);
+  body.n11Stock = n11 === '' ? null : Number(n11);
+  body.ciceksepetiStock = cs === '' ? null : Number(cs);
   if (!body.barcode) return alert('Barkod gerekli.');
   if (id) {
     await request(API.products + '/' + id, 'PUT', body);
@@ -395,6 +421,12 @@ document.getElementById('syncBtn').addEventListener('click', async () => {
     const parts = [];
     if (r.trendyol) parts.push('Trendyol: ' + (r.trendyol.updated || 0) + ' güncelleme');
     if (r.hepsiburada) parts.push('Hepsiburada: ' + (r.hepsiburada.updated || 0) + ' güncelleme');
+    if (r.productPush) {
+      const pp = r.productPush;
+      if (pp.created) parts.push('Diğer pazarlara yüklenen ürün: ' + pp.created);
+      if (pp.error) parts.push('Ürün yükleme hatası: ' + pp.error);
+      if (pp.skipped && !pp.created) parts.push('Ürün yükleme: ' + pp.reason);
+    }
     alert(parts.join('\n'));
   } catch (e) {
     alert('Hata: ' + e.message);
@@ -421,8 +453,37 @@ async function loadSettings() {
   document.getElementById('tySellerId').value = s.trendyol.sellerId || '';
   document.getElementById('hbUsername').value = s.hepsiburada.username || '';
   document.getElementById('hbPassword').value = s.hepsiburada.password || '';
+  document.getElementById('pttApiKey').value = s.pttavm.apiKey || '';
+  document.getElementById('pttAccessToken').value = s.pttavm.accessToken || '';
+  document.getElementById('idefixApiKey').value = s.idefix.apiKey || '';
+  document.getElementById('idefixApiSecret').value = s.idefix.apiSecret || '';
+  document.getElementById('idefixVendorId').value = s.idefix.vendorId || '';
+  document.getElementById('n11AppKey').value = s.n11.appKey || '';
+  document.getElementById('n11AppSecret').value = s.n11.appSecret || '';
+  document.getElementById('csApiKey').value = s.ciceksepeti.apiKey || '';
   document.getElementById('syncInterval').value = s.sync.intervalMinutes || 30;
   document.getElementById('notifyThreshold').value = s.sync.threshold !== undefined ? s.sync.threshold : 1;
+  const pp = s.productPush || { mappings: {} };
+  const pm = pp.mappings || {};
+  document.getElementById('ppEnabled').checked = !!pp.enabled;
+  document.getElementById('ppHbCategoryId').value = (pm.hepsiburada && pm.hepsiburada.categoryId) || '';
+  document.getElementById('ppHbBrand').value = (pm.hepsiburada && pm.hepsiburada.brand) || '';
+  document.getElementById('ppHbVatRate').value = (pm.hepsiburada && pm.hepsiburada.vatRate) || 20;
+  document.getElementById('ppPttCategoryId').value = (pm.pttavm && pm.pttavm.categoryId) || '';
+  document.getElementById('ppPttBrand').value = (pm.pttavm && pm.pttavm.brand) || '';
+  document.getElementById('ppPttVatRate').value = (pm.pttavm && pm.pttavm.vatRate) || 20;
+  document.getElementById('ppIdefixCategoryId').value = (pm.idefix && pm.idefix.categoryId) || '';
+  document.getElementById('ppIdefixBrandId').value = (pm.idefix && pm.idefix.brandId) || '';
+  document.getElementById('ppIdefixVatRate').value = (pm.idefix && pm.idefix.vatRate) || 20;
+  document.getElementById('ppIdefixCargoCompanyId').value = (pm.idefix && pm.idefix.cargoCompanyId) || 0;
+  document.getElementById('ppIdefixShipmentAddressId').value = (pm.idefix && pm.idefix.shipmentAddressId) || 0;
+  document.getElementById('ppIdefixReturnAddressId').value = (pm.idefix && pm.idefix.returnAddressId) || 0;
+  document.getElementById('ppN11CategoryId').value = (pm.n11 && pm.n11.categoryId) || '';
+  document.getElementById('ppN11Brand').value = (pm.n11 && pm.n11.brand) || '';
+  document.getElementById('ppN11ShipmentTemplate').value = (pm.n11 && pm.n11.shipmentTemplate) || '';
+  document.getElementById('ppCsCategoryId').value = (pm.ciceksepeti && pm.ciceksepeti.categoryId) || '';
+  document.getElementById('ppCsDeliveryType').value = (pm.ciceksepeti && pm.ciceksepeti.deliveryType) || 2;
+  document.getElementById('ppCsDeliveryMessageType').value = (pm.ciceksepeti && pm.ciceksepeti.deliveryMessageType) || 5;
 }
 
 async function saveSettings() {
@@ -448,9 +509,59 @@ async function saveSettings() {
       username: document.getElementById('hbUsername').value.trim(),
       password: document.getElementById('hbPassword').value.trim()
     },
+    pttavm: {
+      apiKey: document.getElementById('pttApiKey').value.trim(),
+      accessToken: document.getElementById('pttAccessToken').value.trim()
+    },
+    idefix: {
+      apiKey: document.getElementById('idefixApiKey').value.trim(),
+      apiSecret: document.getElementById('idefixApiSecret').value.trim(),
+      vendorId: document.getElementById('idefixVendorId').value.trim()
+    },
+    n11: {
+      appKey: document.getElementById('n11AppKey').value.trim(),
+      appSecret: document.getElementById('n11AppSecret').value.trim()
+    },
+    ciceksepeti: {
+      apiKey: document.getElementById('csApiKey').value.trim()
+    },
     sync: {
       intervalMinutes: Number(document.getElementById('syncInterval').value) || 30,
       threshold: Number(document.getElementById('notifyThreshold').value)
+    },
+    productPush: {
+      enabled: document.getElementById('ppEnabled').checked,
+      mappings: {
+        hepsiburada: {
+          categoryId: document.getElementById('ppHbCategoryId').value.trim(),
+          brand: document.getElementById('ppHbBrand').value.trim(),
+          vatRate: Number(document.getElementById('ppHbVatRate').value) || 20
+        },
+        pttavm: {
+          categoryId: document.getElementById('ppPttCategoryId').value.trim(),
+          brand: document.getElementById('ppPttBrand').value.trim(),
+          vatRate: Number(document.getElementById('ppPttVatRate').value) || 20
+        },
+        idefix: {
+          categoryId: document.getElementById('ppIdefixCategoryId').value.trim(),
+          brandId: document.getElementById('ppIdefixBrandId').value.trim(),
+          vatRate: Number(document.getElementById('ppIdefixVatRate').value) || 20,
+          cargoCompanyId: Number(document.getElementById('ppIdefixCargoCompanyId').value) || 0,
+          shipmentAddressId: Number(document.getElementById('ppIdefixShipmentAddressId').value) || 0,
+          returnAddressId: Number(document.getElementById('ppIdefixReturnAddressId').value) || 0
+        },
+        n11: {
+          categoryId: document.getElementById('ppN11CategoryId').value.trim(),
+          brand: document.getElementById('ppN11Brand').value.trim(),
+          shipmentTemplate: document.getElementById('ppN11ShipmentTemplate').value.trim(),
+          currencyType: 'TRY'
+        },
+        ciceksepeti: {
+          categoryId: document.getElementById('ppCsCategoryId').value.trim(),
+          deliveryType: Number(document.getElementById('ppCsDeliveryType').value) || 2,
+          deliveryMessageType: Number(document.getElementById('ppCsDeliveryMessageType').value) || 5
+        }
+      }
     }
   };
   await request(API.settings, 'PUT', body);

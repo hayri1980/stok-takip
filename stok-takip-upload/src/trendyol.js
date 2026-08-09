@@ -104,13 +104,23 @@ async function fetchProductCatalog(sellerId, apiKey, apiSecret) {
       if (!item.barcode) continue;
       const images = Array.isArray(item.images) ? item.images.map(i => (i && i.url) || i).filter(Boolean) : [];
       const qty = parseInt(item.quantity !== undefined ? item.quantity : item.availableStock, 10);
+      const salePrice = Number(item.salePrice !== undefined && item.salePrice !== null ? item.salePrice : item.price);
+      const listPrice = Number(item.listPrice !== undefined && item.listPrice !== null ? item.listPrice : salePrice);
       products.push({
         barcode: String(item.barcode),
         name: item.title || item.productName || String(item.barcode),
         category: item.categoryName || '',
+        description: item.description || '',
         images,
         trendyolId: item.id || '',
-        quantity: Number.isFinite(qty) && qty > 0 ? qty : 0
+        quantity: Number.isFinite(qty) && qty > 0 ? qty : 0,
+        price: Number.isFinite(salePrice) && salePrice > 0 ? salePrice : (Number.isFinite(listPrice) && listPrice > 0 ? listPrice : 0),
+        listPrice: Number.isFinite(listPrice) && listPrice > 0 ? listPrice : 0,
+        vatRate: Number(item.vatRate) || 0,
+        brand: (item.brand && (item.brand.name || item.brand)) || '',
+        brandId: item.brandId || '',
+        productMainId: item.productMainId || '',
+        stockCode: item.stockCode || ''
       });
     }
     if (items.length === 0) break;

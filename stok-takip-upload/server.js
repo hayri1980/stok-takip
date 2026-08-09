@@ -106,7 +106,7 @@ app.get('/api/log', (req, res) => {
 // ---- Senkron ----
 app.post('/api/sync', async (req, res) => {
   const results = {};
-  for (const kind of ['trendyol', 'hepsiburada']) {
+  for (const kind of sync.MARKETS) {
     try {
       results[kind] = await sync.syncMarketplace(kind);
     } catch (e) {
@@ -124,6 +124,12 @@ app.post('/api/sync', async (req, res) => {
   } catch (e) {
     results.push = { error: e.message };
     db.addLog('Ortak stok yazma hatası: ' + e.message);
+  }
+  try {
+    results.productPush = await sync.pushNewProducts();
+  } catch (e) {
+    results.productPush = { error: e.message };
+    db.addLog('Ürün yükleme hatası: ' + e.message);
   }
   res.json(results);
 });
@@ -387,7 +393,7 @@ async function runCheck() {
   if (polling) return;
   polling = true;
   try {
-    for (const kind of ['trendyol', 'hepsiburada']) {
+    for (const kind of sync.MARKETS) {
       try {
         await sync.syncMarketplace(kind);
       } catch (e) {
@@ -408,6 +414,11 @@ async function runCheck() {
     await sync.checkQuestions();
   } catch (e) {
     db.addLog('Soru kontrol hatası: ' + e.message);
+  }
+  try {
+    await sync.pushNewProducts();
+  } catch (e) {
+    db.addLog('Ürün yükleme hatası: ' + e.message);
   }
   } finally {
     polling = false;
@@ -436,7 +447,7 @@ async function start() {
   db.addLog('Uygulama başlatıldı (port ' + port + ')');
   scheduleCron();
   telegramBot.start();
-  for (const kind of ['trendyol', 'hepsiburada']) {
+  for (const kind of sync.MARKETS) {
     try {
       await sync.syncMarketplace(kind);
     } catch (e) {
@@ -457,6 +468,11 @@ async function start() {
     await sync.checkQuestions();
   } catch (e) {
     db.addLog('Soru kontrol hatası: ' + e.message);
+  }
+  try {
+    await sync.pushNewProducts();
+  } catch (e) {
+    db.addLog('Ürün yükleme hatası: ' + e.message);
   }
   });
 }
