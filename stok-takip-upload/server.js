@@ -121,6 +121,48 @@ app.delete('/api/products/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/export/csv', (req, res) => {
+  const products = db.getProducts();
+  const lines = [];
+  lines.push('Stok Takip Canli Veri');
+  lines.push('Aktarim zamani;' + new Date().toISOString());
+  lines.push('');
+  lines.push('URUNLER');
+  lines.push('Barkod;Ad;Fiyat TL;Liste TL;Trendyol;Hepsiburada;PTT AVM;idefix;N11;Ciceksepeti;Ortak Stok;Son Gorulme');
+  for (const p of products) {
+    lines.push([
+      p.barcode,
+      String(p.name || '').replace(/;/g, ' '),
+      p.price !== null && p.price !== undefined ? p.price : '',
+      p.listPrice !== null && p.listPrice !== undefined ? p.listPrice : '',
+      p.trendyolStock !== null && p.trendyolStock !== undefined ? p.trendyolStock : '',
+      p.hepsiburadaStock !== null && p.hepsiburadaStock !== undefined ? p.hepsiburadaStock : '',
+      p.pttavmStock !== null && p.pttavmStock !== undefined ? p.pttavmStock : '',
+      p.idefixStock !== null && p.idefixStock !== undefined ? p.idefixStock : '',
+      p.n11Stock !== null && p.n11Stock !== undefined ? p.n11Stock : '',
+      p.ciceksepetiStock !== null && p.ciceksepetiStock !== undefined ? p.ciceksepetiStock : '',
+      p.sharedStock !== null && p.sharedStock !== undefined ? p.sharedStock : '',
+      p.lastSeenAt || ''
+    ].join(';'));
+  }
+  lines.push('');
+  const today = db.localDayKey(new Date());
+  const todaysSales = db.getDailySales(today);
+  lines.push('SATISLAR (BUGUN)');
+  lines.push('Urun;Barkod;Pazar;Adet;Zaman');
+  for (const s of todaysSales) {
+    lines.push([String(s.name || '').replace(/;/g, ' '), s.barcode, s.market, s.qty, s.ts].join(';'));
+  }
+  lines.push('');
+  lines.push('OZET');
+  lines.push('Toplam urun;' + products.length);
+  lines.push('Bugunku satis;' + todaysSales.reduce((sum, s) => sum + (Number(s.qty) || 0), 0));
+  const csv = lines.join('\r\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="stok-takip-canli.csv"');
+  res.send('\uFEFF' + csv);
+});
+
 // ---- Ayarlar ----
 app.get('/api/settings', (req, res) => {
   res.json(db.getSettings());
