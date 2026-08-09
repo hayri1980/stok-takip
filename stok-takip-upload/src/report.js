@@ -94,7 +94,7 @@ async function sendDailyReport() {
   db.addLog('Gün sonu raporu gönderildi (' + date + '): ' + sales.length + ' satış kaydı' + (sent ? '' : ', GÖNDERİLEMEDİ'));
 
   const total = sales.reduce((sum, s) => sum + (Number(s.qty) || 0), 0);
-  db.purgeDailySales(30);
+  db.purgeDailySales(3650);
   return { date, sales: sales.length, total, sent, results };
 }
 
