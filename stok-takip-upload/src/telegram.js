@@ -1,5 +1,6 @@
 const db = require('../db');
 const { sendTelegramTo } = require('./notifier');
+const sync = require('./sync');
 const trendyol = require('./trendyol');
 
 let offset = 0;
@@ -48,10 +49,95 @@ function productDetail(p) {
     '\nHepsiburada: ' + fmtStock(hb) + ' (' + hbStatus + ')';
 }
 
+function fmtUptime(sec) {
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  return d + 'g ' + h + 's ' + m + 'd ' + s + 'sn';
+}
+
+function isAllowedChat(chatId) {
+  const tg = db.getSettings().telegram;
+  if (tg.chatIds && Array.isArray(tg.chatIds) && tg.chatIds.length > 0) {
+    return tg.chatIds.map(String).includes(String(chatId));
+  }
+  return !!(tg.chatId && String(tg.chatId) === String(chatId));
+}
+
+function systemStatus() {
+  const settings = db.getSettings();
+  const ty = settings.trendyol || {};
+  const hb = settings.hepsiburada || {};
+  const tg = settings.telegram || {};
+  const rep = settings.report || {};
+  const lines = [];
+  lines.push('SISTEM DURUMU');
+  lines.push('Aktif: ' + fmtUptime(process.uptime()));
+  lines.push('Urun sayisi: ' + db.getProducts().length);
+  lines.push('Telegram: ' + (tg.enabled ? 'Aktif' : 'Kapali'));
+  lines.push('Trendyol API: ' + (ty.apiKey && ty.apiSecret && ty.sellerId ? 'Aktif' : 'Eksik'));
+  lines.push('Hepsiburada API: ' + (hb.username && hb.password ? 'Aktif' : 'Eksik'));
+  lines.push('Senkron araligi: ' + (Number(settings.sync.pollSeconds) || 30) + ' sn');
+  lines.push('Gun sonu raporu: ' + (rep.enabled ? 'Aktif' : 'Kapali'));
+  if (rep.lastReportDate) lines.push('Son rapor: ' + rep.lastReportDate);
+  const log = db.getLog();
+  const syncEntry = log.find(l => /senkronu tamam/i.test(l.message || ''));
+  if (syncEntry) lines.push('Son senkron: ' + syncEntry.message);
+  return lines.join('\n');
+}
+
+function recentLog(n) {
+  const log = db.getLog();
+  const lines = log.slice(0, Math.max(1, Number(n) || 10)).map(l => {
+    const t = (l.time || '').replace('T', ' ').slice(5, 19);
+    return t + '  ' + (l.message || '');
+  });
+  return 'SON LOGLAR\n----\n' + (lines.length ? lines.join('\n') : 'Bos.');
+}
+
+async function runFullCheck() {
+  const results = {};
+  for (const kind of sync.MARKETS) {
+    try {
+      results[kind] = await sync.syncMarketplace(kind);
+    } catch (e) {
+      results[kind] = { error: e.message };
+      db.addLog(kind + ' senkron hatası: ' + e.message);
+    }
+  }
+  try {
+    await sync.checkStocks();
+  } catch (e) {
+    db.addLog('Stok kontrol hatası: ' + e.message);
+  }
+  try {
+    await sync.syncSharedStock();
+  } catch (e) {
+    db.addLog('Ortak stok yazma hatası: ' + e.message);
+  }
+  try {
+    await sync.checkQuestions();
+  } catch (e) {
+    db.addLog('Soru kontrol hatası: ' + e.message);
+  }
+  const lines = ['KONTROL BILGILERI'];
+  for (const kind of sync.MARKETS) {
+    const r = results[kind];
+    if (r && r.skipped) lines.push(sync.kindLabel(kind) + ': atlandi (' + (r.reason || '') + ')');
+    else if (r && r.error) lines.push(sync.kindLabel(kind) + ': HATA - ' + r.error);
+    else lines.push(sync.kindLabel(kind) + ': ' + (r ? r.sales : 0) + ' satis, ' + (r ? r.updated : 0) + ' guncelleme');
+  }
+  return lines.join('\n');
+}
+
 function helpText() {
   return 'Komutlar:\n' +
+    '/sk - kontrol et ve raporla\n' +
     '/stok - tum urunlerin stok durumu\n' +
     '/stok BARKOD - tek urunun stoku (ornek: /stok 10TX4)\n' +
+    '/senkron - pazaryerlerini simdi senkronla\n' +
+    '/log - son islem kayitlari\n' +
     '/sorular - bekleyen Trendyol urun sorulari\n' +
     '/yardim - bu mesaj';
 }
@@ -60,10 +146,24 @@ async function handleMessage(msg) {
   const text = (msg.text || '').trim();
   if (!text.startsWith('/')) return;
   const chatId = msg.chat.id;
+  if (!isAllowedChat(chatId)) return;
   const parts = text.split(/\s+/);
   const cmd = parts[0].toLowerCase();
 
-  if (cmd === '/stok' || cmd === '/durum' || cmd === '/rapor') {
+  if (cmd === '/sk') {
+    await sendTelegramTo(chatId, 'Kontrol basladi, biraz bekleyin...');
+    const report = await runFullCheck();
+    await sendTelegramTo(chatId, report + '\n\n' + systemStatus());
+  } else if (cmd === '/sistem' || cmd === '/durum') {
+    await sendTelegramTo(chatId, systemStatus());
+  } else if (cmd === '/log') {
+    const n = parseInt(parts[1], 10);
+    await sendTelegramTo(chatId, recentLog(isNaN(n) ? 10 : n));
+  } else if (cmd === '/senkron') {
+    await sendTelegramTo(chatId, 'Senkron basladi, biraz bekleyin...');
+    const report = await runFullCheck();
+    await sendTelegramTo(chatId, report);
+  } else if (cmd === '/stok' || cmd === '/durum' || cmd === '/rapor') {
     const arg = parts.slice(1).join(' ');
     if (arg) {
       const target = arg.toLowerCase();
