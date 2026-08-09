@@ -1,6 +1,29 @@
 const nodemailer = require('nodemailer');
 const db = require('../db');
 
+let recentNotifications = [];
+let notifSeq = 0;
+const MAX_NOTIFS = 100;
+
+function recordNotification(chatId, text) {
+  notifSeq++;
+  recentNotifications.push({
+    id: String(notifSeq),
+    time: new Date().toISOString(),
+    chatId: String(chatId),
+    text: String(text)
+  });
+  if (recentNotifications.length > MAX_NOTIFS) {
+    recentNotifications.splice(0, recentNotifications.length - MAX_NOTIFS);
+  }
+}
+
+function getRecentNotifications(afterId) {
+  const after = Number(afterId) || 0;
+  const items = recentNotifications.filter(n => Number(n.id) > after);
+  return items.slice(-20);
+}
+
 function buildTransport(mail) {
   return nodemailer.createTransport({
     host: 'smtp-mail.outlook.com',
@@ -60,6 +83,7 @@ async function sendTelegramTo(chatId, text) {
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.description || 'Telegram hatası');
+    recordNotification(chatId, text);
     return { sent: true };
   } catch (e) {
     db.addLog('Telegram GÖNDERİLEMEDİ: ' + e.message);
@@ -89,4 +113,4 @@ function sendTestTelegram() {
   return sendTelegram('Stok Takip test mesajı. Bildirimler çalışıyor.');
 }
 
-module.exports = { notify, sendTestMail, sendTestTelegram, sendTelegramTo };
+module.exports = { notify, sendTestMail, sendTestTelegram, sendTelegramTo, getRecentNotifications };

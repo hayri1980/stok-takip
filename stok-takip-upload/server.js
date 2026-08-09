@@ -179,6 +179,11 @@ app.get('/api/log', (req, res) => {
   res.json(db.getLog());
 });
 
+// ---- Bildirim kuyruğu (masaüstü popup için) ----
+app.get('/api/notifications', (req, res) => {
+  res.json({ items: notifier.getRecentNotifications(req.query.after) });
+});
+
 // ---- Senkron ----
 app.post('/api/sync', async (req, res) => {
   const results = {};
