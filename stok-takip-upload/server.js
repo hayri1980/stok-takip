@@ -64,6 +64,31 @@ app.get('/health', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Hepsiburada Web Servis (HB başvuru/test ucu) ----
+const HB_WEB_USER = process.env.HB_WEB_USER || 'hbsync';
+const HB_WEB_PASS = process.env.HB_WEB_PASS || 'Stk-Hb-Sync-2026!';
+
+function hbAuthOk(req) {
+  const expected = 'Basic ' + Buffer.from(HB_WEB_USER + ':' + HB_WEB_PASS).toString('base64');
+  return String(req.headers['authorization'] || '') === expected;
+}
+
+app.use('/hb', express.raw({ type: () => true, limit: '5mb' }));
+app.use('/hb', (req, res) => {
+  if (!hbAuthOk(req)) {
+    res.set('WWW-Authenticate', 'Basic realm="Hepsiburada"');
+    return res.status(401).send('Unauthorized');
+  }
+  db.addLog('HB web servis çağrısı: ' + req.method + ' ' + req.originalUrl);
+  const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : '';
+  const isXml = /^\s*</.test(raw) || String(req.headers['content-type'] || '').toLowerCase().includes('xml');
+  if (isXml) {
+    res.type('text/xml; charset=utf-8');
+    return res.send('<?xml version="1.0" encoding="UTF-8"?><Response status="OK"/>');
+  }
+  res.json({ status: 'OK', service: 'hepsiburada' });
+});
+
 // ---- Ürünler ----
 app.get('/api/products', (req, res) => {
   res.json(db.getProducts());
