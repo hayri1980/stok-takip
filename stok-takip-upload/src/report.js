@@ -27,26 +27,28 @@ function buildDailyReportText(sales, date) {
     const groups = new Map();
     for (const s of sales) {
       const key = s.name + '|' + s.barcode + '|' + s.market;
+      const qty = Number(s.qty) || 0;
+      let price = Number(s.price) > 0 ? Number(s.price) : null;
+      if (price === null) {
+        const p = db.findProductByBarcode(s.barcode);
+        price = p && p.price !== null && p.price !== undefined ? Number(p.price) : null;
+      }
+      const revenue = price !== null ? Math.round(qty * price * 100) / 100 : null;
       const rec = groups.get(key);
       if (rec) {
-        rec.qty += Number(s.qty) || 0;
-        if (Number(s.price) > 0) rec.price = Number(s.price);
+        rec.qty += qty;
+        if (revenue !== null) rec.revenue = Math.round((rec.revenue + revenue) * 100) / 100;
+        if (price !== null) rec.price = price;
       } else {
-        groups.set(key, { qty: Number(s.qty) || 0, price: Number(s.price) > 0 ? Number(s.price) : null });
+        groups.set(key, { qty, revenue: revenue });
       }
     }
     for (const [key, rec] of groups) {
       const parts = key.split('|');
-      let price = rec.price;
-      if (price === null || price === undefined) {
-        const p = db.findProductByBarcode(parts[1]);
-        price = p && p.price !== null && p.price !== undefined ? Number(p.price) : null;
-      }
-      const revenue = price !== null ? Math.round(rec.qty * price * 100) / 100 : null;
       totalQty += rec.qty;
-      if (revenue !== null) totalRevenue += revenue;
+      if (rec.revenue !== null) totalRevenue = Math.round((totalRevenue + rec.revenue) * 100) / 100;
       lines.push(parts[0] + ' (' + parts[1] + ') - ' + parts[2] + ': ' + rec.qty + ' adet' +
-        (price !== null ? ' = ' + revenue + ' TL' : ''));
+        (rec.revenue !== null ? ' = ' + rec.revenue + ' TL' : ''));
     }
   }
   lines.push('--------------------------------');
