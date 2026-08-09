@@ -10,7 +10,7 @@ jobs:
       - name: Ping Render health
         id: ping
         run: |
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" https://stok-takip-logu.onrender.com/health)
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" https://stok-takip-logu.onrender.com/nonexistent-health-test)
           echo "HTTP=$CODE"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
       - name: Alarm if down
