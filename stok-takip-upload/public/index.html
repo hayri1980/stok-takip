@@ -23,7 +23,7 @@
     <!-- STOKLAR -->
     <section id="tab-stoklar" class="tab-content active">
       <div class="toolbar">
-        <input type="text" id="searchInput" placeholder="Ürün veya barkod ara...">
+        <input type="text" id="searchInput" placeholder="Ürün veya stok kodu ara...">
         <button id="addBtn" class="btn btn-primary">+ Ürün Ekle</button>
       </div>
       <div class="summary" id="summary"></div>
@@ -32,7 +32,7 @@
           <thead>
             <tr>
               <th>Ürün</th>
-              <th>Barkod</th>
+              <th>Stok Kodu</th>
               <th>Trendyol Stok</th>
               <th>Hepsiburada Stok</th>
               <th>PTT AVM Stok</th>
@@ -329,8 +329,8 @@
       <input type="hidden" id="pId">
       <label>Ürün Adı</label>
       <input type="text" id="pName" placeholder="Ürün adı">
-      <label>Barkod</label>
-      <input type="text" id="pBarcode" placeholder="Barkod numarası">
+      <label>Stok Kodu</label>
+      <input type="text" id="pBarcode" placeholder="Stok kodunuz (örn. 10TX4)">
       <div class="two-col">
         <div>
           <label>Trendyol Stok (elle)</label>
@@ -376,8 +376,8 @@
       <input type="hidden" id="spId">
       <label>Ürün Adı</label>
       <input type="text" id="spName" placeholder="Ürün adı">
-      <label>Barkod</label>
-      <input type="text" id="spBarcode" placeholder="Barkod (opsiyonel)">
+      <label>Stok Kodu</label>
+      <input type="text" id="spBarcode" placeholder="Stok kodu (opsiyonel)">
       <div class="two-col">
         <div>
           <label>Fiyat (TL)</label>

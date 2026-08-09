@@ -96,7 +96,7 @@ function fixDataIntegrity() {
         merged = true;
       }
       toDelete.push(p.id);
-      fixed.push(merged ? 'tekil barkod birleştirildi: ' + key : 'mükerrer kayıt silindi: ' + key);
+      fixed.push(merged ? 'tekil stok kodu birleştirildi: ' + key : 'mükerrer kayıt silindi: ' + key);
       continue;
     }
     if (key) seen.set(key, p);

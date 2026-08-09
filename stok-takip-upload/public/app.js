@@ -176,7 +176,7 @@ async function saveProduct() {
   body.idefixStock = ide === '' ? null : Number(ide);
   body.n11Stock = n11 === '' ? null : Number(n11);
   body.ciceksepetiStock = cs === '' ? null : Number(cs);
-  if (!body.barcode) return alert('Barkod gerekli.');
+  if (!body.barcode) return alert('Stok kodu gerekli.');
   if (id) {
     await request(API.products + '/' + id, 'PUT', body);
   } else {

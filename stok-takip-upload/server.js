@@ -104,7 +104,7 @@ app.get('/api/products', (req, res) => {
 
 app.post('/api/products', (req, res) => {
   if (!req.body || !req.body.barcode) {
-    return res.status(400).json({ error: 'Barkod zorunludur' });
+    return res.status(400).json({ error: 'Stok kodu zorunludur' });
   }
   const product = db.addProduct(req.body);
   res.json(product);
@@ -128,7 +128,7 @@ app.get('/api/export/csv', (req, res) => {
   lines.push('Aktarim zamani;' + new Date().toISOString());
   lines.push('');
   lines.push('URUNLER');
-  lines.push('Barkod;Ad;Fiyat TL;Liste TL;Trendyol;Hepsiburada;PTT AVM;idefix;N11;Ciceksepeti;Ortak Stok;Son Gorulme');
+  lines.push('Stok kodu;Ad;Fiyat TL;Liste TL;Trendyol;Hepsiburada;PTT AVM;idefix;N11;Ciceksepeti;Ortak Stok;Son Gorulme');
   for (const p of products) {
     lines.push([
       p.barcode,
@@ -149,7 +149,7 @@ app.get('/api/export/csv', (req, res) => {
   const today = db.localDayKey(new Date());
   const todaysSales = db.getDailySales(today);
   lines.push('SATISLAR (BUGUN)');
-  lines.push('Urun;Barkod;Pazar;Adet;Zaman');
+  lines.push('Urun;Stok kodu;Pazar;Adet;Zaman');
   for (const s of todaysSales) {
     lines.push([String(s.name || '').replace(/;/g, ' '), s.barcode, s.market, s.qty, s.ts].join(';'));
   }

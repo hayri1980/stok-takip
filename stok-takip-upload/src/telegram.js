@@ -45,7 +45,7 @@ function productDetail(p) {
   const tyStatus = ty === null || ty === undefined ? 'bilinmiyor' : (ty <= threshold ? 'KRITIK' : 'var');
   const hbStatus = hb === null || hb === undefined ? 'bilinmiyor' : (hb <= threshold ? 'KRITIK' : 'var');
   return 'URUN: ' + p.name +
-    '\nBarkod: ' + p.barcode +
+    '\nStok kodu: ' + p.barcode +
     '\nTrendyol: ' + fmtStock(ty) + ' (' + tyStatus + ')' +
     '\nHepsiburada: ' + fmtStock(hb) + ' (' + hbStatus + ')';
 }
@@ -219,7 +219,7 @@ function helpText() {
   return 'Komutlar:\n' +
     '/sk - kontrol et ve raporla\n' +
     '/stok - tum urunlerin stok durumu\n' +
-    '/stok BARKOD - tek urunun stoku (ornek: /stok 10TX4)\n' +
+    '/stok STOK KODU - tek urunun stoku (ornek: /stok 10TX4)\n' +
     '/fiyat - tum urunlerin fiyatlari\n' +
     '/senkron - pazaryerlerini simdi senkronla\n' +
     '/denetim - sistemi tara, arizalari tamir et ve raporla\n' +
@@ -267,7 +267,7 @@ async function handleMessage(msg) {
       if (product) {
         await sendTelegramTo(chatId, productDetail(product));
       } else {
-        await sendTelegramTo(chatId, 'Barkod bulunamadi: ' + arg);
+        await sendTelegramTo(chatId, 'Stok kodu bulunamadi: ' + arg);
       }
     } else {
       await sendTelegramTo(chatId, stockReport());
