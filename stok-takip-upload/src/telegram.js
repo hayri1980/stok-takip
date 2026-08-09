@@ -96,6 +96,75 @@ function recentLog(n) {
   return 'SON LOGLAR\n----\n' + (lines.length ? lines.join('\n') : 'Bos.');
 }
 
+function lastSyncAgeMin() {
+  const log = db.getLog();
+  for (const l of log) {
+    if (/senkronu tamam/i.test(l.message || '')) {
+      const t = new Date(l.time).getTime();
+      if (!isNaN(t)) return Math.round((Date.now() - t) / 60000);
+    }
+  }
+  return null;
+}
+
+function healthStatus() {
+  const settings = db.getSettings();
+  const ty = settings.trendyol || {};
+  const hb = settings.hepsiburada || {};
+  const issues = [];
+  if (!(ty.apiKey && ty.apiSecret && ty.sellerId) && !(hb.username && hb.password)) {
+    issues.push('Hicbir pazaryeri API ayari yok');
+  }
+  if (db.getProducts().length === 0) issues.push('Urun listesi bos');
+  const age = lastSyncAgeMin();
+  let syncAge = null;
+  if (age === null) {
+    issues.push('Son senkron kaydi bulunamadi');
+  } else if (age > 60) {
+    syncAge = age;
+    issues.push('Son senkron ' + age + ' dk once (cok eski)');
+  } else {
+    syncAge = age;
+  }
+  return {
+    ok: issues.length === 0,
+    issues: issues,
+    syncAge: syncAge
+  };
+}
+
+function healthText() {
+  const h = healthStatus();
+  if (h.ok) {
+    return '\u2705 Sistem saglikli' + (h.syncAge !== null ? ' - son senkron ' + h.syncAge + ' dk once' : '');
+  }
+  return '\u274C Sistemde sorun var\n' + h.issues.map(i => '- ' + i).join('\n');
+}
+
+function scheduleHealthCheck() {
+  const HOUR = 3 * 60 * 60 * 1000;
+  setTimeout(async () => {
+    const tg = db.getSettings().telegram;
+    if (tg.enabled && tg.chatId) {
+      try {
+        await sendTelegramTo(tg.chatId, healthText());
+      } catch (e) {
+        db.addLog('Saglik mesaji gonderilemedi: ' + e.message);
+      }
+    }
+  }, 30 * 1000);
+  setInterval(async () => {
+    const tg = db.getSettings().telegram;
+    if (tg.enabled && tg.chatId) {
+      try {
+        await sendTelegramTo(tg.chatId, healthText());
+      } catch (e) {
+        db.addLog('Saglik mesaji gonderilemedi: ' + e.message);
+      }
+    }
+  }, HOUR);
+}
+
 async function runFullCheck() {
   const results = {};
   for (const kind of sync.MARKETS) {
@@ -234,6 +303,7 @@ function start() {
   if (running) return;
   running = true;
   pollLoop();
+  scheduleHealthCheck();
 }
 
 module.exports = { start };
