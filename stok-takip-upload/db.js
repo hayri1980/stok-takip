@@ -126,6 +126,8 @@ function defaultProduct(data) {
     price: data.price !== undefined && data.price !== null ? Number(data.price) : null,
     listPrice: data.listPrice !== undefined && data.listPrice !== null ? Number(data.listPrice) : null,
     priceUpdatedAt: data.priceUpdatedAt || null,
+    lastSeenAt: data.lastSeenAt || null,
+    disappearedNotified: data.disappearedNotified || false,
     pushed: data.pushed && typeof data.pushed === 'object' ? data.pushed : {},
     trendyolNotified: false,
     hepsiburadaNotified: false,
@@ -166,6 +168,7 @@ function addProduct(data) {
         if (data[f] !== undefined && data[f] !== null) merged[f] = Number(data[f]);
       }
       if (data.priceUpdatedAt !== undefined) merged.priceUpdatedAt = data.priceUpdatedAt;
+      if (data.lastSeenAt !== undefined) merged.lastSeenAt = data.lastSeenAt;
       if (data.pushed && typeof data.pushed === 'object') merged.pushed = data.pushed;
       state.products[state.products.indexOf(existing)] = merged;
       save();
@@ -196,6 +199,8 @@ function updateProduct(id, data) {
   if (data.price !== undefined) merged.price = data.price === null ? null : Number(data.price);
   if (data.listPrice !== undefined) merged.listPrice = data.listPrice === null ? null : Number(data.listPrice);
   if (data.priceUpdatedAt !== undefined) merged.priceUpdatedAt = data.priceUpdatedAt;
+  if (data.lastSeenAt !== undefined) merged.lastSeenAt = data.lastSeenAt;
+  if (data.disappearedNotified !== undefined) merged.disappearedNotified = !!data.disappearedNotified;
   if (data.pushed !== undefined && data.pushed && typeof data.pushed === 'object') merged.pushed = data.pushed;
   state.products[idx] = merged;
   save();

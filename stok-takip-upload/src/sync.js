@@ -194,8 +194,16 @@ async function syncMarketplace(kind) {
     const existing = db.findProductByBarcode(barcode);
     if (existing) {
       const oldQty = existing[stockField(kind)];
-      if (oldQty !== null && oldQty !== undefined && Number(oldQty) === qty) continue;
-      db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now });
+      if (oldQty !== null && oldQty !== undefined && Number(oldQty) === qty) {
+        if (kind === 'trendyol') {
+          const seenTs = existing.lastSeenAt ? new Date(existing.lastSeenAt).getTime() : 0;
+          if (Date.now() - seenTs > 10 * 60 * 1000) {
+            db.updateProduct(existing.id, { lastSeenAt: now });
+          }
+        }
+        continue;
+      }
+      db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
       updated++;
       changed = true;
       if (oldQty !== null && oldQty !== undefined) {
@@ -219,7 +227,7 @@ async function syncMarketplace(kind) {
         }
       }
     } else {
-      db.addProduct({ name: barcode + ' (API)', barcode, [stockField(kind)]: qty });
+      db.addProduct({ name: barcode + ' (API)', barcode, [stockField(kind)]: qty, lastSeenAt: now });
       created++;
       changed = true;
     }

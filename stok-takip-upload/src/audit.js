@@ -4,6 +4,7 @@ const backup = require('./backup');
 const notifier = require('./notifier');
 
 const SYNC_MAX_AGE_MIN = 60;
+const DISAPPEARED_HOURS = 48;
 
 function marketReady(kind) {
   const cfg = db.getSettings()[kind] || {};
@@ -130,6 +131,22 @@ async function checkMarketSync(kind) {
   return { name: sync.kindLabel(kind), ok: true, status: fixed ? 'TAMIR' : 'OK', detail: fixed ? 'senkron yenilendi' : 'güncel' };
 }
 
+function checkDisappearedProducts() {
+  const found = [];
+  const now = Date.now();
+  const products = db.getProducts();
+  for (const p of products) {
+    if (p.trendyolStock === null || p.trendyolStock === undefined) continue;
+    if (!p.lastSeenAt) continue;
+    const age = now - new Date(p.lastSeenAt).getTime();
+    if (age > DISAPPEARED_HOURS * 3600000 && !p.disappearedNotified) {
+      db.updateProduct(p.id, { disappearedNotified: true });
+      found.push({ barcode: p.barcode, name: p.name, hours: Math.round(age / 3600000) });
+    }
+  }
+  return found;
+}
+
 function checkBackup() {
   if (!process.env.GITHUB_TOKEN) {
     return { name: 'Otomatik yedek', ok: false, status: 'YOK', detail: 'GITHUB_TOKEN tanımlı değil, yedek kaydedilmiyor' };
@@ -170,6 +187,19 @@ async function runAudit({ notify = false } = {}) {
     checks.push(await checkMarketSync(kind));
   }
   checks.push(checkBackup());
+
+  const disappeared = checkDisappearedProducts();
+  for (const d of disappeared) {
+    db.addLog('Trendyol ürün görünmüyor: ' + d.barcode + ' (' + d.name + '), ' + d.hours + ' saat');
+    try {
+      const tg = db.getSettings().telegram;
+      if (tg.enabled && tg.chatId) {
+        await notifier.sendTelegramTo(tg.chatId, '⚠️ TRENDYOL ÜRÜN GÖRÜNMÜYOR: ' + d.barcode + ' (' + d.name + ')\nSon ' + d.hours + ' saattir Trendyol senkronunda yok. Yayından kalkmış olabilir.');
+      }
+    } catch (e) {
+      db.addLog('Kaybolan ürün bildirimi gönderilemedi: ' + e.message);
+    }
+  }
 
   const problems = checks.filter(c => !c.ok);
   const repairs = dataFixes.length + checks.filter(c => c.status === 'TAMIR').length;

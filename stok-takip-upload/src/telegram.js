@@ -225,6 +225,7 @@ function helpText() {
     '/denetim - sistemi tara, arizalari tamir et ve raporla\n' +
     '/log - son islem kayitlari\n' +
     '/sorular - bekleyen Trendyol urun sorulari\n' +
+    '/test - bildirim testi gonder\n' +
     '/yardim - bu mesaj';
 }
 
@@ -303,6 +304,9 @@ async function handleMessage(msg) {
     }
   } else if (cmd === '/yardim' || cmd === '/help') {
     await sendTelegramTo(chatId, helpText());
+  } else if (cmd === '/test') {
+    const extra = parts.slice(1).join(' ').trim();
+    await sendTelegramTo(chatId, 'TEST MESAJI - Bildirim calisiyor.' + (extra ? ' (' + extra + ')' : ''));
   }
 }
 

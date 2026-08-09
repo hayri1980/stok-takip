@@ -19,6 +19,8 @@ function buildDailyReportText(sales, date) {
   lines.push('GUN SONU RAPORU — ' + displayDate(date));
   lines.push('(00:00 - 23:59 arasi satislar)');
   lines.push('--------------------------------');
+  let totalQty = 0;
+  let totalRevenue = 0;
   if (!sales || sales.length === 0) {
     lines.push('Bu gun satis yok.');
   } else {
@@ -29,12 +31,43 @@ function buildDailyReportText(sales, date) {
     }
     for (const [key, qty] of groups) {
       const parts = key.split('|');
-      lines.push(parts[0] + ' (' + parts[1] + ') - ' + parts[2] + ': ' + qty + ' adet');
+      const p = db.findProductByBarcode(parts[1]);
+      const price = p && p.price !== null && p.price !== undefined ? Number(p.price) : null;
+      const revenue = price !== null ? Math.round(qty * price * 100) / 100 : null;
+      totalQty += qty;
+      if (revenue !== null) totalRevenue += revenue;
+      lines.push(parts[0] + ' (' + parts[1] + ') - ' + parts[2] + ': ' + qty + ' adet' +
+        (price !== null ? ' = ' + revenue + ' TL' : ''));
     }
   }
   lines.push('--------------------------------');
-  const total = (sales || []).reduce((sum, s) => sum + (Number(s.qty) || 0), 0);
-  lines.push('Toplam satis: ' + total + ' adet');
+  lines.push('Toplam satis: ' + totalQty + ' adet');
+  if (totalRevenue > 0) lines.push('Tahmini ciro: ' + Math.round(totalRevenue * 100) / 100 + ' TL');
+  return lines.join('\n');
+}
+
+function buildCriticalStockText() {
+  const settings = db.getSettings();
+  const threshold = Math.max(0, Number(settings.sync.threshold) || 1);
+  const products = db.getProducts();
+  const critical = products.filter(p => sync.MARKETS.some(k => {
+    const v = p[k + 'Stock'];
+    return v !== null && v !== undefined && Number(v) <= threshold;
+  }));
+  if (critical.length === 0) return null;
+  const lines = [];
+  lines.push('');
+  lines.push('KRITIK STOK HATIRLATMALARI');
+  lines.push('--------------------------------');
+  for (const p of critical) {
+    const details = sync.MARKETS
+      .filter(k => {
+        const v = p[k + 'Stock'];
+        return v !== null && v !== undefined && Number(v) <= threshold;
+      })
+      .map(k => sync.kindLabel(k) + ': ' + p[k + 'Stock']);
+    lines.push(p.barcode + (p.price ? ' (' + p.price + ' TL)' : '') + ' - ' + details.join(', '));
+  }
   return lines.join('\n');
 }
 
@@ -51,7 +84,8 @@ async function sendDailyReport() {
   const date = db.localDayKey(yesterday);
 
   const sales = db.getDailySales(date);
-  const text = buildDailyReportText(sales, date);
+  const criticalText = buildCriticalStockText();
+  const text = buildDailyReportText(sales, date) + (criticalText ? criticalText : '');
   const subject = 'Gün sonu raporu — ' + displayDate(date);
   const html = '<h3>Gün sonu raporu — ' + displayDate(date) + '</h3><pre>' + escapeHtml(text) + '</pre>';
 
