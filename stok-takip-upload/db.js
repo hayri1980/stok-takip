@@ -153,6 +153,21 @@ function getProduct(id) {
 
 function addProduct(data) {
   load();
+  const barcode = String(data.barcode || '').trim();
+  if (barcode) {
+    const existing = state.products.find(p => String(p.barcode || '').trim().toLowerCase() === barcode.toLowerCase());
+    if (existing) {
+      const merged = Object.assign({}, existing);
+      if (data.name !== undefined && data.name !== null && String(data.name) !== '') merged.name = data.name;
+      for (const f of ['trendyolStock', 'hepsiburadaStock', 'pttavmStock', 'idefixStock', 'n11Stock', 'ciceksepetiStock', 'sharedStock']) {
+        if (data[f] !== undefined && data[f] !== null) merged[f] = Number(data[f]);
+      }
+      if (data.pushed && typeof data.pushed === 'object') merged.pushed = data.pushed;
+      state.products[state.products.indexOf(existing)] = merged;
+      save();
+      return merged;
+    }
+  }
   const product = defaultProduct(data);
   state.products.push(product);
   save();

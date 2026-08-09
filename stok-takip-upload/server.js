@@ -12,6 +12,13 @@ const trendyol = require('./src/trendyol');
 const iyzico = require('./src/iyzico');
 const kargo = require('./src/kargo');
 
+process.on('uncaughtException', (e) => {
+  db.addLog('Beklenmeyen hata (uncaughtException): ' + (e && e.stack ? e.stack : String(e)));
+});
+process.on('unhandledRejection', (e) => {
+  db.addLog('Beklenmeyen hata (unhandledRejection): ' + (e && e.stack ? e.stack : String(e)));
+});
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

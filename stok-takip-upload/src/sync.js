@@ -9,6 +9,27 @@ const notifier = require('./notifier');
 
 const MARKETS = ['trendyol', 'hepsiburada', 'pttavm', 'idefix', 'n11', 'ciceksepeti'];
 
+const FAIL_ALERT_THRESHOLD = 3;
+const marketFailCount = {};
+const marketFailAlerted = {};
+
+function marketFailed(kind) {
+  marketFailCount[kind] = (marketFailCount[kind] || 0) + 1;
+  if (marketFailCount[kind] >= FAIL_ALERT_THRESHOLD && !marketFailAlerted[kind]) {
+    marketFailAlerted[kind] = true;
+    notifier.notify(
+      'PAZARYERİ ARZASI: ' + kindLabel(kind),
+      '<h3>Dikkat! ' + kindLabel(kind) + ' tekrarlı arıza</h3><p>Son ' + FAIL_ALERT_THRESHOLD + ' denemede başarısız. Sistem diğer pazaryerlerini çalıştırmaya devam ediyor.</p>',
+      'PAZARYERİ ARZASI: ' + kindLabel(kind) + ' son ' + FAIL_ALERT_THRESHOLD + ' denemede başarısız oldu.'
+    );
+  }
+}
+
+function marketOk(kind) {
+  marketFailCount[kind] = 0;
+  marketFailAlerted[kind] = false;
+}
+
 const modules = {
   trendyol,
   hepsiburada,
@@ -108,7 +129,9 @@ async function syncMarketplace(kind) {
   let stockMap;
   try {
     stockMap = await fetchMarketStockMap(kind);
+    marketOk(kind);
   } catch (e) {
+    marketFailed(kind);
     db.addLog(kindLabel(kind) + ' stok çekme hatası: ' + e.message);
     return { error: e.message };
   }
@@ -285,7 +308,9 @@ async function syncSharedStock() {
   for (const kind of kinds) {
     try {
       byMarket.set(kind, await fetchMarketProducts(kind));
+      marketOk(kind);
     } catch (e) {
+      marketFailed(kind);
       failures.push(kindLabel(kind));
       db.addLog(kindLabel(kind) + ' ortak stok okunamadı (arıza atlandı): ' + e.message);
     }
