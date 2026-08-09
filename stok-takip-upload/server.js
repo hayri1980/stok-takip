@@ -7,6 +7,7 @@ const notifier = require('./src/notifier');
 const report = require('./src/report');
 const telegramBot = require('./src/telegram');
 const backup = require('./src/backup');
+const audit = require('./src/audit');
 const trendyol = require('./src/trendyol');
 const iyzico = require('./src/iyzico');
 const kargo = require('./src/kargo');
@@ -521,6 +522,14 @@ async function start() {
   } catch (e) {
     db.addLog('Gün sonu raporu hatası: ' + e.message);
   }
+  try {
+    await audit.runAudit({ notify: true });
+  } catch (e) {
+    db.addLog('Denetim hatası: ' + e.message);
+  }
+  setInterval(() => {
+    audit.runAudit().catch(e => db.addLog('Denetim hatası: ' + e.message));
+  }, 60 * 60 * 1000);
   });
 }
 

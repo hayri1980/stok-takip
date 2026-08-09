@@ -281,13 +281,19 @@ async function syncSharedStock() {
   }
 
   const byMarket = new Map();
-  try {
-    for (const kind of kinds) {
+  const failures = [];
+  for (const kind of kinds) {
+    try {
       byMarket.set(kind, await fetchMarketProducts(kind));
+    } catch (e) {
+      failures.push(kindLabel(kind));
+      db.addLog(kindLabel(kind) + ' ortak stok okunamadı (arıza atlandı): ' + e.message);
     }
-  } catch (e) {
-    db.addLog('Ortak stok senkron hatası: ' + e.message);
-    return { error: e.message };
+  }
+  const reachable = [...byMarket.keys()];
+  if (reachable.length < 2) {
+    db.addLog('Ortak stok senkronu: yeterli pazar erişilemedi (' + reachable.length + '): ' + failures.join(', '));
+    return { skipped: true, reason: 'Yeterli pazar erişilemedi: ' + failures.join(', '), failures };
   }
 
   const barcodeKinds = new Map();
@@ -367,13 +373,15 @@ async function syncSharedStock() {
     }
   }
 
-  if (written > 0 || errors.length > 0) {
+  if (written > 0 || errors.length > 0 || failures.length > 0) {
     const msg = 'Ortak stok senkronu: ' + written + ' ürün eşitlendi, ' +
       matched + ' eşleşti, ' + skippedSingle + ' tek pazarda listelenen atlandı';
-    db.addLog(msg + (errors.length > 0 ? ', ' + errors.length + ' hata' : ''));
+    db.addLog(msg +
+      (errors.length > 0 ? ', ' + errors.length + ' hata' : '') +
+      (failures.length > 0 ? ', ' + failures.length + ' pazar arızalı: ' + failures.join(', ') : ''));
   }
 
-  return { written, matched, skippedSingle, errors };
+  return { written, matched, skippedSingle, errors, failures };
 }
 
 const PUSH_TARGETS = ['hepsiburada', 'pttavm', 'idefix', 'n11', 'ciceksepeti'];

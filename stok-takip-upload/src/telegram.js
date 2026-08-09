@@ -2,6 +2,7 @@ const db = require('../db');
 const { sendTelegramTo } = require('./notifier');
 const sync = require('./sync');
 const trendyol = require('./trendyol');
+const audit = require('./audit');
 
 let offset = 0;
 let running = false;
@@ -220,6 +221,7 @@ function helpText() {
     '/stok - tum urunlerin stok durumu\n' +
     '/stok BARKOD - tek urunun stoku (ornek: /stok 10TX4)\n' +
     '/senkron - pazaryerlerini simdi senkronla\n' +
+    '/denetim - sistemi tara, arizalari tamir et ve raporla\n' +
     '/log - son islem kayitlari\n' +
     '/sorular - bekleyen Trendyol urun sorulari\n' +
     '/yardim - bu mesaj';
@@ -246,6 +248,14 @@ async function handleMessage(msg) {
     await sendTelegramTo(chatId, 'Senkron basladi, biraz bekleyin...');
     const report = await runFullCheck();
     await sendTelegramTo(chatId, report);
+  } else if (cmd === '/denetim') {
+    await sendTelegramTo(chatId, 'Denetim basladi, biraz bekleyin...');
+    try {
+      const r = await audit.runAudit({ notify: false });
+      await sendTelegramTo(chatId, r.text);
+    } catch (e) {
+      await sendTelegramTo(chatId, 'Denetim hatasi: ' + e.message);
+    }
   } else if (cmd === '/stok' || cmd === '/durum' || cmd === '/rapor') {
     const arg = parts.slice(1).join(' ');
     if (arg) {
