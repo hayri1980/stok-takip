@@ -123,6 +123,9 @@ function defaultProduct(data) {
     n11Stock: data.n11Stock !== undefined && data.n11Stock !== null ? Number(data.n11Stock) : null,
     ciceksepetiStock: data.ciceksepetiStock !== undefined && data.ciceksepetiStock !== null ? Number(data.ciceksepetiStock) : null,
     sharedStock: data.sharedStock !== undefined && data.sharedStock !== null ? Number(data.sharedStock) : null,
+    price: data.price !== undefined && data.price !== null ? Number(data.price) : null,
+    listPrice: data.listPrice !== undefined && data.listPrice !== null ? Number(data.listPrice) : null,
+    priceUpdatedAt: data.priceUpdatedAt || null,
     pushed: data.pushed && typeof data.pushed === 'object' ? data.pushed : {},
     trendyolNotified: false,
     hepsiburadaNotified: false,
@@ -159,9 +162,10 @@ function addProduct(data) {
     if (existing) {
       const merged = Object.assign({}, existing);
       if (data.name !== undefined && data.name !== null && String(data.name) !== '') merged.name = data.name;
-      for (const f of ['trendyolStock', 'hepsiburadaStock', 'pttavmStock', 'idefixStock', 'n11Stock', 'ciceksepetiStock', 'sharedStock']) {
+      for (const f of ['trendyolStock', 'hepsiburadaStock', 'pttavmStock', 'idefixStock', 'n11Stock', 'ciceksepetiStock', 'sharedStock', 'price', 'listPrice']) {
         if (data[f] !== undefined && data[f] !== null) merged[f] = Number(data[f]);
       }
+      if (data.priceUpdatedAt !== undefined) merged.priceUpdatedAt = data.priceUpdatedAt;
       if (data.pushed && typeof data.pushed === 'object') merged.pushed = data.pushed;
       state.products[state.products.indexOf(existing)] = merged;
       save();
@@ -189,6 +193,9 @@ function updateProduct(id, data) {
   if (data.n11Stock !== undefined) merged.n11Stock = data.n11Stock === null ? null : Number(data.n11Stock);
   if (data.ciceksepetiStock !== undefined) merged.ciceksepetiStock = data.ciceksepetiStock === null ? null : Number(data.ciceksepetiStock);
   if (data.sharedStock !== undefined) merged.sharedStock = data.sharedStock === null ? null : Number(data.sharedStock);
+  if (data.price !== undefined) merged.price = data.price === null ? null : Number(data.price);
+  if (data.listPrice !== undefined) merged.listPrice = data.listPrice === null ? null : Number(data.listPrice);
+  if (data.priceUpdatedAt !== undefined) merged.priceUpdatedAt = data.priceUpdatedAt;
   if (data.pushed !== undefined && data.pushed && typeof data.pushed === 'object') merged.pushed = data.pushed;
   state.products[idx] = merged;
   save();

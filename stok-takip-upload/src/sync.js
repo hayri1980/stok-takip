@@ -120,6 +120,46 @@ async function updateMarketStock(kind, item, target) {
 
 let lastSyncOkLogTs = 0;
 
+const PRICE_REFRESH_MINUTES = 30;
+let lastTrendyolPriceRefresh = 0;
+
+async function syncTrendyolPrices() {
+  const cfg = marketCfg('trendyol');
+  if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) return;
+  if (Date.now() - lastTrendyolPriceRefresh < PRICE_REFRESH_MINUTES * 60 * 1000) return;
+  lastTrendyolPriceRefresh = Date.now();
+
+  let priceMap;
+  try {
+    priceMap = await trendyol.fetchPriceMap(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
+  } catch (e) {
+    db.addLog('Trendyol fiyat çekme hatası: ' + e.message);
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const changes = [];
+  for (const [barcode, info] of priceMap.entries()) {
+    const p = db.findProductByBarcode(barcode);
+    if (!p) continue;
+    const oldPrice = p.price !== null && p.price !== undefined ? Number(p.price) : null;
+    const newPrice = Number(info.price);
+    if (oldPrice !== null && oldPrice !== newPrice) {
+      changes.push(barcode + ': ' + oldPrice + ' -> ' + newPrice);
+    }
+    db.updateProduct(p.id, { price: newPrice, listPrice: Number(info.listPrice) || newPrice, priceUpdatedAt: now });
+  }
+
+  if (changes.length > 0) {
+    db.addLog('Trendyol ' + changes.length + ' ürünün fiyatı güncellendi: ' + changes.join(', '));
+    notifier.notify(
+      'TRENDYOL FİYAT GÜNCELLEMESİ (' + changes.length + ')',
+      '<h3>Fiyat güncellendi</h3><p>' + changes.map(c => '<li>' + c + ' TL</li>').join('') + '</p>',
+      'FİYAT GÜNCELLEMESİ (' + changes.length + ')\n' + changes.join('\n') + ' TL'
+    );
+  }
+}
+
 async function syncMarketplace(kind) {
   if (!marketConfigured(kind)) {
     db.addLog(kindLabel(kind) + ' ayarları eksik, senkron atlandı');
@@ -134,6 +174,14 @@ async function syncMarketplace(kind) {
     marketFailed(kind);
     db.addLog(kindLabel(kind) + ' stok çekme hatası: ' + e.message);
     return { error: e.message };
+  }
+
+  if (kind === 'trendyol') {
+    try {
+      await syncTrendyolPrices();
+    } catch (e) {
+      db.addLog('Trendyol fiyat senkronu hatası: ' + e.message);
+    }
   }
 
   const now = new Date().toISOString();
@@ -357,6 +405,12 @@ async function syncSharedStock() {
 
     const existing = db.findProductByBarcode(barcode);
     const shared = existing ? existing.sharedStock : null;
+
+    if (existing && existing.price !== null && existing.price !== undefined) {
+      for (const e of entries) {
+        if (e.rec) e.rec.price = Number(existing.price);
+      }
+    }
 
     let target;
     if (shared === null || shared === undefined) {

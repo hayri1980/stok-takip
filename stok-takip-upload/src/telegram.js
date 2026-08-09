@@ -220,6 +220,7 @@ function helpText() {
     '/sk - kontrol et ve raporla\n' +
     '/stok - tum urunlerin stok durumu\n' +
     '/stok BARKOD - tek urunun stoku (ornek: /stok 10TX4)\n' +
+    '/fiyat - tum urunlerin fiyatlari\n' +
     '/senkron - pazaryerlerini simdi senkronla\n' +
     '/denetim - sistemi tara, arizalari tamir et ve raporla\n' +
     '/log - son islem kayitlari\n' +
@@ -269,6 +270,17 @@ async function handleMessage(msg) {
       }
     } else {
       await sendTelegramTo(chatId, stockReport());
+    }
+  } else if (cmd === '/fiyat') {
+    const products = db.getProducts().filter(p => p.price !== null && p.price !== undefined);
+    if (products.length === 0) {
+      await sendTelegramTo(chatId, 'Fiyat bilgisi henuz yok. Trendyol fiyat senkronu 30 dakikada bir calisir.');
+    } else {
+      const lines = products.map(p =>
+        p.barcode + ': ' + p.price + ' TL' +
+        (p.listPrice && Number(p.listPrice) > Number(p.price) ? ' (liste ' + p.listPrice + ')' : '')
+      );
+      await sendTelegramTo(chatId, 'FIYATLAR (' + products.length + ')\n\n' + lines.join('\n'));
     }
   } else if (cmd === '/sorular' || cmd === '/qa') {
     const cfg = db.getSettings().trendyol;

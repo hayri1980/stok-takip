@@ -130,6 +130,45 @@ async function fetchProductCatalog(sellerId, apiKey, apiSecret) {
   return products;
 }
 
+async function fetchPriceMap(sellerId, apiKey, apiSecret) {
+  const auth = 'Basic ' + Buffer.from(apiKey + ':' + apiSecret).toString('base64');
+  const headers = {
+    'Authorization': auth,
+    'x-seller-id': String(sellerId),
+    'User-Agent': 'StokTakip-v1'
+  };
+
+  const priceByBarcode = new Map();
+  let page = 0;
+  const size = 100;
+
+  while (page < 100) {
+    const url = `${BASE}/product/sellers/${sellerId}/products?page=${page}&size=${size}`;
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      throw new Error('Trendyol fiyat çekme hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
+    }
+    const data = await res.json();
+    const items = data.content || [];
+    for (const item of items) {
+      const barcode = item.barcode;
+      if (!barcode) continue;
+      const salePrice = Number(item.salePrice !== undefined && item.salePrice !== null ? item.salePrice : item.price);
+      const listPrice = Number(item.listPrice !== undefined && item.listPrice !== null ? item.listPrice : salePrice);
+      if (Number.isFinite(salePrice) && salePrice > 0) {
+        priceByBarcode.set(String(barcode), {
+          price: salePrice,
+          listPrice: Number.isFinite(listPrice) && listPrice > 0 ? listPrice : salePrice
+        });
+      }
+    }
+    if (items.length === 0) break;
+    page++;
+  }
+
+  return priceByBarcode;
+}
+
 async function updateStock(sellerId, apiKey, apiSecret, barcode, quantity) {
   const auth = 'Basic ' + Buffer.from(apiKey + ':' + apiSecret).toString('base64');
   const headers = {
@@ -146,4 +185,4 @@ async function updateStock(sellerId, apiKey, apiSecret, barcode, quantity) {
   return true;
 }
 
-module.exports = { fetchStock, fetchQuestions, fetchProductCatalog, updateStock };
+module.exports = { fetchStock, fetchQuestions, fetchProductCatalog, fetchPriceMap, updateStock };
