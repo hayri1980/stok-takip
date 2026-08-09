@@ -21,6 +21,7 @@ function defaultData() {
       n11: { appKey: '', appSecret: '' },
       ciceksepeti: { apiKey: '' },
       sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15 },
+      report: { enabled: true },
       productPush: {
         enabled: false,
         mappings: {
@@ -34,6 +35,7 @@ function defaultData() {
     },
     log: [],
     qnaNotifiedIds: [],
+    dailySales: [],
       shop: {
         products: [],
         orders: [],
@@ -79,6 +81,7 @@ function load() {
   if (!Array.isArray(state.products)) state.products = [];
   if (!Array.isArray(state.log)) state.log = [];
   if (!Array.isArray(state.qnaNotifiedIds)) state.qnaNotifiedIds = [];
+  if (!Array.isArray(state.dailySales)) state.dailySales = [];
   if (!state.shop) state.shop = {};
   if (!Array.isArray(state.shop.products)) state.shop.products = [];
   if (!Array.isArray(state.shop.orders)) state.shop.orders = [];
@@ -206,6 +209,7 @@ function mergeSettings(base, partial) {
     n11: { ...base.n11, ...(partial.n11 || {}) },
     ciceksepeti: { ...base.ciceksepeti, ...(partial.ciceksepeti || {}) },
     sync: { ...base.sync, ...(partial.sync || {}) },
+    report: { ...base.report, ...(partial.report || {}) },
     productPush: mergeProductPush(base.productPush || {}, partial.productPush || {})
   };
   return out;
@@ -379,6 +383,45 @@ function dayKey(d) {
   return y + '-' + m + '-' + day;
 }
 
+function localDayKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function addDailySale(sale) {
+  load();
+  const ts = sale.ts || new Date().toISOString();
+  state.dailySales.push({
+    ts,
+    date: sale.date || localDayKey(new Date(ts)),
+    name: sale.name || '',
+    barcode: sale.barcode || '',
+    market: sale.market || '',
+    qty: Math.max(0, Number(sale.qty) || 0)
+  });
+  save();
+  return state.dailySales;
+}
+
+function getDailySales(date) {
+  load();
+  if (!date) return state.dailySales;
+  return state.dailySales.filter(s => s.date === date);
+}
+
+function purgeDailySales(keepDays) {
+  load();
+  const keep = Math.max(1, Number(keepDays) || 30);
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - keep);
+  const cutoffKey = localDayKey(cutoff);
+  state.dailySales = state.dailySales.filter(s => s.date >= cutoffKey);
+  save();
+  return state.dailySales;
+}
+
 function recordShopVisit() {
   load();
   const key = dayKey(new Date());
@@ -424,6 +467,10 @@ module.exports = {
   getLog,
   getQnaNotifiedIds,
   addQnaNotifiedIds,
+  localDayKey,
+  addDailySale,
+  getDailySales,
+  purgeDailySales,
   getShopProducts,
   getShopProduct,
   addShopProduct,

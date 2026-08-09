@@ -136,6 +136,13 @@ async function syncMarketplace(kind) {
             oldQty: Number(oldQty),
             newQty: qty
           });
+          db.addDailySale({
+            name: existing.name,
+            barcode,
+            market: kindLabel(kind),
+            qty: diff,
+            ts: now
+          });
         }
       }
     } else {

@@ -4,6 +4,7 @@ const path = require('path');
 const db = require('./db');
 const sync = require('./src/sync');
 const notifier = require('./src/notifier');
+const report = require('./src/report');
 const telegramBot = require('./src/telegram');
 const backup = require('./src/backup');
 const trendyol = require('./src/trendyol');
@@ -132,6 +133,17 @@ app.post('/api/sync', async (req, res) => {
     db.addLog('Ürün yükleme hatası: ' + e.message);
   }
   res.json(results);
+});
+
+// ---- Gün sonu raporu ----
+app.post('/api/report/daily', async (req, res) => {
+  try {
+    const result = await report.sendDailyReport();
+    res.json(result);
+  } catch (e) {
+    db.addLog('Gün sonu raporu hatası: ' + e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ---- Soru kontrolü ----
@@ -420,6 +432,11 @@ async function runCheck() {
   } catch (e) {
     db.addLog('Ürün yükleme hatası: ' + e.message);
   }
+  try {
+    await report.maybeSendDailyReport();
+  } catch (e) {
+    db.addLog('Gün sonu raporu hatası: ' + e.message);
+  }
   } finally {
     polling = false;
   }
@@ -473,6 +490,11 @@ async function start() {
     await sync.pushNewProducts();
   } catch (e) {
     db.addLog('Ürün yükleme hatası: ' + e.message);
+  }
+  try {
+    await report.maybeSendDailyReport();
+  } catch (e) {
+    db.addLog('Gün sonu raporu hatası: ' + e.message);
   }
   });
 }
