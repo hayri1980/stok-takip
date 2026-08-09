@@ -97,6 +97,8 @@ async function updateMarketStock(kind, item, target) {
   throw new Error('Bilinmeyen pazar yeri: ' + kind);
 }
 
+let lastSyncOkLogTs = 0;
+
 async function syncMarketplace(kind) {
   if (!marketConfigured(kind)) {
     db.addLog(kindLabel(kind) + ' ayarları eksik, senkron atlandı');
@@ -154,6 +156,10 @@ async function syncMarketplace(kind) {
 
   if (changed) {
     db.addLog(kindLabel(kind) + ' senkronu tamam: ' + updated + ' güncellendi, ' + created + ' yeni eklendi');
+    lastSyncOkLogTs = Date.now();
+  } else if (Date.now() - lastSyncOkLogTs > 5 * 60 * 1000) {
+    lastSyncOkLogTs = Date.now();
+    db.addLog(kindLabel(kind) + ' senkronu tamam (değişiklik yok)');
   }
 
   if (sales.length > 0) {

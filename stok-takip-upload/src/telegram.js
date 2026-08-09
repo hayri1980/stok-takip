@@ -118,9 +118,7 @@ function healthStatus() {
   if (db.getProducts().length === 0) issues.push('Urun listesi bos');
   const age = lastSyncAgeMin();
   let syncAge = null;
-  if (age === null) {
-    issues.push('Son senkron kaydi bulunamadi');
-  } else if (age > 60) {
+  if (age !== null && age > 30) {
     syncAge = age;
     issues.push('Son senkron ' + age + ' dk once (cok eski)');
   } else {
@@ -144,7 +142,7 @@ async function sendAlarm() {
     } catch (e) {
       db.addLog('Alarm gonderilemedi: ' + e.message);
     }
-    await sleep(300);
+    await sleep(3000);
   }
 }
 
@@ -163,11 +161,12 @@ async function checkHealthState() {
   if (!(tg.enabled && tg.chatId)) return;
   const h = healthStatus();
   if (h.ok) {
+    if (lastHealthy === false) {
+      await sendGreenTick();
+    }
     lastHealthy = true;
   } else {
-    if (lastHealthy !== false) {
-      await sendAlarm();
-    }
+    await sendAlarm();
     lastHealthy = false;
   }
 }
@@ -176,7 +175,7 @@ function scheduleHealthCheck() {
   const HOUR = 3 * 60 * 60 * 1000;
   setTimeout(checkHealthState, 20 * 1000);
   setTimeout(sendGreenTick, 30 * 1000);
-  setInterval(checkHealthState, 60 * 1000);
+  setInterval(checkHealthState, 30 * 1000);
   setInterval(sendGreenTick, HOUR);
 }
 
