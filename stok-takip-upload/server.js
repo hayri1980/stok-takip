@@ -124,11 +124,11 @@ app.delete('/api/products/:id', (req, res) => {
 app.get('/api/export/csv', (req, res) => {
   const products = db.getProducts();
   const lines = [];
-  lines.push('Stok Takip Canli Veri');
-  lines.push('Aktarim zamani;' + new Date().toISOString());
+  lines.push('Stok Takip Canlı Veri');
+  lines.push('Aktarım zamanı;' + new Date().toISOString());
   lines.push('');
-  lines.push('URUNLER');
-  lines.push('Stok kodu;Ad;Fiyat TL;Liste TL;Trendyol;Hepsiburada;PTT AVM;idefix;N11;Ciceksepeti;Ortak Stok;Son Gorulme');
+  lines.push('ÜRÜNLER');
+  lines.push('Stok Kodu;Ürün Adı;Fiyat (TL);Liste Fiyatı (TL);Trendyol Stok;Hepsiburada Stok;PTT AVM Stok;idefix Stok;N11 Stok;Çiçeksepeti Stok;Ortak Stok;Son Görülme');
   for (const p of products) {
     lines.push([
       p.barcode,
@@ -148,15 +148,15 @@ app.get('/api/export/csv', (req, res) => {
   lines.push('');
   const today = db.localDayKey(new Date());
   const todaysSales = db.getDailySales(today);
-  lines.push('SATISLAR (BUGUN)');
-  lines.push('Urun;Stok kodu;Pazar;Adet;Zaman');
+  lines.push('SATIŞLAR (BUGÜN)');
+  lines.push('Ürün;Stok Kodu;Pazar;Adet;Zaman');
   for (const s of todaysSales) {
     lines.push([String(s.name || '').replace(/;/g, ' '), s.barcode, s.market, s.qty, s.ts].join(';'));
   }
   lines.push('');
-  lines.push('OZET');
-  lines.push('Toplam urun;' + products.length);
-  lines.push('Bugunku satis;' + todaysSales.reduce((sum, s) => sum + (Number(s.qty) || 0), 0));
+  lines.push('ÖZET');
+  lines.push('Toplam ürün;' + products.length);
+  lines.push('Bugünkü satış;' + todaysSales.reduce((sum, s) => sum + (Number(s.qty) || 0), 0));
   const csv = lines.join('\r\n');
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="stok-takip-canli.csv"');
