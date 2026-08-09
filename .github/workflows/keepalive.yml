@@ -8,4 +8,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Render health
-        run: curl -s -o /dev/null -w "%{http_code}\n" https://stok-takip-logu.onrender.com/health
+        id: ping
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" https://stok-takip-logu.onrender.com/health)
+          echo "HTTP=$CODE"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+      - name: Alarm if down
+        if: steps.ping.outputs.code != '200'
+        run: |
+          for i in 1 2 3 4 5; do
+            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+              --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+              --data-urlencode "text=❌" > /dev/null
+            sleep 1
+          done

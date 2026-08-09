@@ -133,36 +133,51 @@ function healthStatus() {
   };
 }
 
-function healthText() {
+let lastHealthy = null;
+
+async function sendAlarm() {
+  const tg = db.getSettings().telegram;
+  if (!(tg.enabled && tg.chatId)) return;
+  for (let i = 0; i < 5; i++) {
+    try {
+      await sendTelegramTo(tg.chatId, '\u274C');
+    } catch (e) {
+      db.addLog('Alarm gonderilemedi: ' + e.message);
+    }
+    await sleep(300);
+  }
+}
+
+async function sendGreenTick() {
+  const tg = db.getSettings().telegram;
+  if (!(tg.enabled && tg.chatId)) return;
   const h = healthStatus();
   if (h.ok) {
-    return '\u2705 Sistem saglikli' + (h.syncAge !== null ? ' - son senkron ' + h.syncAge + ' dk once' : '');
+    const extra = h.syncAge !== null ? ' - son senkron ' + h.syncAge + ' dk once' : '';
+    await sendTelegramTo(tg.chatId, '\u2705 Sistem saglikli' + extra);
   }
-  return '\u274C Sistemde sorun var\n' + h.issues.map(i => '- ' + i).join('\n');
+}
+
+async function checkHealthState() {
+  const tg = db.getSettings().telegram;
+  if (!(tg.enabled && tg.chatId)) return;
+  const h = healthStatus();
+  if (h.ok) {
+    lastHealthy = true;
+  } else {
+    if (lastHealthy !== false) {
+      await sendAlarm();
+    }
+    lastHealthy = false;
+  }
 }
 
 function scheduleHealthCheck() {
   const HOUR = 3 * 60 * 60 * 1000;
-  setTimeout(async () => {
-    const tg = db.getSettings().telegram;
-    if (tg.enabled && tg.chatId) {
-      try {
-        await sendTelegramTo(tg.chatId, healthText());
-      } catch (e) {
-        db.addLog('Saglik mesaji gonderilemedi: ' + e.message);
-      }
-    }
-  }, 30 * 1000);
-  setInterval(async () => {
-    const tg = db.getSettings().telegram;
-    if (tg.enabled && tg.chatId) {
-      try {
-        await sendTelegramTo(tg.chatId, healthText());
-      } catch (e) {
-        db.addLog('Saglik mesaji gonderilemedi: ' + e.message);
-      }
-    }
-  }, HOUR);
+  setTimeout(checkHealthState, 20 * 1000);
+  setTimeout(sendGreenTick, 30 * 1000);
+  setInterval(checkHealthState, 60 * 1000);
+  setInterval(sendGreenTick, HOUR);
 }
 
 async function runFullCheck() {
