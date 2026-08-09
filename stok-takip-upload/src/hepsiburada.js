@@ -5,7 +5,7 @@ async function fetchStock(username, password) {
   const headers = {
     'Authorization': auth,
     'Content-Type': 'application/json',
-    'User-Agent': 'StokTakip-v1'
+    'User-Agent': username + ' - StokTakip'
   };
 
   const stockByBarcode = new Map();
@@ -40,7 +40,7 @@ async function fetchProducts(username, password) {
   const headers = {
     'Authorization': auth,
     'Content-Type': 'application/json',
-    'User-Agent': 'StokTakip-v1'
+    'User-Agent': username + ' - StokTakip'
   };
 
   const byBarcode = new Map();
@@ -78,7 +78,7 @@ async function updateStock(username, password, sku, availableStock, price) {
   const headers = {
     'Authorization': auth,
     'Content-Type': 'application/json',
-    'User-Agent': 'StokTakip-v1'
+    'User-Agent': username + ' - StokTakip'
   };
 
   const body = { availableStock: Number(availableStock) };
@@ -99,7 +99,7 @@ async function createProduct(username, password, p) {
   const headers = {
     'Authorization': auth,
     'Content-Type': 'application/json',
-    'User-Agent': 'StokTakip-v1'
+    'User-Agent': username + ' - StokTakip'
   };
   const mapping = p.mapping || {};
   const body = {
