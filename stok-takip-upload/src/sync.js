@@ -242,7 +242,8 @@ async function syncSharedStock() {
         target = Number(hbQty);
         touchTy = true;
       } else if (tyChanged && hbChanged) {
-        target = Number(tyQty);
+        target = Math.min(Number(tyQty), Number(hbQty));
+        touchTy = Number(tyQty) !== target;
         touchHb = Number(hbQty) !== target;
       } else {
         continue;
