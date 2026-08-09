@@ -222,6 +222,7 @@ async function syncMarketplace(kind) {
             barcode,
             market: kindLabel(kind),
             qty: diff,
+            price: existing.price,
             ts: now
           });
         }

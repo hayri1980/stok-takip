@@ -426,7 +426,8 @@ function addDailySale(sale) {
     name: sale.name || '',
     barcode: sale.barcode || '',
     market: sale.market || '',
-    qty: Math.max(0, Number(sale.qty) || 0)
+    qty: Math.max(0, Number(sale.qty) || 0),
+    price: Number(sale.price) > 0 ? Number(sale.price) : null
   });
   save();
   return state.dailySales;

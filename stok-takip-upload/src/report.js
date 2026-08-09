@@ -27,22 +27,31 @@ function buildDailyReportText(sales, date) {
     const groups = new Map();
     for (const s of sales) {
       const key = s.name + '|' + s.barcode + '|' + s.market;
-      groups.set(key, (groups.get(key) || 0) + (Number(s.qty) || 0));
+      const rec = groups.get(key);
+      if (rec) {
+        rec.qty += Number(s.qty) || 0;
+        if (Number(s.price) > 0) rec.price = Number(s.price);
+      } else {
+        groups.set(key, { qty: Number(s.qty) || 0, price: Number(s.price) > 0 ? Number(s.price) : null });
+      }
     }
-    for (const [key, qty] of groups) {
+    for (const [key, rec] of groups) {
       const parts = key.split('|');
-      const p = db.findProductByBarcode(parts[1]);
-      const price = p && p.price !== null && p.price !== undefined ? Number(p.price) : null;
-      const revenue = price !== null ? Math.round(qty * price * 100) / 100 : null;
-      totalQty += qty;
+      let price = rec.price;
+      if (price === null || price === undefined) {
+        const p = db.findProductByBarcode(parts[1]);
+        price = p && p.price !== null && p.price !== undefined ? Number(p.price) : null;
+      }
+      const revenue = price !== null ? Math.round(rec.qty * price * 100) / 100 : null;
+      totalQty += rec.qty;
       if (revenue !== null) totalRevenue += revenue;
-      lines.push(parts[0] + ' (' + parts[1] + ') - ' + parts[2] + ': ' + qty + ' adet' +
+      lines.push(parts[0] + ' (' + parts[1] + ') - ' + parts[2] + ': ' + rec.qty + ' adet' +
         (price !== null ? ' = ' + revenue + ' TL' : ''));
     }
   }
   lines.push('--------------------------------');
   lines.push('Toplam satis: ' + totalQty + ' adet');
-  if (totalRevenue > 0) lines.push('Tahmini ciro: ' + Math.round(totalRevenue * 100) / 100 + ' TL');
+  if (totalRevenue > 0) lines.push('Gunun ciro: ' + Math.round(totalRevenue * 100) / 100 + ' TL');
   return lines.join('\n');
 }
 
