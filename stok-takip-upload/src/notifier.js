@@ -5,10 +5,15 @@ let recentNotifications = [];
 let notifSeq = 0;
 const MAX_NOTIFS = 100;
 
+function nextNotifId() {
+  notifSeq = (notifSeq + 1) % 1000;
+  return String(Date.now() * 1000 + notifSeq);
+}
+
 function recordNotification(chatId, text) {
-  notifSeq++;
+  notifSeq = (notifSeq + 1) % 1000;
   recentNotifications.push({
-    id: String(notifSeq),
+    id: String(Date.now() * 1000 + notifSeq),
     time: new Date().toISOString(),
     chatId: String(chatId),
     text: String(text)
