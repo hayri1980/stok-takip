@@ -20,11 +20,6 @@ function buildDailyReportText(sales, date) {
   lines.push('(00:00 - 23:59 arasi satislar)');
   lines.push('--------------------------------');
   const settings = db.getSettings();
-  const costCfg = settings.cost || {};
-  const commissionPct = Number(costCfg.commissionPercent) > 0 ? Number(costCfg.commissionPercent) : 0;
-  const shippingCost = Number(costCfg.shipping) > 0 ? Number(costCfg.shipping) : 0;
-  const feeCost = Number(costCfg.fee) > 0 ? Number(costCfg.fee) : 0;
-  const hasCostCfg = commissionPct > 0 || shippingCost > 0 || feeCost > 0;
   let totalQty = 0;
   let totalRevenue = 0;
   let totalDeduct = 0;
@@ -40,6 +35,11 @@ function buildDailyReportText(sales, date) {
       const p = db.findProductByBarcode(s.barcode);
       if (price === null && p) price = p.price !== null && p.price !== undefined ? Number(p.price) : null;
       if (cost === null && p) cost = Number(p.cost) > 0 ? Number(p.cost) : null;
+      const mCfg = (settings.cost || {})[s.market] || {};
+      const commissionPct = Number(mCfg.commissionPercent) > 0 ? Number(mCfg.commissionPercent) : 0;
+      const shippingCost = Number(mCfg.shipping) > 0 ? Number(mCfg.shipping) : 0;
+      const feeCost = Number(mCfg.fee) > 0 ? Number(mCfg.fee) : 0;
+      const hasCostCfg = commissionPct > 0 || shippingCost > 0 || feeCost > 0;
       const revenue = price !== null ? Math.round(qty * price * 100) / 100 : null;
       let deduct = null;
       if (price !== null) {
