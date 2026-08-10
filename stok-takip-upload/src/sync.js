@@ -229,6 +229,7 @@ async function syncMarketplace(kind) {
             market: kindLabel(kind),
             qty: diff,
             price: existing.price,
+            cost: existing.cost,
             ts: now
           });
         }

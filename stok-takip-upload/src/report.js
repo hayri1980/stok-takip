@@ -21,6 +21,7 @@ function buildDailyReportText(sales, date) {
   lines.push('--------------------------------');
   let totalQty = 0;
   let totalRevenue = 0;
+  let totalCost = 0;
   if (!sales || sales.length === 0) {
     lines.push('Bu gun satis yok.');
   } else {
@@ -29,24 +30,27 @@ function buildDailyReportText(sales, date) {
       const key = s.name + '|' + s.barcode + '|' + s.market;
       const qty = Number(s.qty) || 0;
       let price = Number(s.price) > 0 ? Number(s.price) : null;
-      if (price === null) {
-        const p = db.findProductByBarcode(s.barcode);
-        price = p && p.price !== null && p.price !== undefined ? Number(p.price) : null;
-      }
+      let cost = Number(s.cost) > 0 ? Number(s.cost) : null;
+      const p = db.findProductByBarcode(s.barcode);
+      if (price === null && p) price = p.price !== null && p.price !== undefined ? Number(p.price) : null;
+      if (cost === null && p) cost = Number(p.cost) > 0 ? Number(p.cost) : null;
       const revenue = price !== null ? Math.round(qty * price * 100) / 100 : null;
+      const costVal = cost !== null ? Math.round(qty * cost * 100) / 100 : null;
       const rec = groups.get(key);
       if (rec) {
         rec.qty += qty;
         if (revenue !== null) rec.revenue = Math.round((rec.revenue + revenue) * 100) / 100;
         if (price !== null) rec.price = price;
+        if (costVal !== null) rec.cost = Math.round((rec.cost + costVal) * 100) / 100;
       } else {
-        groups.set(key, { qty, revenue: revenue });
+        groups.set(key, { qty, revenue: revenue, cost: costVal });
       }
     }
     for (const [key, rec] of groups) {
       const parts = key.split('|');
       totalQty += rec.qty;
       if (rec.revenue !== null) totalRevenue = Math.round((totalRevenue + rec.revenue) * 100) / 100;
+      if (rec.cost !== null) totalCost = Math.round((totalCost + rec.cost) * 100) / 100;
       lines.push(parts[0] + ' (' + parts[1] + ') - ' + parts[2] + ': ' + rec.qty + ' adet' +
         (rec.revenue !== null ? ' = ' + rec.revenue + ' TL' : ''));
     }
@@ -54,6 +58,10 @@ function buildDailyReportText(sales, date) {
   lines.push('--------------------------------');
   lines.push('Toplam satis: ' + totalQty + ' adet');
   if (totalRevenue > 0) lines.push('Gunun ciro: ' + Math.round(totalRevenue * 100) / 100 + ' TL');
+  if (totalCost > 0) {
+    lines.push('Maliyet: ' + Math.round(totalCost * 100) / 100 + ' TL');
+    lines.push('NET KAR: ' + Math.round((totalRevenue - totalCost) * 100) / 100 + ' TL');
+  }
   return lines.join('\n');
 }
 

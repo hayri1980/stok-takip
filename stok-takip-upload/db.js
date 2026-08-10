@@ -125,6 +125,7 @@ function defaultProduct(data) {
     sharedStock: data.sharedStock !== undefined && data.sharedStock !== null ? Number(data.sharedStock) : null,
     price: data.price !== undefined && data.price !== null ? Number(data.price) : null,
     listPrice: data.listPrice !== undefined && data.listPrice !== null ? Number(data.listPrice) : null,
+    cost: data.cost !== undefined && data.cost !== null ? Number(data.cost) : null,
     priceUpdatedAt: data.priceUpdatedAt || null,
     lastSeenAt: data.lastSeenAt || null,
     disappearedNotified: data.disappearedNotified || false,
@@ -164,7 +165,7 @@ function addProduct(data) {
     if (existing) {
       const merged = Object.assign({}, existing);
       if (data.name !== undefined && data.name !== null && String(data.name) !== '') merged.name = data.name;
-      for (const f of ['trendyolStock', 'hepsiburadaStock', 'pttavmStock', 'idefixStock', 'n11Stock', 'ciceksepetiStock', 'sharedStock', 'price', 'listPrice']) {
+      for (const f of ['trendyolStock', 'hepsiburadaStock', 'pttavmStock', 'idefixStock', 'n11Stock', 'ciceksepetiStock', 'sharedStock', 'price', 'listPrice', 'cost']) {
         if (data[f] !== undefined && data[f] !== null) merged[f] = Number(data[f]);
       }
       if (data.priceUpdatedAt !== undefined) merged.priceUpdatedAt = data.priceUpdatedAt;
@@ -198,6 +199,7 @@ function updateProduct(id, data) {
   if (data.sharedStock !== undefined) merged.sharedStock = data.sharedStock === null ? null : Number(data.sharedStock);
   if (data.price !== undefined) merged.price = data.price === null ? null : Number(data.price);
   if (data.listPrice !== undefined) merged.listPrice = data.listPrice === null ? null : Number(data.listPrice);
+  if (data.cost !== undefined) merged.cost = data.cost === null ? null : Number(data.cost);
   if (data.priceUpdatedAt !== undefined) merged.priceUpdatedAt = data.priceUpdatedAt;
   if (data.lastSeenAt !== undefined) merged.lastSeenAt = data.lastSeenAt;
   if (data.disappearedNotified !== undefined) merged.disappearedNotified = !!data.disappearedNotified;
@@ -427,7 +429,8 @@ function addDailySale(sale) {
     barcode: sale.barcode || '',
     market: sale.market || '',
     qty: Math.max(0, Number(sale.qty) || 0),
-    price: Number(sale.price) > 0 ? Number(sale.price) : null
+    price: Number(sale.price) > 0 ? Number(sale.price) : null,
+    cost: Number(sale.cost) > 0 ? Number(sale.cost) : null
   });
   save();
   return state.dailySales;
