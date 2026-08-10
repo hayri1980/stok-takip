@@ -106,7 +106,7 @@ function genId() {
 function addLog(message) {
   load();
   state.log.unshift({ time: new Date().toISOString(), message });
-  if (state.log.length > 20000) state.log = state.log.slice(0, 20000);
+  if (state.log.length > 500) state.log = state.log.slice(0, 500);
   save();
   return state.log;
 }
@@ -441,7 +441,7 @@ function getDailySales(date) {
 
 function purgeDailySales(keepDays) {
   load();
-  const keep = Math.max(1, Number(keepDays) || 3650);
+  const keep = Math.max(1, Number(keepDays) || 30);
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - keep);
   const cutoffKey = localDayKey(cutoff);
