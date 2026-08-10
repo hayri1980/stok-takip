@@ -13,7 +13,7 @@ async function fetchStock(sellerId, apiKey, apiSecret) {
   const size = 100;
 
   while (page < 100) {
-    const url = `${BASE}/product/sellers/${sellerId}/products?page=${page}&size=${size}`;
+    const url = `${BASE}/product/sellers/${sellerId}/products/approved/inventory-and-price?page=${page}&size=${size}`;
     const res = await fetch(url, { headers });
     if (!res.ok) {
       throw new Error('Trendyol API hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
@@ -21,11 +21,13 @@ async function fetchStock(sellerId, apiKey, apiSecret) {
     const data = await res.json();
     const items = data.content || [];
     for (const item of items) {
-      const barcode = item.barcode;
-      if (!barcode) continue;
-      const qty = parseInt(item.quantity !== undefined ? item.quantity : item.availableStock, 10);
-      if (!isNaN(qty)) {
-        stockByBarcode.set(barcode, qty);
+      for (const v of (item.variants || [])) {
+        const barcode = v.barcode;
+        if (!barcode) continue;
+        const qty = parseInt(v.quantity !== undefined ? v.quantity : (v.stock && v.stock.quantity), 10);
+        if (!isNaN(qty)) {
+          stockByBarcode.set(String(barcode), qty);
+        }
       }
     }
     if (items.length === 0) break;
@@ -93,7 +95,7 @@ async function fetchProductCatalog(sellerId, apiKey, apiSecret) {
   const size = 100;
 
   while (page < 100) {
-    const url = `${BASE}/product/sellers/${sellerId}/products?page=${page}&size=${size}`;
+    const url = `${BASE}/product/sellers/${sellerId}/products/approved?page=${page}&size=${size}`;
     const res = await fetch(url, { headers });
     if (!res.ok) {
       throw new Error('Trendyol API hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
@@ -101,26 +103,27 @@ async function fetchProductCatalog(sellerId, apiKey, apiSecret) {
     const data = await res.json();
     const items = data.content || [];
     for (const item of items) {
-      if (!item.barcode) continue;
+      const v = (item.variants || [])[0];
+      if (!v || !v.barcode) continue;
       const images = Array.isArray(item.images) ? item.images.map(i => (i && i.url) || i).filter(Boolean) : [];
-      const qty = parseInt(item.quantity !== undefined ? item.quantity : item.availableStock, 10);
-      const salePrice = Number(item.salePrice !== undefined && item.salePrice !== null ? item.salePrice : item.price);
-      const listPrice = Number(item.listPrice !== undefined && item.listPrice !== null ? item.listPrice : salePrice);
+      const salePrice = Number(v.price && v.price.salePrice);
+      const listPrice = Number(v.price && v.price.listPrice) || salePrice;
+      const qty = Number(v.stock && v.stock.quantity);
       products.push({
-        barcode: String(item.barcode),
-        name: item.title || item.productName || String(item.barcode),
-        category: item.categoryName || '',
+        barcode: String(v.barcode),
+        name: item.title || item.productMainId || String(v.barcode),
+        category: (item.category && item.category.name) || '',
         description: item.description || '',
         images,
-        trendyolId: item.id || '',
+        trendyolId: item.contentId || '',
         quantity: Number.isFinite(qty) && qty > 0 ? qty : 0,
         price: Number.isFinite(salePrice) && salePrice > 0 ? salePrice : (Number.isFinite(listPrice) && listPrice > 0 ? listPrice : 0),
         listPrice: Number.isFinite(listPrice) && listPrice > 0 ? listPrice : 0,
-        vatRate: Number(item.vatRate) || 0,
-        brand: (item.brand && (item.brand.name || item.brand)) || '',
-        brandId: item.brandId || '',
+        vatRate: Number(v.vatRate) || 0,
+        brand: (item.brand && item.brand.name) || '',
+        brandId: (item.brand && item.brand.id) || '',
         productMainId: item.productMainId || '',
-        stockCode: item.stockCode || ''
+        stockCode: v.stockCode || ''
       });
     }
     if (items.length === 0) break;
@@ -143,7 +146,7 @@ async function fetchPriceMap(sellerId, apiKey, apiSecret) {
   const size = 100;
 
   while (page < 100) {
-    const url = `${BASE}/product/sellers/${sellerId}/products?page=${page}&size=${size}`;
+    const url = `${BASE}/product/sellers/${sellerId}/products/approved/inventory-and-price?page=${page}&size=${size}`;
     const res = await fetch(url, { headers });
     if (!res.ok) {
       throw new Error('Trendyol fiyat çekme hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
@@ -151,15 +154,17 @@ async function fetchPriceMap(sellerId, apiKey, apiSecret) {
     const data = await res.json();
     const items = data.content || [];
     for (const item of items) {
-      const barcode = item.barcode;
-      if (!barcode) continue;
-      const salePrice = Number(item.salePrice !== undefined && item.salePrice !== null ? item.salePrice : item.price);
-      const listPrice = Number(item.listPrice !== undefined && item.listPrice !== null ? item.listPrice : salePrice);
-      if (Number.isFinite(salePrice) && salePrice > 0) {
-        priceByBarcode.set(String(barcode), {
-          price: salePrice,
-          listPrice: Number.isFinite(listPrice) && listPrice > 0 ? listPrice : salePrice
-        });
+      for (const v of (item.variants || [])) {
+        const barcode = v.barcode;
+        if (!barcode) continue;
+        const salePrice = Number(v.salePrice);
+        const listPrice = Number(v.listPrice) || salePrice;
+        if (Number.isFinite(salePrice) && salePrice > 0) {
+          priceByBarcode.set(String(barcode), {
+            price: salePrice,
+            listPrice: Number.isFinite(listPrice) && listPrice > 0 ? listPrice : salePrice
+          });
+        }
       }
     }
     if (items.length === 0) break;
