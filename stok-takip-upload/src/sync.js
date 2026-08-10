@@ -160,9 +160,15 @@ async function syncTrendyolPrices() {
   }
 }
 
+const skipLogTs = {};
+
 async function syncMarketplace(kind) {
   if (!marketConfigured(kind)) {
-    db.addLog(kindLabel(kind) + ' ayarları eksik, senkron atlandı');
+    const now = Date.now();
+    if (now - (skipLogTs[kind] || 0) > 10 * 60 * 1000) {
+      db.addLog(kindLabel(kind) + ' ayarları eksik, senkron atlandı');
+      skipLogTs[kind] = now;
+    }
     return { skipped: true, reason: kindLabel(kind) + ' API ayarları eksik' };
   }
 

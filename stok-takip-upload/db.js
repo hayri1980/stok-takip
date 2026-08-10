@@ -106,7 +106,7 @@ function genId() {
 function addLog(message) {
   load();
   state.log.unshift({ time: new Date().toISOString(), message });
-  if (state.log.length > 5000) state.log = state.log.slice(0, 5000);
+  if (state.log.length > 20000) state.log = state.log.slice(0, 20000);
   save();
   return state.log;
 }
