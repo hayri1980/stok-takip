@@ -19,9 +19,15 @@ function buildDailyReportText(sales, date) {
   lines.push('GUN SONU RAPORU — ' + displayDate(date));
   lines.push('(00:00 - 23:59 arasi satislar)');
   lines.push('--------------------------------');
+  const settings = db.getSettings();
+  const costCfg = settings.cost || {};
+  const commissionPct = Number(costCfg.commissionPercent) > 0 ? Number(costCfg.commissionPercent) : 0;
+  const shippingCost = Number(costCfg.shipping) > 0 ? Number(costCfg.shipping) : 0;
+  const feeCost = Number(costCfg.fee) > 0 ? Number(costCfg.fee) : 0;
+  const hasCostCfg = commissionPct > 0 || shippingCost > 0 || feeCost > 0;
   let totalQty = 0;
   let totalRevenue = 0;
-  let totalCost = 0;
+  let totalDeduct = 0;
   if (!sales || sales.length === 0) {
     lines.push('Bu gun satis yok.');
   } else {
@@ -35,22 +41,27 @@ function buildDailyReportText(sales, date) {
       if (price === null && p) price = p.price !== null && p.price !== undefined ? Number(p.price) : null;
       if (cost === null && p) cost = Number(p.cost) > 0 ? Number(p.cost) : null;
       const revenue = price !== null ? Math.round(qty * price * 100) / 100 : null;
-      const costVal = cost !== null ? Math.round(qty * cost * 100) / 100 : null;
+      let deduct = null;
+      if (price !== null) {
+        const prodCost = cost !== null ? cost : 0;
+        const perUnit = prodCost + (hasCostCfg ? price * commissionPct / 100 + shippingCost + feeCost : 0);
+        if (perUnit > 0) deduct = Math.round(qty * perUnit * 100) / 100;
+      }
       const rec = groups.get(key);
       if (rec) {
         rec.qty += qty;
         if (revenue !== null) rec.revenue = Math.round((rec.revenue + revenue) * 100) / 100;
         if (price !== null) rec.price = price;
-        if (costVal !== null) rec.cost = Math.round((rec.cost + costVal) * 100) / 100;
+        if (deduct !== null) rec.deduct = Math.round((rec.deduct + deduct) * 100) / 100;
       } else {
-        groups.set(key, { qty, revenue: revenue, cost: costVal });
+        groups.set(key, { qty, revenue: revenue, deduct: deduct });
       }
     }
     for (const [key, rec] of groups) {
       const parts = key.split('|');
       totalQty += rec.qty;
       if (rec.revenue !== null) totalRevenue = Math.round((totalRevenue + rec.revenue) * 100) / 100;
-      if (rec.cost !== null) totalCost = Math.round((totalCost + rec.cost) * 100) / 100;
+      if (rec.deduct !== null) totalDeduct = Math.round((totalDeduct + rec.deduct) * 100) / 100;
       lines.push(parts[0] + ' (' + parts[1] + ') - ' + parts[2] + ': ' + rec.qty + ' adet' +
         (rec.revenue !== null ? ' = ' + rec.revenue + ' TL' : ''));
     }
@@ -58,9 +69,9 @@ function buildDailyReportText(sales, date) {
   lines.push('--------------------------------');
   lines.push('Toplam satis: ' + totalQty + ' adet');
   if (totalRevenue > 0) lines.push('Gunun ciro: ' + Math.round(totalRevenue * 100) / 100 + ' TL');
-  if (totalCost > 0) {
-    lines.push('Maliyet: ' + Math.round(totalCost * 100) / 100 + ' TL');
-    lines.push('NET KAR: ' + Math.round((totalRevenue - totalCost) * 100) / 100 + ' TL');
+  if (totalDeduct > 0) {
+    lines.push('Maliyet ve kesintiler: ' + Math.round(totalDeduct * 100) / 100 + ' TL');
+    lines.push('NET KAR: ' + Math.round((totalRevenue - totalDeduct) * 100) / 100 + ' TL');
   }
   return lines.join('\n');
 }

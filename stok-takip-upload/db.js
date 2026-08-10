@@ -239,6 +239,7 @@ function mergeSettings(base, partial) {
     ciceksepeti: { ...base.ciceksepeti, ...(partial.ciceksepeti || {}) },
     sync: { ...base.sync, ...(partial.sync || {}) },
     report: { ...base.report, ...(partial.report || {}) },
+    cost: { ...(base.cost || {}), ...(partial.cost || {}) },
     productPush: mergeProductPush(base.productPush || {}, partial.productPush || {})
   };
   return out;
