@@ -137,6 +137,18 @@ let lastHealthy = null;
 async function sendAlarm() {
   const tg = db.getSettings().telegram;
   if (!(tg.enabled && tg.chatId)) return;
+  const h = healthStatus();
+  const detail = h.issues && h.issues.length ? h.issues.join(' | ') : '';
+  if (detail) {
+    try {
+      await sendTelegramTo(tg.chatId,
+        '\u26A0\uFE0F UYARI: Stok guncellemesi DURDU!\n' + detail +
+        '\n\nStoklar GUNCEL DEGIL. Elimizde olmayan urunu satmamak icin magaza panelinden stoklari kontrol et. Sistem sorun cozulunce otomatik toparlanacak.'
+      );
+    } catch (e) {
+      db.addLog('Alarm gonderilemedi: ' + e.message);
+    }
+  }
   for (let i = 0; i < 5; i++) {
     try {
       await sendTelegramTo(tg.chatId, '\u274C');
