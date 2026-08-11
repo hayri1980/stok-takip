@@ -46,7 +46,7 @@ async function fetchStock(cfg) {
   const stockByBarcode = new Map();
   const items = await getInventory(cfg);
   for (const item of items) {
-    const barcode = item.barcode;
+    const barcode = item.vendorStockCode || item.barcode;
     if (!barcode) continue;
     const qty = parseInt(item.inventoryQuantity ?? item.quantity ?? item.stock, 10);
     if (!isNaN(qty)) stockByBarcode.set(String(barcode).trim(), qty);
@@ -128,7 +128,7 @@ async function createProduct(cfg, p) {
       brandId: Number(mapping.brandId),
       categoryId: Number(mapping.categoryId),
       inventoryQuantity: Math.max(0, Number(p.quantity) || 0),
-      vendorStockCode: p.barcode,
+      vendorStockCode: p.vendorStockCode || p.barcode,
       description: p.description || '',
       price: Number(p.price) || 0,
       comparePrice: Number(p.listPrice) || Number(p.price) || 0,

@@ -601,6 +601,7 @@ async function pushNewProducts() {
       let ixBarcode = null;
       if (kind === 'idefix' && barcode.length < 6) {
         ixBarcode = barcode.padStart(6, '0');
+        p.vendorStockCode = barcode;
         p.barcode = ixBarcode;
       }
 
