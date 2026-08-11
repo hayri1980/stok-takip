@@ -314,14 +314,44 @@ async function checkStocks() {
   }
 }
 
+let lastFinanceCheckTs = 0;
+
+async function checkFinancialTransfers() {
+  const cfg = marketCfg('trendyol');
+  if (!(cfg.apiKey && cfg.apiSecret && cfg.sellerId)) return { skipped: true };
+  if (Date.now() - lastFinanceCheckTs < 30 * 60 * 1000) return { skipped: true, reason: 'henüz zamanı değil' };
+  lastFinanceCheckTs = Date.now();
+  let transfers;
+  try {
+    transfers = await trendyol.fetchOtherFinancials(cfg.sellerId, cfg.apiKey, cfg.apiSecret, 'WireTransfer', 14);
+  } catch (e) {
+    db.addLog('Finans çekme hatası: ' + e.message);
+    return { error: e.message };
+  }
+  const seen = new Set(db.getFinanceNotifiedIds());
+  const fresh = (transfers || []).filter(t => t.id && !seen.has(String(t.id)));
+  if (fresh.length === 0) return { fresh: 0 };
+  db.addFinanceNotifiedIds(fresh.map(t => t.id));
+  for (const t of fresh) {
+    const amount = Number(t.credit) || 0;
+    const date = new Date(Number(t.transactionDate)).toLocaleDateString('tr-TR');
+    const subject = 'PARA AKTARIMI: ' + amount + ' TL';
+    const text = 'PARA AKTARIMI (banka)\nMiktar: ' + amount + ' TL\nTarih: ' + date +
+      (t.description ? '\n' + t.description : '');
+    const html = '<h3>Banka para aktarımı gerçekleşti</h3><p><b>Miktar:</b> ' + amount + ' TL</p>' +
+      '<p><b>Tarih:</b> ' + date + '</p>';
+    await notifier.notify(subject, html, text);
+  }
+  db.addLog(fresh.length + ' yeni para aktarımı tespit edildi, bildirim gönderildi');
+  return { fresh: fresh.length };
+}
+
 async function checkQuestions() {
   const settings = db.getSettings();
   const cfg = settings.trendyol;
   if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) {
     return { skipped: true, reason: 'Trendyol API ayarları eksik' };
-  }
-
-  let questions;
+  }  let questions;
   try {
     questions = await trendyol.fetchQuestions(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
   } catch (e) {
@@ -588,4 +618,4 @@ async function pushNewProducts() {
   return { created, errors };
 }
 
-module.exports = { syncMarketplace, checkStocks, checkQuestions, syncSharedStock, pushNewProducts, MARKETS, kindLabel, marketConfiguredKinds };
+module.exports = { syncMarketplace, checkStocks, checkFinancialTransfers, checkQuestions, syncSharedStock, pushNewProducts, MARKETS, kindLabel, marketConfiguredKinds };

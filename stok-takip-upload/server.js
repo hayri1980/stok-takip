@@ -531,6 +531,11 @@ async function runCheck() {
     db.addLog('Soru kontrol hatası: ' + e.message);
   }
   try {
+    await sync.checkFinancialTransfers();
+  } catch (e) {
+    db.addLog('Finans kontrol hatası: ' + e.message);
+  }
+  try {
     await sync.pushNewProducts();
   } catch (e) {
     db.addLog('Ürün yükleme hatası: ' + e.message);
@@ -588,6 +593,11 @@ async function start() {
     await sync.checkQuestions();
   } catch (e) {
     db.addLog('Soru kontrol hatası: ' + e.message);
+  }
+  try {
+    await sync.checkFinancialTransfers();
+  } catch (e) {
+    db.addLog('Finans kontrol hatası: ' + e.message);
   }
   try {
     await sync.pushNewProducts();

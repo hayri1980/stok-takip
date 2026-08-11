@@ -273,6 +273,20 @@ function addQnaNotifiedIds(ids) {
   return state.qnaNotifiedIds;
 }
 
+function getFinanceNotifiedIds() {
+  load();
+  return state.financeNotifiedIds || [];
+}
+
+function addFinanceNotifiedIds(ids) {
+  load();
+  const set = new Set(state.financeNotifiedIds || []);
+  for (const id of ids) set.add(String(id));
+  state.financeNotifiedIds = Array.from(set).slice(-1000);
+  save();
+  return state.financeNotifiedIds;
+}
+
 // ---- Mağaza ----
 function mergeShopSettings(base, partial) {
   return {
@@ -499,6 +513,8 @@ module.exports = {
   getLog,
   getQnaNotifiedIds,
   addQnaNotifiedIds,
+  getFinanceNotifiedIds,
+  addFinanceNotifiedIds,
   localDayKey,
   addDailySale,
   getDailySales,

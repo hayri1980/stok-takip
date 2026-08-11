@@ -217,4 +217,21 @@ async function fetchShipmentPackages(sellerId, apiKey, apiSecret, opts = {}) {
   return (data && data.content) || [];
 }
 
-module.exports = { fetchStock, fetchQuestions, fetchProductCatalog, fetchPriceMap, updateStock, fetchShipmentPackages };
+async function fetchOtherFinancials(sellerId, apiKey, apiSecret, transactionType, days = 14) {
+  const auth = 'Basic ' + Buffer.from(apiKey + ':' + apiSecret).toString('base64');
+  const headers = {
+    'Authorization': auth,
+    'x-seller-id': String(sellerId),
+    'User-Agent': String(sellerId) + ' - SelfIntegration'
+  };
+  const startDate = Date.now() - Math.min(14, Math.max(1, Number(days) || 14)) * 24 * 60 * 60 * 1000;
+  const url = `${BASE}/finance/che/sellers/${sellerId}/otherfinancials?transactionType=${encodeURIComponent(transactionType)}&startDate=${startDate}&endDate=${Date.now()}&page=0&size=500`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw new Error('Trendyol finans hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
+  }
+  const data = await res.json();
+  return (data && data.content) || [];
+}
+
+module.exports = { fetchStock, fetchQuestions, fetchProductCatalog, fetchPriceMap, updateStock, fetchShipmentPackages, fetchOtherFinancials };
