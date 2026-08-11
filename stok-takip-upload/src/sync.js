@@ -583,6 +583,7 @@ async function pushNewProducts() {
     for (const kind of readyTargets) {
       if (pushed[kind]) continue;
       const mapping = pushMapping(kind);
+      const catOverride = (mapping.barcodes && mapping.barcodes[barcode]) || {};
 
       const price = Number(item.price) || 0;
       const p = {
@@ -595,7 +596,7 @@ async function pushNewProducts() {
         images: item.images || [],
         vatRate: Number(item.vatRate) || Number(mapping.vatRate) || 20,
         brand: item.brand || mapping.brand || '',
-        mapping
+        mapping: { ...mapping, categoryId: catOverride.categoryId || mapping.categoryId }
       };
       let ixBarcode = null;
       if (kind === 'idefix' && barcode.length < 6) {
