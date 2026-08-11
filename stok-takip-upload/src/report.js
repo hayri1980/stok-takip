@@ -37,14 +37,15 @@ function buildDailyReportText(sales, date) {
       if (cost === null && p) cost = Number(p.cost) > 0 ? Number(p.cost) : null;
       const mCfg = (settings.cost || {})[s.market] || {};
       const commissionPct = Number(mCfg.commissionPercent) > 0 ? Number(mCfg.commissionPercent) : 0;
+      const vatPercent = Number(mCfg.vatPercent) > 0 ? Number(mCfg.vatPercent) : 0;
       const shippingCost = Number(mCfg.shipping) > 0 ? Number(mCfg.shipping) : 0;
       const feeCost = Number(mCfg.fee) > 0 ? Number(mCfg.fee) : 0;
-      const hasCostCfg = commissionPct > 0 || shippingCost > 0 || feeCost > 0;
+      const hasCostCfg = commissionPct > 0 || vatPercent > 0 || shippingCost > 0 || feeCost > 0;
       const revenue = price !== null ? Math.round(qty * price * 100) / 100 : null;
       let deduct = null;
       if (price !== null) {
         const prodCost = cost !== null ? cost : 0;
-        const perUnit = prodCost + (hasCostCfg ? price * commissionPct / 100 + shippingCost + feeCost : 0);
+        const perUnit = prodCost + (hasCostCfg ? price * commissionPct / 100 + price * vatPercent / 100 + shippingCost + feeCost : 0);
         if (perUnit > 0) deduct = Math.round(qty * perUnit * 100) / 100;
       }
       const rec = groups.get(key);
