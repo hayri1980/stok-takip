@@ -126,6 +126,7 @@ function defaultProduct(data) {
     price: data.price !== undefined && data.price !== null ? Number(data.price) : null,
     listPrice: data.listPrice !== undefined && data.listPrice !== null ? Number(data.listPrice) : null,
     cost: data.cost !== undefined && data.cost !== null ? Number(data.cost) : null,
+    idefixBarcode: data.idefixBarcode || null,
     priceUpdatedAt: data.priceUpdatedAt || null,
     lastSeenAt: data.lastSeenAt || null,
     disappearedNotified: data.disappearedNotified || false,

@@ -197,7 +197,10 @@ async function syncMarketplace(kind) {
   const sales = [];
 
   for (const [barcode, qty] of stockMap.entries()) {
-    const existing = db.findProductByBarcode(barcode);
+    let existing = db.findProductByBarcode(barcode);
+    if (!existing) {
+      existing = db.getProducts().find(p => p.idefixBarcode === barcode) || null;
+    }
     if (existing) {
       const oldQty = existing[stockField(kind)];
       if (oldQty !== null && oldQty !== undefined && Number(oldQty) === qty) {
@@ -594,6 +597,11 @@ async function pushNewProducts() {
         brand: item.brand || mapping.brand || '',
         mapping
       };
+      let ixBarcode = null;
+      if (kind === 'idefix' && barcode.length < 6) {
+        ixBarcode = barcode.padStart(6, '0');
+        p.barcode = ixBarcode;
+      }
 
       try {
         await createMarketplaceProduct(kind, p);
@@ -603,10 +611,11 @@ async function pushNewProducts() {
       }
 
       const nextPushed = { ...pushed, [kind]: true };
+      const extra = ixBarcode ? { idefixBarcode: ixBarcode } : {};
       if (existing) {
-        db.updateProduct(existing.id, { pushed: nextPushed, lastSync: now });
+        db.updateProduct(existing.id, { pushed: nextPushed, lastSync: now, ...extra });
       } else {
-        db.addProduct({ name: p.title || barcode, barcode, pushed: nextPushed, trendyolStock: p.quantity, lastSync: now });
+        db.addProduct({ name: p.title || barcode, barcode, pushed: nextPushed, trendyolStock: p.quantity, lastSync: now, ...extra });
       }
       pushed[kind] = true;
       created++;
