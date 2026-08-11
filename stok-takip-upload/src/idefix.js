@@ -107,7 +107,8 @@ async function updateStock(cfg, barcode, quantity, price, rec) {
   }
   const data = await res.json();
   const first = (data.items && data.items[0]) || data;
-  if (first.status && first.status !== 'completed' && first.status.toLowerCase() !== 'success') {
+  const okStatuses = ['completed', 'success', 'created', 'created_product', 'processed'];
+  if (first.status && !okStatuses.includes(String(first.status).toLowerCase())) {
     throw new Error('idefix stok güncelleme reddedildi: ' + (first.status || 'bilinmeyen hata'));
   }
   if (data.status && data.status === 'FAILED') {
@@ -155,7 +156,8 @@ async function createProduct(cfg, p) {
   if (data.status && data.status === 'FAILED') {
     throw new Error('idefix ürün oluşturma başarısız (batch ' + (data.batchRequestId || '?') + ')');
   }
-  if (first.status && first.status !== 'completed' && first.status.toLowerCase() !== 'success') {
+  const okStatuses = ['completed', 'success', 'created', 'created_product', 'processed'];
+  if (first.status && !okStatuses.includes(String(first.status).toLowerCase())) {
     throw new Error('idefix ürün oluşturma reddedildi: ' + (first.status || 'bilinmeyen hata'));
   }
   return true;
