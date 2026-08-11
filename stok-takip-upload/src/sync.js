@@ -83,7 +83,7 @@ async function fetchMarketStockMap(kind) {
   const cfg = marketCfg(kind);
   const mod = modules[kind];
   if (kind === 'trendyol') return mod.fetchStock(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
-  if (kind === 'hepsiburada') return mod.fetchStock(cfg.username, cfg.password);
+  if (kind === 'hepsiburada') return mod.fetchStock(cfg);
   return mod.fetchStock(cfg);
 }
 
@@ -102,7 +102,7 @@ async function fetchMarketProducts(kind) {
     }
     return { byBarcode, bySku };
   }
-  if (kind === 'hepsiburada') return mod.fetchProducts(cfg.username, cfg.password);
+  if (kind === 'hepsiburada') return mod.fetchProducts(cfg);
   return mod.fetchProducts(cfg);
 }
 
@@ -110,7 +110,7 @@ async function updateMarketStock(kind, item, target) {
   const cfg = marketCfg(kind);
   const mod = modules[kind];
   if (kind === 'trendyol') return mod.updateStock(cfg.sellerId, cfg.apiKey, cfg.apiSecret, item.barcode, target);
-  if (kind === 'hepsiburada') return mod.updateStock(cfg.username, cfg.password, item.sku, target, item.price);
+  if (kind === 'hepsiburada') return mod.updateStock(cfg, item.sku, target, item.price);
   if (kind === 'pttavm') return mod.updateStock(cfg, item.barcode, target);
   if (kind === 'idefix') return mod.updateStock(cfg, item.barcode, target, item.price, item);
   if (kind === 'n11') return mod.updateStock(cfg, item.sku, target);

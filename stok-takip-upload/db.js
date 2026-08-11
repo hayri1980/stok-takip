@@ -15,7 +15,7 @@ function defaultData() {
       mail: { from: '', password: '', to: '', enabled: false, notifySales: true },
       telegram: { botToken: '', chatId: '', enabled: false },
       trendyol: { apiKey: '', apiSecret: '', sellerId: '' },
-      hepsiburada: { username: '', password: '' },
+      hepsiburada: { username: '', password: '', merchantId: '', userAgent: '', sit: false },
       pttavm: { apiKey: '', accessToken: '' },
       idefix: { apiKey: '', apiSecret: '', vendorId: '' },
       n11: { appKey: '', appSecret: '' },
