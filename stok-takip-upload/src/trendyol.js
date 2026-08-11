@@ -190,4 +190,31 @@ async function updateStock(sellerId, apiKey, apiSecret, barcode, quantity) {
   return true;
 }
 
-module.exports = { fetchStock, fetchQuestions, fetchProductCatalog, fetchPriceMap, updateStock };
+async function fetchShipmentPackages(sellerId, apiKey, apiSecret, opts = {}) {
+  const auth = 'Basic ' + Buffer.from(apiKey + ':' + apiSecret).toString('base64');
+  const headers = {
+    'Authorization': auth,
+    'x-seller-id': String(sellerId),
+    'User-Agent': String(sellerId) + ' - SelfIntegration'
+  };
+
+  const startDate = opts.startDate || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const endDate = opts.endDate || new Date().toISOString();
+  const params = new URLSearchParams({
+    startDate,
+    endDate,
+    page: '0',
+    size: '100'
+  });
+  if (opts.status) params.set('status', opts.status);
+
+  const url = `${BASE}/order/sellers/${sellerId}/packages?${params}`;
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw new Error('Trendyol sipariş hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
+  }
+  const data = await res.json();
+  return (data && data.content) || [];
+}
+
+module.exports = { fetchStock, fetchQuestions, fetchProductCatalog, fetchPriceMap, updateStock, fetchShipmentPackages };

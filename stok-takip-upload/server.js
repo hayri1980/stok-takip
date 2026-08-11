@@ -97,6 +97,29 @@ app.use('/hb', (req, res) => {
   res.json({ status: 'OK', service: 'hepsiburada' });
 });
 
+// ---- Trendyol siparişleri (kargo etiketi için) ----
+app.get('/api/trendyol/orders', async (req, res) => {
+  try {
+    const cfg = db.getSettings().trendyol;
+    if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) {
+      return res.status(400).json({ error: 'Trendyol API ayarları eksik' });
+    }
+    const packages = await trendyol.fetchShipmentPackages(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
+    res.json({
+      total: packages.length,
+      packages: packages.map(p => ({
+        packageId: p.packageId,
+        orderNumber: p.orderNumber,
+        trackingNumber: p.cargoTrackingNumber || null,
+        status: p.status,
+        cargoCompany: (p.cargoCompany && p.cargoCompany.name) || p.cargoCompanyName || ''
+      }))
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---- Ürünler ----
 app.get('/api/products', (req, res) => {
   res.json(db.getProducts());
