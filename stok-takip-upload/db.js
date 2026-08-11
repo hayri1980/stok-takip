@@ -445,6 +445,7 @@ function addDailySale(sale) {
     barcode: sale.barcode || '',
     market: sale.market || '',
     qty: Math.max(0, Number(sale.qty) || 0),
+    type: sale.type || 'satis',
     price: Number(sale.price) > 0 ? Number(sale.price) : null,
     cost: Number(sale.cost) > 0 ? Number(sale.cost) : null
   });

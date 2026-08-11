@@ -235,6 +235,15 @@ async function syncMarketplace(kind) {
             cost: existing.cost,
             ts: now
           });
+        } else if (diff < 0) {
+          db.addDailySale({
+            name: existing.name,
+            barcode,
+            market: kindLabel(kind),
+            qty: Math.abs(diff),
+            type: 'giris',
+            ts: now
+          });
         }
       }
     } else {

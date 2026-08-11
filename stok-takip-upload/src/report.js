@@ -20,14 +20,18 @@ function buildDailyReportText(sales, date) {
   lines.push('(00:00 - 23:59 arasi satislar)');
   lines.push('--------------------------------');
   const settings = db.getSettings();
+  const satis = (sales || []).filter(s => (s.type || 'satis') !== 'giris');
+  const giris = (sales || []).filter(s => (s.type || '') === 'giris');
   let totalQty = 0;
   let totalRevenue = 0;
   let totalDeduct = 0;
-  if (!sales || sales.length === 0) {
+  if (satis.length === 0 && giris.length === 0) {
+    lines.push('Bu gun satis yok.');
+  } else if (satis.length === 0) {
     lines.push('Bu gun satis yok.');
   } else {
     const groups = new Map();
-    for (const s of sales) {
+    for (const s of satis) {
       const key = s.name + '|' + s.barcode + '|' + s.market;
       const qty = Number(s.qty) || 0;
       let price = Number(s.price) > 0 ? Number(s.price) : null;
@@ -65,6 +69,21 @@ function buildDailyReportText(sales, date) {
       if (rec.deduct !== null) totalDeduct = Math.round((totalDeduct + rec.deduct) * 100) / 100;
       lines.push(parts[0] + ' (' + parts[1] + ') - ' + parts[2] + ': ' + rec.qty + ' adet' +
         (rec.revenue !== null ? ' = ' + rec.revenue + ' TL' : ''));
+    }
+  }
+  if (giris.length > 0) {
+    lines.push('---- STOK GIRISLERI ----');
+    const gGroups = new Map();
+    for (const s of giris) {
+      const key = s.name + '|' + s.barcode + '|' + s.market;
+      const qty = Number(s.qty) || 0;
+      const rec = gGroups.get(key);
+      if (rec) rec.qty += qty;
+      else gGroups.set(key, { qty });
+    }
+    for (const [key, rec] of gGroups) {
+      const parts = key.split('|');
+      lines.push('STOK EKLENDI: ' + parts[0] + ' (' + parts[1] + ') - ' + parts[2] + ': +' + rec.qty + ' adet');
     }
   }
   lines.push('--------------------------------');
