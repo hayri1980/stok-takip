@@ -99,7 +99,7 @@ async function createProduct(cfg, p) {
     items: [{
       barcode: p.barcode,
       name: p.title,
-      brand: mapping.brand || '',
+      brand: '',
       categoryId: Number(mapping.categoryId),
       productCode: p.barcode,
       priceWithVat: Number(p.price) || 0,
