@@ -501,7 +501,7 @@ async function syncSharedStock() {
     const ty = entries.find(e => e.kind === 'trendyol');
     let target;
     if (shared === null || shared === undefined) {
-      target = ty ? ty.qty : Math.min(...entries.map(e => e.qty));
+      target = Math.min(...entries.map(e => e.qty));
     } else {
       const below = entries.filter(e => e.qty < Number(shared));
       if (below.length > 0) {
@@ -511,7 +511,7 @@ async function syncSharedStock() {
       }
     }
 
-    const touched = entries.filter(e => e.kind !== 'trendyol' && e.qty !== target);
+    const touched = entries.filter(e => e.qty !== target);
     if (touched.length === 0) {
       if (existing && existing.sharedStock !== target) {
         db.updateProduct(existing.id, { sharedStock: target });
