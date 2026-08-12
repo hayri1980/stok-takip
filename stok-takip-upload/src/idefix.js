@@ -92,7 +92,7 @@ async function updateStock(cfg, barcode, quantity, price, rec) {
     price: Number(r.price) || 0,
     comparePrice: Number(r.comparePrice) || Number(r.price) || 0,
     inventoryQuantity: Number(quantity),
-    maximumPurchasableQuantity: 0,
+    maximumPurchasableQuantity: 50,
     deliveryDuration: r.deliveryDuration || 1,
     deliveryType: r.deliveryType || 'regular',
     isZoneSale: null
