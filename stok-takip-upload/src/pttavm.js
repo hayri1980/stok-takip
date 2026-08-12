@@ -24,7 +24,7 @@ async function searchProducts(cfg) {
   const results = [];
   let page = 1;
   while (page < 100) {
-    const qs = 'categoryId=&subCategoryId=&isActive=&isInStock=&merchantCategoryId=&searchPage=' + page;
+    const qs = 'categoryId=0&subCategoryId=0&isActive=false&isInStock=false&merchantCategoryId=0&searchPage=' + page;
     const data = await getJson(BASE + '/products/search?' + qs, cfg);
     const items = Array.isArray(data) ? data : (data.products || []);
     results.push(...items);
