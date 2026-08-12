@@ -77,12 +77,9 @@ async function fetchProducts(cfg) {
 }
 
 async function updateStock(cfg, sku, availableStock, price) {
-  const body = { availableStock: Number(availableStock) };
-  if (price !== null && price !== undefined && !isNaN(Number(price))) {
-    body.price = Number(price);
-  }
-  const url = `${base(cfg)}/listings/merchantid/${encodeURIComponent(merchantUser(cfg))}/sku/${encodeURIComponent(sku)}`;
-  const res = await fetch(url, { method: 'PUT', headers: headers(cfg), body: JSON.stringify(body) });
+  const body = [{ merchantSku: String(sku), availableStock: Number(availableStock) }];
+  const url = `${base(cfg)}/listings/merchantid/${encodeURIComponent(merchantUser(cfg))}/stock-uploads`;
+  const res = await fetch(url, { method: 'POST', headers: headers(cfg), body: JSON.stringify(body) });
   if (!res.ok) {
     throw new Error('Hepsiburada stok güncelleme hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
   }
