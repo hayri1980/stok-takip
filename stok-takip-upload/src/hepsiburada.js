@@ -97,7 +97,9 @@ async function createProduct(cfg, p) {
     UrunAciklamasi: p.description || '',
     Marka: mapping.brand || '',
     tax_vat_rate: String(Number(mapping.vatRate) || 20),
-    kg: String(Number(mapping.desi) || 1)
+    kg: String(Number(mapping.desi) || 1),
+    price: String(Number(p.price) || 0),
+    stock: String(Math.max(0, Number(p.quantity) || 0))
   };
   images.forEach((url, i) => {
     attributes['Image' + (i + 1)] = url;
