@@ -125,7 +125,16 @@ async function createProduct(cfg, p) {
   if (data.success === false) {
     throw new Error('PTT AVM ürün oluşturma reddedildi: ' + (data.message || 'bilinmeyen hata'));
   }
-  return true;
+  return { trackingId: data.trackingId || null };
 }
 
-module.exports = { fetchStock, fetchProducts, updateStock, createProduct };
+async function getTrackingResult(cfg, trackingId) {
+  const url = BASE + '/products/tracking-result/' + encodeURIComponent(trackingId);
+  const res = await fetch(url, { headers: headers(cfg) });
+  if (!res.ok) {
+    throw new Error('PTT AVM takip hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
+  }
+  return res.json();
+}
+
+module.exports = { fetchStock, fetchProducts, updateStock, createProduct, getTrackingResult };

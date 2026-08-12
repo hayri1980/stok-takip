@@ -609,16 +609,20 @@ async function pushNewProducts() {
         p.vendorStockCode = barcode;
         p.barcode = ixBarcode;
       }
+      const extra = ixBarcode ? { idefixBarcode: ixBarcode } : {};
 
       try {
-        await createMarketplaceProduct(kind, p);
+        const result = await createMarketplaceProduct(kind, p);
+        if (result && result.trackingId) {
+          extra.trackingIds = extra.trackingIds || {};
+          extra.trackingIds[kind] = result.trackingId;
+        }
       } catch (e) {
         errors.push(barcode + ' [' + kindLabel(kind) + ']: ' + e.message);
         continue;
       }
 
       const nextPushed = { ...pushed, [kind]: true };
-      const extra = ixBarcode ? { idefixBarcode: ixBarcode } : {};
       if (existing) {
         db.updateProduct(existing.id, { pushed: nextPushed, lastSync: now, ...extra });
       } else {
