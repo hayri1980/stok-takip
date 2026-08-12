@@ -13,8 +13,18 @@ const FAIL_ALERT_THRESHOLD = 3;
 const marketFailCount = {};
 const marketFailAlerted = {};
 
-function marketFailed(kind) {
+const PTT_TOKEN_ALERTED = {};
+
+function marketFailed(kind, errMsg) {
   marketFailCount[kind] = (marketFailCount[kind] || 0) + 1;
+  if (kind === 'pttavm' && errMsg && /invalid|expired|unauthorized|401/i.test(errMsg) && !PTT_TOKEN_ALERTED[kind]) {
+    PTT_TOKEN_ALERTED[kind] = true;
+    notifier.notify(
+      'PTT AVM TOKEN SÜRESİ DOLDU',
+      '<h3>PTT AVM access token süresi doldu</h3><p>Panelden yeni token üret: <b>Merchant Panel &gt;&gt; Hesap Ayarları &gt;&gt; Entegrasyon Bilgileri &gt;&gt; Self Entegratör</b>. Yeni token'i sisteme girmem için paylaş.</p>',
+      'PTT AVM TOKEN SÜRESİ DOLDU! Panelden (Merchant Panel >> Hesap Ayarları >> Entegrasyon Bilgileri >> Self Entegratör) yeni token üret ve paylaş.'
+    );
+  }
   if (marketFailCount[kind] >= FAIL_ALERT_THRESHOLD && !marketFailAlerted[kind]) {
     marketFailAlerted[kind] = true;
     notifier.notify(
@@ -28,6 +38,7 @@ function marketFailed(kind) {
 function marketOk(kind) {
   marketFailCount[kind] = 0;
   marketFailAlerted[kind] = false;
+  if (kind === 'pttavm') PTT_TOKEN_ALERTED[kind] = false;
 }
 
 const modules = {
@@ -177,7 +188,7 @@ async function syncMarketplace(kind) {
     stockMap = await fetchMarketStockMap(kind);
     marketOk(kind);
   } catch (e) {
-    marketFailed(kind);
+    marketFailed(kind, e.message);
     db.addLog(kindLabel(kind) + ' stok çekme hatası: ' + e.message);
     return { error: e.message };
   }
@@ -412,7 +423,7 @@ async function syncSharedStock() {
       byMarket.set(kind, await fetchMarketProducts(kind));
       marketOk(kind);
     } catch (e) {
-      marketFailed(kind);
+      marketFailed(kind, e.message);
       failures.push(kindLabel(kind));
       db.addLog(kindLabel(kind) + ' ortak stok okunamadı (arıza atlandı): ' + e.message);
     }
