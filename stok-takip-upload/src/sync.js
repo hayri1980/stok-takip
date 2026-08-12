@@ -19,10 +19,11 @@ function marketFailed(kind, errMsg) {
   marketFailCount[kind] = (marketFailCount[kind] || 0) + 1;
   if (kind === 'pttavm' && errMsg && /invalid|expired|unauthorized|401/i.test(errMsg) && !PTT_TOKEN_ALERTED[kind]) {
     PTT_TOKEN_ALERTED[kind] = true;
+    const tokenMsg = 'PTT AVM TOKEN SURESI DOLDU! Panelden (Merchant Panel > Hesap Ayarlari > Entegrasyon Bilgileri > Self Entegrator) yeni token uret ve paylas.';
     notifier.notify(
-      'PTT AVM TOKEN SÜRESİ DOLDU',
-      '<h3>PTT AVM access token süresi doldu</h3><p>Panelden yeni token üret: <b>Merchant Panel &gt;&gt; Hesap Ayarları &gt;&gt; Entegrasyon Bilgileri &gt;&gt; Self Entegratör</b>. Yeni token'i sisteme girmem için paylaş.</p>',
-      'PTT AVM TOKEN SÜRESİ DOLDU! Panelden (Merchant Panel >> Hesap Ayarları >> Entegrasyon Bilgileri >> Self Entegratör) yeni token üret ve paylaş.'
+      'PTT AVM TOKEN SURESI DOLDU',
+      '<h3>PTT AVM access token suresi doldu</h3><p>Panelden yeni token uret: Merchant Panel > Hesap Ayarlari > Entegrasyon Bilgileri > Self Entegrator. Yeni tokeni paylas.</p>',
+      tokenMsg
     );
   }
   if (marketFailCount[kind] >= FAIL_ALERT_THRESHOLD && !marketFailAlerted[kind]) {
