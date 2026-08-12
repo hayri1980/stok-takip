@@ -67,8 +67,8 @@ async function fetchProducts(cfg) {
         qty: isNaN(qty) ? null : qty,
         price: isNaN(price) ? null : price
       };
-      if (sku) byBarcode.set(String(sku).trim(), rec);
-      if (hbSku) bySku.set(String(hbSku).trim(), rec);
+      if (sku) byBarcode.set(String(sku).trim().toLowerCase(), rec);
+      if (hbSku) bySku.set(String(hbSku).trim().toLowerCase(), rec);
     }
     if (items.length < limit) break;
     page++;

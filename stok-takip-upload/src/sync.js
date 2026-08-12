@@ -544,8 +544,9 @@ async function syncSharedStock() {
   if (written > 0 || errors.length > 0 || failures.length > 0) {
     const msg = 'Ortak stok senkronu: ' + written + ' ürün eşitlendi, ' +
       matched + ' eşleşti, ' + skippedSingle + ' tek pazarda listelenen atlandı';
+    const errDetail = errors.slice(0, 5).map(e => e).join(' | ');
     db.addLog(msg +
-      (errors.length > 0 ? ', ' + errors.length + ' hata' : '') +
+      (errors.length > 0 ? ', ' + errors.length + ' hata' + (errDetail ? ': ' + errDetail : '') : '') +
       (failures.length > 0 ? ', ' + failures.length + ' pazar arızalı: ' + failures.join(', ') : ''));
   }
 
