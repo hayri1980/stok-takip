@@ -39,7 +39,7 @@ async function fetchStock(sellerId, apiKey, apiSecret) {
 
 function normalizeQuestion(q) {
   const id = q.id !== undefined ? q.id : q.questionId;
-  const question = q.question || q.questionText || '';
+  const question = q.text || q.question || q.questionText || '';
   if (id === undefined || !question) return null;
   return {
     id: String(id),
@@ -63,7 +63,6 @@ async function fetchQuestions(sellerId, apiKey, apiSecret) {
   const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
   const params = new URLSearchParams({
     supplierId: String(sellerId),
-    status: 'WAITING_FOR_ANSWER',
     startDate: String(weekAgo),
     endDate: String(now),
     page: '0',
