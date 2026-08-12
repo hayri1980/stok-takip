@@ -442,6 +442,19 @@ async function syncSharedStock() {
       if (!barcodeKinds.has(barcode)) barcodeKinds.set(barcode, []);
       barcodeKinds.get(barcode).push(kind);
     }
+    if (kind === 'idefix') {
+      const existing = db.getProducts();
+      const idByIxBarcode = new Map(existing.filter(p => p.idefixBarcode).map(p => [String(p.idefixBarcode).trim(), p.barcode]));
+      for (const barcode of maps.byBarcode.keys()) {
+        const realBarcode = idByIxBarcode.get(String(barcode).trim());
+        if (realBarcode && realBarcode !== barcode && !barcodeKinds.has(realBarcode)) {
+          barcodeKinds.set(realBarcode, []);
+        }
+        if (realBarcode && realBarcode !== barcode) {
+          barcodeKinds.get(realBarcode).push(kind);
+        }
+      }
+    }
   }
 
   let written = 0;
@@ -459,7 +472,14 @@ async function syncSharedStock() {
 
     const entries = [];
     for (const kind of presentKinds) {
-      const rec = byMarket.get(kind).byBarcode.get(barcode);
+      const maps = byMarket.get(kind);
+      let rec = maps.byBarcode.get(barcode);
+      if (!rec && kind === 'idefix') {
+        const existing = db.getProducts().find(p => p.barcode === barcode);
+        if (existing && existing.idefixBarcode) {
+          rec = maps.byBarcode.get(String(existing.idefixBarcode).trim());
+        }
+      }
       if (rec && rec.qty !== null && rec.qty !== undefined) {
         entries.push({ kind, rec, qty: Number(rec.qty) });
       }
