@@ -110,6 +110,7 @@ async function createProduct(cfg, p) {
       shortDescription: p.description || '',
       active: true,
       warranty: null,
+      desi: Number(p.desi) || 1,
       variants: []
     }]
   };

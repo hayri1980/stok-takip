@@ -601,6 +601,7 @@ async function pushNewProducts() {
         images: item.images || [],
         vatRate: Number(item.vatRate) || Number(mapping.vatRate) || 20,
         brand: item.brand || mapping.brand || '',
+        desi: kind === 'pttavm' ? (Number(mapping.desi) || 1) : undefined,
         mapping: { ...mapping, categoryId: catOverride.categoryId || mapping.categoryId }
       };
       let ixBarcode = null;
