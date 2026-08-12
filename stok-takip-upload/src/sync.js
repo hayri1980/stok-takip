@@ -410,6 +410,16 @@ async function checkQuestions() {
   return { total: questions.length, fresh: fresh.length, sent };
 }
 
+function normalizeBarcodeKey(s) {
+  return String(s || '').trim().toLowerCase();
+}
+
+function lowerMapKeys(map) {
+  const out = new Map();
+  for (const [k, v] of map.entries()) out.set(normalizeBarcodeKey(k), v);
+  return out;
+}
+
 async function syncSharedStock() {
   const kinds = marketConfiguredKinds();
   if (kinds.length < 2) {
@@ -421,7 +431,8 @@ async function syncSharedStock() {
   const failures = [];
   for (const kind of kinds) {
     try {
-      byMarket.set(kind, await fetchMarketProducts(kind));
+      const prods = await fetchMarketProducts(kind);
+      byMarket.set(kind, { byBarcode: lowerMapKeys(prods.byBarcode), bySku: lowerMapKeys(prods.bySku) });
       marketOk(kind);
     } catch (e) {
       marketFailed(kind, e.message);
@@ -439,19 +450,20 @@ async function syncSharedStock() {
   for (const kind of kinds) {
     const maps = byMarket.get(kind);
     for (const barcode of maps.byBarcode.keys()) {
-      if (!barcodeKinds.has(barcode)) barcodeKinds.set(barcode, []);
-      barcodeKinds.get(barcode).push(kind);
+      const key = normalizeBarcodeKey(barcode);
+      if (!barcodeKinds.has(key)) barcodeKinds.set(key, []);
+      barcodeKinds.get(key).push(kind);
     }
     if (kind === 'idefix') {
       const existing = db.getProducts();
-      const idByIxBarcode = new Map(existing.filter(p => p.idefixBarcode).map(p => [String(p.idefixBarcode).trim(), p.barcode]));
+      const idByIxBarcode = new Map(existing.filter(p => p.idefixBarcode).map(p => [normalizeBarcodeKey(p.idefixBarcode), p.barcode]));
       for (const barcode of maps.byBarcode.keys()) {
-        const realBarcode = idByIxBarcode.get(String(barcode).trim());
-        if (realBarcode && realBarcode !== barcode && !barcodeKinds.has(realBarcode)) {
-          barcodeKinds.set(realBarcode, []);
+        const realBarcode = idByIxBarcode.get(normalizeBarcodeKey(barcode));
+        if (realBarcode && realBarcode !== barcode && !barcodeKinds.has(normalizeBarcodeKey(realBarcode))) {
+          barcodeKinds.set(normalizeBarcodeKey(realBarcode), []);
         }
         if (realBarcode && realBarcode !== barcode) {
-          barcodeKinds.get(realBarcode).push(kind);
+          barcodeKinds.get(normalizeBarcodeKey(realBarcode)).push(kind);
         }
       }
     }
@@ -475,9 +487,9 @@ async function syncSharedStock() {
       const maps = byMarket.get(kind);
       let rec = maps.byBarcode.get(barcode);
       if (!rec && kind === 'idefix') {
-        const existing = db.getProducts().find(p => p.barcode === barcode);
+        const existing = db.getProducts().find(p => normalizeBarcodeKey(p.barcode) === barcode);
         if (existing && existing.idefixBarcode) {
-          rec = maps.byBarcode.get(String(existing.idefixBarcode).trim());
+          rec = maps.byBarcode.get(normalizeBarcodeKey(existing.idefixBarcode));
         }
       }
       if (rec && rec.qty !== null && rec.qty !== undefined) {
