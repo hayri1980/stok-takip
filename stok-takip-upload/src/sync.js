@@ -517,10 +517,10 @@ async function syncSharedStock() {
     } else {
       const below = entries.filter(e => {
         if (e.qty >= Number(shared)) return false;
-        // Yeni listelenen ürün koruması: bu pazarda ürün daha önce hiç görülmemişse (o pazar stoğu null)
+        // Yeni listelenen ürün koruması: bu pazarda ürünün stoğu daha önce hiç yüklenmemişse (null ya da 0)
         // ve şu an 0 görünüyorsa, Trendyol stoğu 0'dan büyükken bu "satış" değil başlangıç/yükleme durumudur.
         const prev = existing ? existing[stockField(e.kind)] : null;
-        if (e.qty === 0 && prev === null && ty && Number(ty.qty) > 0) return false;
+        if (e.qty === 0 && ty && Number(ty.qty) > 0 && (prev === null || Number(prev) === 0)) return false;
         return true;
       });
       if (below.length > 0) {
