@@ -9,13 +9,14 @@ function merchantUser(cfg) {
   return cfg.merchantId || cfg.username;
 }
 
-function headers(cfg) {
+function headers(cfg, withJson = false) {
   const user = merchantUser(cfg);
-  return {
+  const h = {
     'Authorization': 'Basic ' + Buffer.from(user + ':' + (cfg.password || '')).toString('base64'),
-    'Content-Type': 'application/json',
     'User-Agent': cfg.userAgent || (user + ' - StokTakip')
   };
+  if (withJson) h['Content-Type'] = 'application/json';
+  return h;
 }
 
 async function getListingsPage(cfg, page, limit) {
@@ -79,7 +80,7 @@ async function fetchProducts(cfg) {
 async function updateStock(cfg, sku, availableStock, price) {
   const body = [{ merchantSku: String(sku), availableStock: Number(availableStock) }];
   const url = `${base(cfg)}/listings/merchantid/${encodeURIComponent(merchantUser(cfg))}/stock-uploads`;
-  const res = await fetch(url, { method: 'POST', headers: headers(cfg), body: JSON.stringify(body) });
+  const res = await fetch(url, { method: 'POST', headers: headers(cfg, true), body: JSON.stringify(body) });
   if (!res.ok) {
     throw new Error('Hepsiburada stok güncelleme hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
   }
@@ -88,28 +89,39 @@ async function updateStock(cfg, sku, availableStock, price) {
 
 async function createProduct(cfg, p) {
   const mapping = p.mapping || {};
-  const body = {
-    merchant: merchantUser(cfg),
-    items: [{
-      merchantSku: p.barcode,
-      categoryId: Number(mapping.categoryId),
-      productName: p.title,
-      brand: mapping.brand || '',
-      attributes: [],
-      vatRate: Number(mapping.vatRate) || 20,
-      price: Number(p.price) || 0,
-      availableStock: Math.max(0, Number(p.quantity) || 0)
-    }]
-  };
+  const items = [{
+    merchantSku: p.barcode,
+    categoryId: Number(mapping.categoryId),
+    productName: p.title,
+    brand: mapping.brand || '',
+    attributes: [],
+    vatRate: Number(mapping.vatRate) || 20,
+    price: Number(p.price) || 0,
+    availableStock: Math.max(0, Number(p.quantity) || 0),
+    images: (Array.isArray(p.images) ? p.images.slice(0, 6) : []).map(url => ({ url }))
+  }];
+  const payload = JSON.stringify({ merchant: merchantUser(cfg), items });
+  const fd = new FormData();
+  fd.append('file', new File([payload], 'file.json', { type: 'application/json' }));
   const res = await fetch('https://mpop.hepsiburada.com/product/api/products/import', {
     method: 'POST',
     headers: headers(cfg),
-    body: JSON.stringify(body)
+    body: fd
   });
   if (!res.ok) {
     throw new Error('Hepsiburada ürün oluşturma hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
   }
-  return true;
+  const text = await res.text();
+  let data = null;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    /* yanıt JSON değilse yok say */
+  }
+  if (data && data.success === false) {
+    throw new Error('Hepsiburada ürün oluşturma reddedildi (' + (data.code || '?') + '): ' + (data.message || ''));
+  }
+  return data && data.data && data.data.trackingId ? { trackingId: data.data.trackingId } : true;
 }
 
 module.exports = { fetchStock, fetchProducts, updateStock, createProduct };
