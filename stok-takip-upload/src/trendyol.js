@@ -63,6 +63,7 @@ async function fetchQuestions(sellerId, apiKey, apiSecret) {
   const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
   const params = new URLSearchParams({
     supplierId: String(sellerId),
+    status: 'WAITING_FOR_ANSWER',
     startDate: String(weekAgo),
     endDate: String(now),
     page: '0',
