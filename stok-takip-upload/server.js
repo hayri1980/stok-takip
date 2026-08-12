@@ -542,6 +542,7 @@ async function runCheck() {
   }
   try {
     await report.maybeSendDailyReport();
+    await report.maybeSendWeeklyReport();
   } catch (e) {
     db.addLog('Gün sonu raporu hatası: ' + e.message);
   }
@@ -606,6 +607,7 @@ async function start() {
   }
   try {
     await report.maybeSendDailyReport();
+    await report.maybeSendWeeklyReport();
   } catch (e) {
     db.addLog('Gün sonu raporu hatası: ' + e.message);
   }
