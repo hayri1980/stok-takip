@@ -367,6 +367,11 @@ async function checkQuestions() {
   let sent = 0;
 
   for (const q of fresh) {
+    const created = Number(q.createdDate) || (new Date(q.createdDate).getTime()) || 0;
+    if (created && created < Date.now() - 48 * 60 * 60 * 1000) {
+      db.addQnaNotifiedIds([q.id]);
+      continue;
+    }
     const subject = 'YENİ SORU: ' + q.productName;
     const html =
       '<h3>Trendyol üzerinden yeni bir ürün sorusu geldi</h3>' +
