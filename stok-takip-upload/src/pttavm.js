@@ -22,7 +22,7 @@ async function getJson(url, cfg) {
 
 async function searchProducts(cfg) {
   const results = [];
-  let page = 1;
+  let page = 0;
   while (page < 100) {
     const qs = 'categoryId=0&subCategoryId=0&isActive=false&isInStock=false&merchantCategoryId=0&searchPage=' + page;
     const data = await getJson(BASE + '/products/search?' + qs, cfg);

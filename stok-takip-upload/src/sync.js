@@ -498,23 +498,26 @@ async function syncSharedStock() {
       }
     }
 
+    const ty = entries.find(e => e.kind === 'trendyol');
     let target;
     if (shared === null || shared === undefined) {
-      const ty = entries.find(e => e.kind === 'trendyol');
-      if (!ty) continue;
-      target = ty.qty;
+      target = ty ? ty.qty : Math.min(...entries.map(e => e.qty));
     } else {
-      const changed = entries.filter(e => e.qty !== Number(shared));
-      if (changed.length === 0) continue;
-      if (changed.length === 1) {
-        target = changed[0].qty;
+      const below = entries.filter(e => e.qty < Number(shared));
+      if (below.length > 0) {
+        target = Math.min(...below.map(e => e.qty));
       } else {
-        target = Math.min(...changed.map(e => e.qty));
+        target = ty ? ty.qty : Number(shared);
       }
     }
 
-    const touched = entries.filter(e => e.qty !== target);
-    if (touched.length === 0) continue;
+    const touched = entries.filter(e => e.kind !== 'trendyol' && e.qty !== target);
+    if (touched.length === 0) {
+      if (existing && existing.sharedStock !== target) {
+        db.updateProduct(existing.id, { sharedStock: target });
+      }
+      continue;
+    }
 
     let ok = true;
     for (const e of touched) {

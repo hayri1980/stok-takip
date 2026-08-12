@@ -179,11 +179,16 @@ async function updateStock(sellerId, apiKey, apiSecret, barcode, quantity) {
   const headers = {
     'Authorization': auth,
     'x-seller-id': String(sellerId),
-    'User-Agent': 'StokTakip-v1'
+    'User-Agent': 'StokTakip-v1',
+    'Content-Type': 'application/json'
   };
   const qty = Math.max(0, parseInt(quantity, 10));
-  const url = `${BASE}/inventory/suppliers/${sellerId}/products/${encodeURIComponent(barcode)}/quantity?quantity=${qty}&isUpdatedPrice=false`;
-  const res = await fetch(url, { method: 'PUT', headers });
+  const url = `${BASE}/inventory/sellers/${sellerId}/products/price-and-inventory`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ items: [{ barcode: String(barcode), quantity: qty }] })
+  });
   if (!res.ok) {
     throw new Error('Trendyol stok güncelleme hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
   }
