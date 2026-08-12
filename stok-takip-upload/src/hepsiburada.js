@@ -89,18 +89,25 @@ async function updateStock(cfg, sku, availableStock, price) {
 
 async function createProduct(cfg, p) {
   const mapping = p.mapping || {};
-  const items = [{
-    merchantSku: p.barcode,
+  const images = Array.isArray(p.images) ? p.images.slice(0, 10) : [];
+  const attributes = {
+    merchantSku: String(p.barcode),
+    Barcode: String(p.barcode),
+    UrunAdi: p.title,
+    UrunAciklamasi: p.description || '',
+    Marka: mapping.brand || '',
+    tax_vat_rate: String(Number(mapping.vatRate) || 20),
+    kg: String(Number(mapping.desi) || 1)
+  };
+  images.forEach((url, i) => {
+    attributes['Image' + (i + 1)] = url;
+  });
+  const products = [{
     categoryId: Number(mapping.categoryId),
-    productName: p.title,
-    brand: mapping.brand || '',
-    attributes: [],
-    vatRate: Number(mapping.vatRate) || 20,
-    price: Number(p.price) || 0,
-    availableStock: Math.max(0, Number(p.quantity) || 0),
-    images: (Array.isArray(p.images) ? p.images.slice(0, 6) : []).map(url => ({ url }))
+    merchant: merchantUser(cfg),
+    attributes
   }];
-  const payload = JSON.stringify({ merchant: merchantUser(cfg), items });
+  const payload = JSON.stringify(products);
   const fd = new FormData();
   fd.append('file', new File([payload], 'file.json', { type: 'application/json' }));
   const res = await fetch('https://mpop.hepsiburada.com/product/api/products/import', {
