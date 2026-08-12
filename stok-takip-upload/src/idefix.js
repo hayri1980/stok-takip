@@ -94,8 +94,7 @@ async function updateStock(cfg, barcode, quantity, price, rec) {
     inventoryQuantity: Number(quantity),
     maximumPurchasableQuantity: 50,
     deliveryDuration: r.deliveryDuration || 1,
-    deliveryType: r.deliveryType || 'regular',
-    isZoneSale: null
+    deliveryType: r.deliveryType || 'regular'
   }];
   const res = await fetch(BASE + '/pim/catalog/' + encodeURIComponent(cfg.vendorId) + '/inventory-upload', {
     method: 'POST',
