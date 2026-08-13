@@ -224,30 +224,36 @@ async function syncMarketplace(kind) {
         }
         continue;
       }
-      db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
+      const oldQtyNum = (oldQty !== null && oldQty !== undefined) ? Number(oldQty) : null;
+      const diff = oldQtyNum !== null ? oldQtyNum - qty : 0;
+      const isWriteLag = diff > 0 && isWithinStockWriteGrace(kind, barcode);
+      if (isWriteLag) {
+        // Yazım gecikmesi: pazaryeri API'si bizim yazdığımız değeri henüz yansıtmamış,
+        // eski (düşük) değer döndürüyor. Bunu satış sayma, DB'yi eski değerle güncelleme.
+        db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
+      } else {
+        db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
+      }
       updated++;
       changed = true;
-      if (oldQty !== null && oldQty !== undefined) {
-        const diff = Number(oldQty) - qty;
-        if (diff > 0) {
-          sales.push({
-            name: existing.name,
-            barcode,
-            market: kindLabel(kind),
-            diff,
-            oldQty: Number(oldQty),
-            newQty: qty
-          });
-          db.addDailySale({
-            name: existing.name,
-            barcode,
-            market: kindLabel(kind),
-            qty: diff,
-            price: existing.price,
-            cost: existing.cost,
-            ts: now
-          });
-        }
+      if (diff > 0 && !isWriteLag) {
+        sales.push({
+          name: existing.name,
+          barcode,
+          market: kindLabel(kind),
+          diff,
+          oldQty: Number(oldQty),
+          newQty: qty
+        });
+        db.addDailySale({
+          name: existing.name,
+          barcode,
+          market: kindLabel(kind),
+          qty: diff,
+          price: existing.price,
+          cost: existing.cost,
+          ts: now
+        });
       }
     } else {
       db.addProduct({ name: barcode + ' (API)', barcode, [stockField(kind)]: qty, lastSeenAt: now });
@@ -414,6 +420,14 @@ function normalizeBarcodeKey(s) {
   return String(s || '').trim().toLowerCase();
 }
 
+const lastStockWrite = new Map();
+const STOCK_WRITE_GRACE_MS = 10 * 60 * 1000;
+
+function isWithinStockWriteGrace(kind, barcode) {
+  const ts = lastStockWrite.get(kind + ':' + normalizeBarcodeKey(barcode));
+  return !!ts && Date.now() - ts < STOCK_WRITE_GRACE_MS;
+}
+
 function lowerMapKeys(map) {
   const out = new Map();
   for (const [k, v] of map.entries()) out.set(normalizeBarcodeKey(k), v);
@@ -542,6 +556,7 @@ async function syncSharedStock() {
     for (const e of touched) {
       try {
         await updateMarketStock(e.kind, e.rec, target);
+        lastStockWrite.set(e.kind + ':' + normalizeBarcodeKey(barcode), Date.now());
       } catch (err) {
         ok = false;
         errors.push(barcode + ' [' + kindLabel(e.kind) + ']: ' + err.message);
