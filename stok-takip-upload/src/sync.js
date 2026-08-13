@@ -226,35 +226,35 @@ async function syncMarketplace(kind) {
       }
       const oldQtyNum = (oldQty !== null && oldQty !== undefined) ? Number(oldQty) : null;
       const diff = oldQtyNum !== null ? oldQtyNum - qty : 0;
-      const isWriteLag = diff > 0 && isWithinStockWriteGrace(kind, barcode);
-      if (isWriteLag) {
-        // Yazım gecikmesi: pazaryeri API'si bizim yazdığımız değeri henüz yansıtmamış,
-        // eski (düşük) değer döndürüyor. Bunu satış sayma, DB'yi eski değerle güncelleme.
+      const withinGrace = oldQtyNum !== null && isWithinStockWriteGrace(kind, barcode);
+      if (withinGrace) {
+        // Yazım gecikmesi penceresi: bu pazaryerine yakın zamanda stok yazıldı; okunan değer
+        // eski/geçici olabilir. DB'yi yazılan değerde tut (farkı yansıtma), satış algılama.
         db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
       } else {
         db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
+        if (diff > 0) {
+          sales.push({
+            name: existing.name,
+            barcode,
+            market: kindLabel(kind),
+            diff,
+            oldQty: Number(oldQty),
+            newQty: qty
+          });
+          db.addDailySale({
+            name: existing.name,
+            barcode,
+            market: kindLabel(kind),
+            qty: diff,
+            price: existing.price,
+            cost: existing.cost,
+            ts: now
+          });
+        }
       }
       updated++;
       changed = true;
-      if (diff > 0 && !isWriteLag) {
-        sales.push({
-          name: existing.name,
-          barcode,
-          market: kindLabel(kind),
-          diff,
-          oldQty: Number(oldQty),
-          newQty: qty
-        });
-        db.addDailySale({
-          name: existing.name,
-          barcode,
-          market: kindLabel(kind),
-          qty: diff,
-          price: existing.price,
-          cost: existing.cost,
-          ts: now
-        });
-      }
     } else {
       db.addProduct({ name: barcode + ' (API)', barcode, [stockField(kind)]: qty, lastSeenAt: now });
       created++;
@@ -421,7 +421,7 @@ function normalizeBarcodeKey(s) {
 }
 
 const lastStockWrite = new Map();
-const STOCK_WRITE_GRACE_MS = 10 * 60 * 1000;
+const STOCK_WRITE_GRACE_MS = 30 * 60 * 1000;
 
 function isWithinStockWriteGrace(kind, barcode) {
   const ts = lastStockWrite.get(kind + ':' + normalizeBarcodeKey(barcode));
