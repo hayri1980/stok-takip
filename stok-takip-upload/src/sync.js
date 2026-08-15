@@ -385,6 +385,7 @@ async function checkOrders() {
   const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fresh = [];
   const notified = new Set(db.getOrderNotifiedIds());
+  const firstRun = notified.size === 0;
 
   // Hepsiburada OMS
   const hb = db.getSettings().hepsiburada || {};
@@ -411,21 +412,21 @@ async function checkOrders() {
     }
   }
 
-  // Trendyol sipariş (yetki kapalıysa 401 → sessizce geçilir)
+  // Trendyol sipariş (doğru uç /orders; /packages kapatılmış)
   const ty = db.getSettings().trendyol || {};
   if (ty.apiKey && ty.apiSecret && ty.sellerId) {
     try {
       const auth = 'Basic ' + Buffer.from(ty.apiKey + ':' + ty.apiSecret).toString('base64');
       const qs = new URLSearchParams({ startDate: String(startDate.getTime()), endDate: String(endDate.getTime()), page: '0', size: '100' });
-      const res = await fetch('https://apigw.trendyol.com/integration/order/sellers/' + ty.sellerId + '/packages?' + qs, {
+      const res = await fetch('https://apigw.trendyol.com/integration/order/sellers/' + ty.sellerId + '/orders?' + qs, {
         headers: { 'Authorization': auth, 'x-seller-id': String(ty.sellerId), 'User-Agent': String(ty.sellerId) + ' - SelfIntegration' }
       });
       if (res.ok) {
         const data = await res.json();
-        for (const p of (data && data.content) || []) {
-          const id = String(p.packageNumber || p.id || '');
+        for (const o of (data && data.content) || []) {
+          const id = String(o.orderNumber || o.id || '');
           if (!id || notified.has(id)) continue;
-          fresh.push({ market: 'Trendyol', id, order: p });
+          fresh.push({ market: 'Trendyol', id, order: o });
         }
       }
     } catch (e) {
@@ -434,6 +435,12 @@ async function checkOrders() {
   }
 
   if (fresh.length) db.addOrderNotifiedIds(fresh.map(f => f.id));
+
+  if (firstRun) {
+    // İlk çalıştırma: mevcut siparişleri bildirmeden kaydet (spam olmasın)
+    db.addLog('Sipariş bildirimi hazır: ' + fresh.length + ' mevcut sipariş kaydedildi (ilk çalıştırma)');
+    return { total: fresh.length, seeded: true };
+  }
 
   let sent = 0;
   for (const f of fresh) {
@@ -444,13 +451,13 @@ async function checkOrders() {
       for (const li of items.slice(0, 5)) {
         const nm = li.productName || li.name || li.merchantSku || li.barcode || '';
         const q = li.quantity || li.quantityPurchased || '';
-        const p = li.unitPrice || li.price || li.unitPriceAfterDiscount || '';
+        const p = li.lineUnitPrice || li.unitPrice || li.price || li.unitPriceAfterDiscount || '';
         lines.push('- ' + nm + (q ? ' x' + q : '') + (p ? ' = ' + p + ' TL' : ''));
       }
     } else if (o.productName || o.merchantSku) {
       lines.push('- ' + (o.productName || o.merchantSku) + (o.quantity ? ' x' + o.quantity : ''));
     }
-    lines.push('Tutar: ' + (o.amount || o.totalPrice || o.totalAmount || '?') + ' TL');
+    lines.push('Tutar: ' + (o.totalPrice || o.amount || o.packageTotalPrice || o.totalAmount || '?') + ' TL');
     try {
       const r = await notifier.notify(
         'YENİ SİPARİŞ (' + f.market + '): ' + f.id,
