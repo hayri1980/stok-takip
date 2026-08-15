@@ -233,7 +233,9 @@ async function syncMarketplace(kind) {
         db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
       } else {
         db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
-        if (diff > 0) {
+        // Satış/azalma YALNIZCA Trendyol'dan algılanır. Diğer pazaryerlerinin stokları
+        // sistemin kendi yazımlarıyla yönetildiği için oradaki azalmalar sahte "satış" üretir.
+        if (diff > 0 && kind === 'trendyol') {
           sales.push({
             name: existing.name,
             barcode,
