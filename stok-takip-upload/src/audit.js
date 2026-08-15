@@ -9,7 +9,7 @@ const DISAPPEARED_HOURS = 48;
 function marketReady(kind) {
   const cfg = db.getSettings()[kind] || {};
   if (kind === 'trendyol') return !!(cfg.apiKey && cfg.apiSecret && cfg.sellerId);
-  if (kind === 'hepsiburada') return !!(cfg.username && cfg.password);
+  if (kind === 'hepsiburada') return !!((cfg.merchantId || cfg.username) && cfg.password);
   if (kind === 'pttavm') return !!(cfg.apiKey && cfg.accessToken);
   if (kind === 'idefix') return !!(cfg.apiKey && cfg.apiSecret && cfg.vendorId);
   if (kind === 'n11') return !!(cfg.appKey && cfg.appSecret);
