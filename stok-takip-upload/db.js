@@ -22,6 +22,7 @@ function defaultData() {
       ciceksepeti: { apiKey: '' },
       sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15 },
       report: { enabled: true },
+      ignoreBarcodes: [],
       productPush: {
         enabled: false,
         mappings: {
@@ -241,6 +242,7 @@ function mergeSettings(base, partial) {
     ciceksepeti: { ...base.ciceksepeti, ...(partial.ciceksepeti || {}) },
     sync: { ...base.sync, ...(partial.sync || {}) },
     report: { ...base.report, ...(partial.report || {}) },
+    ignoreBarcodes: Array.isArray(partial.ignoreBarcodes) ? partial.ignoreBarcodes : (Array.isArray(base.ignoreBarcodes) ? base.ignoreBarcodes : []),
     cost: { ...(base.cost || {}), ...(partial.cost || {}) },
     productPush: mergeProductPush(base.productPush || {}, partial.productPush || {})
   };

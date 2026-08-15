@@ -205,6 +205,7 @@ async function syncMarketplace(kind) {
   const now = new Date().toISOString();
   let updated = 0;
   let created = 0;
+  const ignored = new Set((db.getSettings().ignoreBarcodes || []).map(normalizeBarcodeKey));
   let changed = false;
   const sales = [];
 
@@ -259,6 +260,7 @@ async function syncMarketplace(kind) {
       updated++;
       changed = true;
     } else {
+      if (ignored.has(normalizeBarcodeKey(barcode))) continue;
       db.addProduct({ name: barcode + ' (API)', barcode, [stockField(kind)]: qty, lastSeenAt: now });
       created++;
       changed = true;

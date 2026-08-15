@@ -169,7 +169,9 @@ function marker(c) {
 
 function buildText(checks, dataFixes) {
   const lines = ['SİSTEM DENETİMİ'];
-  lines.push('Ürün: ' + db.getProducts().length + ' | Ayarlı pazar: ' + sync.marketConfiguredKinds().length);
+  const ignored = new Set((db.getSettings().ignoreBarcodes || []).map(b => String(b).trim().toLowerCase()));
+  const productCount = db.getProducts().filter(p => !ignored.has(String(p.barcode || '').trim().toLowerCase())).length;
+  lines.push('Ürün: ' + productCount + ' | Ayarlı pazar: ' + sync.marketConfiguredKinds().length);
   for (const c of checks) {
     lines.push(marker(c) + ' ' + c.name + (c.detail ? ' - ' + c.detail : ''));
   }
