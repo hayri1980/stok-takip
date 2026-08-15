@@ -249,6 +249,18 @@ app.post('/api/report/daily', async (req, res) => {
   }
 });
 
+// ---- Satış kaydı düzeltme (manuel sahte satış silme) ----
+app.post('/api/sales/remove', (req, res) => {
+  try {
+    const filter = req.body || {};
+    const remaining = db.removeDailySales(filter);
+    db.addLog('Satış kaydı manuel silindi: ' + JSON.stringify(filter));
+    res.json({ ok: true, remaining: remaining.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---- Soru kontrolü ----
 app.post('/api/sync/questions', async (req, res) => {
   try {

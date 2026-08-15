@@ -486,6 +486,20 @@ function purgeDailySales(keepDays) {
   return state.dailySales;
 }
 
+function removeDailySales(filter) {
+  load();
+  const f = filter || {};
+  state.dailySales = state.dailySales.filter(s => {
+    if (f.barcode && String(s.barcode) !== String(f.barcode)) return true;
+    if (f.market && String(s.market) !== String(f.market)) return true;
+    if (f.qty !== undefined && f.qty !== null && String(f.qty) !== '' && Number(s.qty) !== Number(f.qty)) return true;
+    if (f.date && String(s.date) !== String(f.date)) return true;
+    return false;
+  });
+  save();
+  return state.dailySales;
+}
+
 function recordShopVisit() {
   load();
   const key = dayKey(new Date());
@@ -539,6 +553,7 @@ module.exports = {
   addDailySale,
   getDailySales,
   purgeDailySales,
+  removeDailySales,
   getShopProducts,
   getShopProduct,
   addShopProduct,
