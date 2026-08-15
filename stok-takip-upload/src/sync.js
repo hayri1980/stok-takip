@@ -226,16 +226,17 @@ async function syncMarketplace(kind) {
       }
       const oldQtyNum = (oldQty !== null && oldQty !== undefined) ? Number(oldQty) : null;
       const diff = oldQtyNum !== null ? oldQtyNum - qty : 0;
-      const withinGrace = oldQtyNum !== null && isWithinStockWriteGrace(kind, barcode);
-      if (withinGrace) {
-        // Yazım gecikmesi penceresi: bu pazaryerine yakın zamanda stok yazıldı; okunan değer
-        // eski/geçici olabilir. DB'yi yazılan değerde tut (farkı yansıtma), satış algılama.
+      const writeRec = oldQtyNum !== null ? getStockWrite(kind, barcode) : null;
+      const withinGrace = !!writeRec && Date.now() - writeRec.ts < STOCK_WRITE_GRACE_MS;
+      if (withinGrace && qty >= Number(writeRec.qty)) {
+        // Yazım yansıması/gecikmesi: okunan değer sistemin yazdığı değerin üstünde/esit.
+        // Bu, sistemin kendi yazımının yansımasıdır → satış değil; DB'yi yazılan değerde tut.
         db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
       } else {
         db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
-        // Satış/azalma YALNIZCA Trendyol'dan algılanır. Diğer pazaryerlerinin stokları
-        // sistemin kendi yazımlarıyla yönetildiği için oradaki azalmalar sahte "satış" üretir.
-        if (diff > 0 && kind === 'trendyol') {
+        // Satış: yazım penceresi dışında düşüş VEYA pencerede yazılan değerin ALTINA inildiyse
+        // (sistem yazdıktan sonra o pazarda gerçek satış oldu) → gerçek satış.
+        if (diff > 0) {
           sales.push({
             name: existing.name,
             barcode,
@@ -425,9 +426,13 @@ function normalizeBarcodeKey(s) {
 const lastStockWrite = new Map();
 const STOCK_WRITE_GRACE_MS = 30 * 60 * 1000;
 
+function getStockWrite(kind, barcode) {
+  return lastStockWrite.get(kind + ':' + normalizeBarcodeKey(barcode)) || null;
+}
+
 function isWithinStockWriteGrace(kind, barcode) {
-  const ts = lastStockWrite.get(kind + ':' + normalizeBarcodeKey(barcode));
-  return !!ts && Date.now() - ts < STOCK_WRITE_GRACE_MS;
+  const rec = getStockWrite(kind, barcode);
+  return !!rec && Date.now() - rec.ts < STOCK_WRITE_GRACE_MS;
 }
 
 function lowerMapKeys(map) {
@@ -558,7 +563,7 @@ async function syncSharedStock() {
     for (const e of touched) {
       try {
         await updateMarketStock(e.kind, e.rec, target);
-        lastStockWrite.set(e.kind + ':' + normalizeBarcodeKey(barcode), Date.now());
+        lastStockWrite.set(e.kind + ':' + normalizeBarcodeKey(barcode), { ts: Date.now(), qty: Number(target) });
       } catch (err) {
         ok = false;
         errors.push(barcode + ' [' + kindLabel(e.kind) + ']: ' + err.message);
