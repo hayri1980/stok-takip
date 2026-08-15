@@ -453,7 +453,7 @@ async function checkOrders() {
       for (const li of items.slice(0, 5)) {
         const nm = li.productName || li.name || li.merchantSku || li.barcode || '';
         const q = Number(li.quantity || li.quantityPurchased || 1);
-        const unit = Number(li.price || li.unitPrice || li.lineUnitPrice || li.unitPriceAfterDiscount || 0);
+        const unit = Number(li.lineUnitPrice || li.unitPrice || li.price || li.unitPriceAfterDiscount || 0);
         const total = unit * q;
         lines.push('- ' + nm + ' x' + q + (unit ? ' = ' + total.toFixed(2) + ' TL (birim ' + unit.toFixed(2) + ' TL)' : ''));
       }
