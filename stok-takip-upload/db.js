@@ -35,6 +35,7 @@ function defaultData() {
     },
     log: [],
     qnaNotifiedIds: [],
+    orderNotifiedIds: [],
     dailySales: [],
       shop: {
         products: [],
@@ -288,6 +289,20 @@ function addFinanceNotifiedIds(ids) {
   return state.financeNotifiedIds;
 }
 
+function getOrderNotifiedIds() {
+  load();
+  return state.orderNotifiedIds || [];
+}
+
+function addOrderNotifiedIds(ids) {
+  load();
+  const set = new Set(state.orderNotifiedIds || []);
+  for (const id of ids) set.add(String(id));
+  state.orderNotifiedIds = Array.from(set).slice(-2000);
+  save();
+  return state.orderNotifiedIds;
+}
+
 // ---- Mağaza ----
 function mergeShopSettings(base, partial) {
   return {
@@ -516,6 +531,8 @@ module.exports = {
   addQnaNotifiedIds,
   getFinanceNotifiedIds,
   addFinanceNotifiedIds,
+  getOrderNotifiedIds,
+  addOrderNotifiedIds,
   localDayKey,
   addDailySale,
   getDailySales,

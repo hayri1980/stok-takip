@@ -370,6 +370,102 @@ async function checkFinancialTransfers() {
   return { fresh: fresh.length };
 }
 
+function toIsoDate(d) {
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+let lastOrderCheckTs = 0;
+
+async function checkOrders() {
+  if (Date.now() - lastOrderCheckTs < 60 * 1000) return { skipped: true, reason: 'henüz zamanı değil' };
+  lastOrderCheckTs = Date.now();
+
+  const endDate = new Date();
+  const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const fresh = [];
+  const notified = new Set(db.getOrderNotifiedIds());
+
+  // Hepsiburada OMS
+  const hb = db.getSettings().hepsiburada || {};
+  if ((hb.merchantId || hb.username) && hb.password) {
+    try {
+      const user = hb.merchantId || hb.username;
+      const headers = {
+        'Authorization': 'Basic ' + Buffer.from(user + ':' + hb.password).toString('base64'),
+        'User-Agent': hb.userAgent || 'caparici_dev'
+      };
+      const url = 'https://oms-external.hepsiburada.com/orders/merchantid/' + encodeURIComponent(user) +
+        '?startDate=' + toIsoDate(startDate) + '&endDate=' + toIsoDate(endDate) + '&limit=100&offset=0';
+      const res = await fetch(url, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        for (const o of (data && data.items) || []) {
+          const id = String(o.orderNumber || o.orderId || '');
+          if (!id || notified.has(id)) continue;
+          fresh.push({ market: 'Hepsiburada', id, order: o });
+        }
+      }
+    } catch (e) {
+      db.addLog('HB sipariş çekme hatası: ' + e.message);
+    }
+  }
+
+  // Trendyol sipariş (yetki kapalıysa 401 → sessizce geçilir)
+  const ty = db.getSettings().trendyol || {};
+  if (ty.apiKey && ty.apiSecret && ty.sellerId) {
+    try {
+      const auth = 'Basic ' + Buffer.from(ty.apiKey + ':' + ty.apiSecret).toString('base64');
+      const qs = new URLSearchParams({ startDate: String(startDate.getTime()), endDate: String(endDate.getTime()), page: '0', size: '100' });
+      const res = await fetch('https://apigw.trendyol.com/integration/order/sellers/' + ty.sellerId + '/packages?' + qs, {
+        headers: { 'Authorization': auth, 'x-seller-id': String(ty.sellerId), 'User-Agent': String(ty.sellerId) + ' - SelfIntegration' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        for (const p of (data && data.content) || []) {
+          const id = String(p.packageNumber || p.id || '');
+          if (!id || notified.has(id)) continue;
+          fresh.push({ market: 'Trendyol', id, order: p });
+        }
+      }
+    } catch (e) {
+      db.addLog('Trendyol sipariş çekme hatası: ' + e.message);
+    }
+  }
+
+  if (fresh.length) db.addOrderNotifiedIds(fresh.map(f => f.id));
+
+  let sent = 0;
+  for (const f of fresh) {
+    const o = f.order || {};
+    const lines = ['YENI SIPARIS (' + f.market + ')', 'Siparis no: ' + f.id];
+    const items = o.lines || o.items || o.orderLines || o.lineItems || [];
+    if (items.length) {
+      for (const li of items.slice(0, 5)) {
+        const nm = li.productName || li.name || li.merchantSku || li.barcode || '';
+        const q = li.quantity || li.quantityPurchased || '';
+        const p = li.unitPrice || li.price || li.unitPriceAfterDiscount || '';
+        lines.push('- ' + nm + (q ? ' x' + q : '') + (p ? ' = ' + p + ' TL' : ''));
+      }
+    } else if (o.productName || o.merchantSku) {
+      lines.push('- ' + (o.productName || o.merchantSku) + (o.quantity ? ' x' + o.quantity : ''));
+    }
+    lines.push('Tutar: ' + (o.amount || o.totalPrice || o.totalAmount || '?') + ' TL');
+    try {
+      const r = await notifier.notify(
+        'YENİ SİPARİŞ (' + f.market + '): ' + f.id,
+        '<h3>Yeni sipariş</h3>' + lines.map(l => '<p>' + l + '</p>').join(''),
+        lines.join('\n')
+      );
+      if (r && r.telegram && r.telegram.sent) sent++;
+    } catch (e) {
+      db.addLog('Sipariş bildirimi gönderilemedi: ' + e.message);
+    }
+  }
+  if (fresh.length) db.addLog(fresh.length + ' yeni sipariş bulundu, ' + sent + ' bildirim gönderildi');
+  return { total: fresh.length, sent };
+}
+
 async function checkQuestions() {
   const settings = db.getSettings();
   const cfg = settings.trendyol;
@@ -716,4 +812,4 @@ async function pushNewProducts() {
   return { created, errors };
 }
 
-module.exports = { syncMarketplace, checkStocks, checkFinancialTransfers, checkQuestions, syncSharedStock, pushNewProducts, MARKETS, kindLabel, marketConfiguredKinds };
+module.exports = { syncMarketplace, checkStocks, checkFinancialTransfers, checkQuestions, syncSharedStock, pushNewProducts, checkOrders, MARKETS, kindLabel, marketConfiguredKinds };
