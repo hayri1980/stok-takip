@@ -211,7 +211,7 @@ async function runAudit({ notify = false } = {}) {
   const shouldSend = notify || (problems.length + repairs > 0 && key !== lastProblemsKey);
   lastProblemsKey = key;
 
-  if (shouldSend) {
+  if (shouldSend && (db.getSettings().notifications || {}).audit !== false) {
     try {
       const tg = db.getSettings().telegram;
       if (tg.enabled && tg.chatId) {

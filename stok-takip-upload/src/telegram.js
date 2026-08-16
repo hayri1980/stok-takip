@@ -162,6 +162,7 @@ async function sendAlarm() {
 async function sendGreenTick() {
   const tg = db.getSettings().telegram;
   if (!(tg.enabled && tg.chatId)) return;
+  if ((db.getSettings().notifications || {}).health === false) return;
   const h = healthStatus();
   if (h.ok) {
     const extra = h.syncAge !== null ? ' - son senkron ' + h.syncAge + ' dk once' : '';

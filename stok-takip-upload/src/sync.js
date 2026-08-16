@@ -276,10 +276,13 @@ async function syncMarketplace(kind) {
   }
 
   if (sales.length > 0) {
-    for (const sale of sales) {
-      await notifySale(sale);
+    const salesNotify = (db.getSettings().notifications || {}).sales !== false;
+    if (salesNotify) {
+      for (const sale of sales) {
+        await notifySale(sale);
+      }
     }
-    db.addLog(sales.length + ' satış/azalma tespit edildi, bildirim gönderildi');
+    db.addLog(sales.length + ' satış/azalma tespit edildi' + (salesNotify ? ', bildirim gönderildi' : ', bildirim kapalı'));
   }
 
   return { updated, created, sales: sales.length };
