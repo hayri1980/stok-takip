@@ -585,7 +585,8 @@ async function syncSharedStock() {
   for (const kind of kinds) {
     const maps = byMarket.get(kind);
     for (const barcode of maps.byBarcode.keys()) {
-      const key = normalizeBarcodeKey(barcode);
+      // idefix barkodları 6 haneye pad'lenmiş olabilir (07ktx3 vs 7ktx3) → padsız anahtarda topla
+      const key = normalizeBarcodeKey(kind === 'idefix' ? String(barcode).replace(/^0+/, '') : barcode);
       if (!barcodeKinds.has(key)) barcodeKinds.set(key, []);
       barcodeKinds.get(key).push(kind);
     }
@@ -621,6 +622,12 @@ async function syncSharedStock() {
     for (const kind of presentKinds) {
       const maps = byMarket.get(kind);
       let rec = maps.byBarcode.get(barcode);
+      if (!rec && kind === 'idefix') {
+        // idefix barkodu pad'li olabilir (010tx4 vs 10tx4) → pad'li varyantları dene
+        const plain = String(barcode).replace(/^0+/, '');
+        const padded = String(plain).padStart(6, '0');
+        rec = maps.byBarcode.get(padded) || maps.byBarcode.get('0' + plain) || null;
+      }
       if (!rec && kind === 'idefix') {
         const existing = db.getProducts().find(p => normalizeBarcodeKey(p.barcode) === barcode);
         if (existing && existing.idefixBarcode) {
