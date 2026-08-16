@@ -530,7 +530,7 @@ function normalizeBarcodeKey(s) {
 }
 
 const lastStockWrite = new Map();
-const STOCK_WRITE_GRACE_MS = 3 * 60 * 60 * 1000;
+const STOCK_WRITE_GRACE_MS = 60 * 60 * 1000;
 
 function getStockWrite(kind, barcode) {
   return lastStockWrite.get(kind + ':' + normalizeBarcodeKey(barcode)) || null;
