@@ -214,6 +214,11 @@ async function syncMarketplace(kind) {
     if (!existing) {
       existing = db.getProducts().find(p => p.idefixBarcode === barcode) || null;
     }
+    if (!existing && kind === 'idefix') {
+      // idefix barkodu 6 haneye pad'lenmiş olabilir (010fx5 vs 10fx5) → baştaki sıfırları kaldırıp eşleştir.
+      const plain = String(barcode).replace(/^0+/, '');
+      existing = db.getProducts().find(p => normalizeBarcodeKey(p.barcode) === normalizeBarcodeKey(plain)) || null;
+    }
     if (existing) {
       const oldQty = existing[stockField(kind)];
       if (oldQty !== null && oldQty !== undefined && Number(oldQty) === qty) {
