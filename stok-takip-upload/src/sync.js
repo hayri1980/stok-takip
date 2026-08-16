@@ -641,23 +641,15 @@ async function syncSharedStock() {
     }
 
     const ty = entries.find(e => e.kind === 'trendyol');
+    // Hedef her zaman TRENDYOL stoğudur (ana stok). Pazaryerlerindeki düşük/eski stoklar
+    // Trendyol'u düşürmez; pazaryerleri Trendyol değerine çekilir.
     let target;
-    if (shared === null || shared === undefined) {
-      target = Math.min(...entries.map(e => e.qty));
+    if (ty && ty.qty !== null && ty.qty !== undefined) {
+      target = Number(ty.qty);
+    } else if (shared !== null && shared !== undefined) {
+      target = Number(shared);
     } else {
-      const below = entries.filter(e => {
-        if (e.qty >= Number(shared)) return false;
-        // Yeni listelenen ürün koruması: bu pazarda ürünün stoğu daha önce hiç yüklenmemişse (null ya da 0)
-        // ve şu an 0 görünüyorsa, Trendyol stoğu 0'dan büyükken bu "satış" değil başlangıç/yükleme durumudur.
-        const prev = existing ? existing[stockField(e.kind)] : null;
-        if (e.qty === 0 && ty && Number(ty.qty) > 0 && (prev === null || Number(prev) === 0)) return false;
-        return true;
-      });
-      if (below.length > 0) {
-        target = Math.min(...below.map(e => e.qty));
-      } else {
-        target = ty ? ty.qty : Number(shared);
-      }
+      target = Math.min(...entries.map(e => e.qty));
     }
 
     const touched = entries.filter(e => e.qty !== target);
