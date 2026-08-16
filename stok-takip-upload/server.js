@@ -555,10 +555,12 @@ async function runCheck() {
   } catch (e) {
     db.addLog('Sipariş kontrol hatası: ' + e.message);
   }
-  try {
-    await sync.pushNewProducts();
-  } catch (e) {
-    db.addLog('Ürün yükleme hatası: ' + e.message);
+  if (syncEnabled) {
+    try {
+      await sync.pushNewProducts();
+    } catch (e) {
+      db.addLog('Ürün yükleme hatası: ' + e.message);
+    }
   }
   try {
     await report.maybeSendDailyReport();
@@ -583,6 +585,7 @@ const port = process.env.PORT || 3000;
 async function start() {
   await backup.restore();
   db.load();
+  const syncEnabled = (db.getSettings().sync || {}).enabled !== false;
   app.listen(port, async () => {
   console.log('');
   console.log('=============================================');
@@ -593,22 +596,24 @@ async function start() {
   db.addLog('Uygulama başlatıldı (port ' + port + ')');
   scheduleCron();
   telegramBot.start();
-  for (const kind of sync.MARKETS) {
-    try {
-      await sync.syncMarketplace(kind);
-    } catch (e) {
-      db.addLog(kind + ' senkron hatası: ' + e.message);
+  if (syncEnabled) {
+    for (const kind of sync.MARKETS) {
+      try {
+        await sync.syncMarketplace(kind);
+      } catch (e) {
+        db.addLog(kind + ' senkron hatası: ' + e.message);
+      }
     }
-  }
-  try {
-    await sync.checkStocks();
-  } catch (e) {
-    db.addLog('Stok kontrol hatası: ' + e.message);
-  }
-  try {
-    await sync.syncSharedStock();
-  } catch (e) {
-    db.addLog('Ortak stok yazma hatası: ' + e.message);
+    try {
+      await sync.checkStocks();
+    } catch (e) {
+      db.addLog('Stok kontrol hatası: ' + e.message);
+    }
+    try {
+      await sync.syncSharedStock();
+    } catch (e) {
+      db.addLog('Ortak stok yazma hatası: ' + e.message);
+    }
   }
   try {
     await sync.checkQuestions();
@@ -625,10 +630,12 @@ async function start() {
   } catch (e) {
     db.addLog('Sipariş kontrol hatası: ' + e.message);
   }
-  try {
-    await sync.pushNewProducts();
-  } catch (e) {
-    db.addLog('Ürün yükleme hatası: ' + e.message);
+  if (syncEnabled) {
+    try {
+      await sync.pushNewProducts();
+    } catch (e) {
+      db.addLog('Ürün yükleme hatası: ' + e.message);
+    }
   }
   try {
     await report.maybeSendDailyReport();
