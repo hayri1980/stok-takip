@@ -229,14 +229,14 @@ async function syncMarketplace(kind) {
       const diff = oldQtyNum !== null ? oldQtyNum - qty : 0;
       const writeRec = oldQtyNum !== null ? getStockWrite(kind, barcode) : null;
       const withinGrace = !!writeRec && Date.now() - writeRec.ts < STOCK_WRITE_GRACE_MS;
-      if (withinGrace && qty >= Number(writeRec.qty)) {
-        // Yazım yansıması/gecikmesi: okunan değer sistemin yazdığı değerin üstünde/esit.
-        // Bu, sistemin kendi yazımının yansımasıdır → satış değil; DB'yi yazılan değerde tut.
+      if (withinGrace) {
+        // Yazım penceresi: bu pazaryerine yakın zamanda stok yazıldı; okunan değer henüz
+        // yansımamış eski/geçici olabilir (özellikle idefix asenkron batch gecikmesi).
+        // Pencere içinde okunan fark satış sayılmaz; DB yazılan değerde tutulur.
         db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
       } else {
         db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
-        // Satış: yazım penceresi dışında düşüş VEYA pencerede yazılan değerin ALTINA inildiyse
-        // (sistem yazdıktan sonra o pazarda gerçek satış oldu) → gerçek satış.
+        // Satış: yazım penceresi DIŞINDA düşüş → gerçek satış.
         if (diff > 0) {
           sales.push({
             name: existing.name,
@@ -530,7 +530,7 @@ function normalizeBarcodeKey(s) {
 }
 
 const lastStockWrite = new Map();
-const STOCK_WRITE_GRACE_MS = 30 * 60 * 1000;
+const STOCK_WRITE_GRACE_MS = 3 * 60 * 60 * 1000;
 
 function getStockWrite(kind, barcode) {
   return lastStockWrite.get(kind + ':' + normalizeBarcodeKey(barcode)) || null;
