@@ -20,7 +20,7 @@ function defaultData() {
       idefix: { apiKey: '', apiSecret: '', vendorId: '' },
       n11: { appKey: '', appSecret: '' },
       ciceksepeti: { apiKey: '' },
-      sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15, enabled: false },
+      sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15, enabled: true },
       report: { enabled: true },
       notifications: { sales: true, health: true, audit: true },
       ignoreBarcodes: [],
