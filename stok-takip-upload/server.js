@@ -520,28 +520,31 @@ async function runCheck() {
   if (polling) return;
   polling = true;
   try {
-    for (const kind of sync.MARKETS) {
+    const syncEnabled = (db.getSettings().sync || {}).enabled !== false;
+    if (syncEnabled) {
+      for (const kind of sync.MARKETS) {
+        try {
+          await sync.syncMarketplace(kind);
+        } catch (e) {
+          db.addLog(kind + ' senkron hatası: ' + e.message);
+        }
+      }
       try {
-        await sync.syncMarketplace(kind);
+        await sync.checkStocks();
       } catch (e) {
-        db.addLog(kind + ' senkron hatası: ' + e.message);
+        db.addLog('Stok kontrol hatası: ' + e.message);
+      }
+      try {
+        await sync.syncSharedStock();
+      } catch (e) {
+        db.addLog('Ortak stok yazma hatası: ' + e.message);
       }
     }
-  try {
-    await sync.checkStocks();
-  } catch (e) {
-    db.addLog('Stok kontrol hatası: ' + e.message);
-  }
-  try {
-    await sync.syncSharedStock();
-  } catch (e) {
-    db.addLog('Ortak stok yazma hatası: ' + e.message);
-  }
-  try {
-    await sync.checkQuestions();
-  } catch (e) {
-    db.addLog('Soru kontrol hatası: ' + e.message);
-  }
+    try {
+      await sync.checkQuestions();
+    } catch (e) {
+      db.addLog('Soru kontrol hatası: ' + e.message);
+    }
   try {
     await sync.checkFinancialTransfers();
   } catch (e) {
