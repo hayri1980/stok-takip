@@ -380,7 +380,7 @@ function toIsoDate(d) {
 let lastOrderCheckTs = 0;
 
 async function checkOrders() {
-  if (Date.now() - lastOrderCheckTs < 30 * 1000) return { skipped: true, reason: 'henüz zamanı değil' };
+  if (Date.now() - lastOrderCheckTs < 15 * 1000) return { skipped: true, reason: 'henüz zamanı değil' };
   lastOrderCheckTs = Date.now();
 
   const endDate = new Date();
