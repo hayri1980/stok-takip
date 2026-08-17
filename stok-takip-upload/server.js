@@ -269,11 +269,15 @@ app.post('/api/whatsapp/test', async (req, res) => {
 app.post('/api/whatsapp/test-barcode', async (req, res) => {
   const number = (req.body && req.body.number) || db.getSettings().whatsapp.targetNumber;
   const barcodeText = (req.body && req.body.barcode) || '7270035946910447';
+  const market = (req.body && req.body.market) || 'Trendyol';
+  const orderNo = (req.body && req.body.orderNo) || 'TEST-SIPARIS';
+  const provider = (req.body && req.body.provider) || 'Sürat Kargo';
   if (!number) return res.status(400).json({ error: 'Numara gerekli' });
   await whatsapp.start();
   try {
     const png = await barcode.makeBarcode(barcodeText);
-    const r = await whatsapp.sendImage(number, { buffer: png, filename: 'kargo.png' }, 'Kargo barkodu: ' + barcodeText);
+    const caption = market + ' siparişi\nSipariş no: ' + orderNo + '\nKargo takip no: ' + barcodeText + '\nKargo: ' + provider;
+    const r = await whatsapp.sendImage(number, { buffer: png, filename: 'kargo.png' }, caption);
     res.json(r);
   } catch (e) {
     res.status(500).json({ error: e.message });
