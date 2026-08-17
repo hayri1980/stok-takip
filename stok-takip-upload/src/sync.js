@@ -519,13 +519,15 @@ async function checkOrders() {
   }
   if (fresh.length) db.addLog(fresh.length + ' yeni sipariş bulundu, ' + sent + ' bildirim gönderildi');
 
-  // WhatsApp barkod gönderimi — fresh dışında TÜM tespit edilen siparişlere uygulanır.
-  // (orderNotifiedIds'ten bağımsız; takip no sonradan dolarsa bile gönderilir — örn. idefix picking→kargo)
+  // WhatsApp barkod gönderimi — sadece YENİ siparişler + idefix (takip no sonradan dolar).
+  // Eski siparişlerde (orderNotifiedIds'te kayıtlı) tekrar gönderilmez → deploy sonrası 7 günlük
+  // tüm geçmiş siparişlerin bir anda gönderilmesi önlendi. idefix için takip no sonradan gerekir.
   const wcfgAll = (db.getSettings().whatsapp || {});
   if (wcfgAll.enabled && wcfgAll.autoSend === true && wcfgAll.targetNumber) {
     const waNotified = new Set(wcfgAll.notifiedOrderIds || []);
     let waSent = 0;
     for (const f of allOrders) {
+      if (f.market !== 'idefix' && notified.has(f.id)) continue;
       const o = f.order || {};
       const trackingNo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
       if (!trackingNo) continue;
