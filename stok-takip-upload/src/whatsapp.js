@@ -101,7 +101,19 @@ async function sendText(number, text) {
   }
 }
 
-async function sendImage(number, media, caption) {
+async function isDetachedErr(e) {
+  const m = String((e && e.message) || '');
+  return m.includes('detached Frame') || m.includes('Target crashed') || m.includes('Cannot read property') || m.includes('Session closed');
+}
+
+function rebuildClient() {
+  try { if (client && client.destroy) client.destroy().catch(() => {}); } catch (e) {}
+  client = null;
+  qrData = null;
+  starting = false;
+}
+
+async function sendImage(number, media, caption, _retry) {
   const cfg = getCfg();
   const chk = await ensureNumber(cfg);
   if (chk.err) return { sent: false, reason: chk.err };
@@ -113,6 +125,14 @@ async function sendImage(number, media, caption) {
     return { sent: true };
   } catch (e) {
     db.addLog('WhatsApp görsel GÖNDERİLEMEDİ: ' + e.message);
+    if (!_retry && await isDetachedErr(e)) {
+      db.addLog('WhatsApp frame koptu — client yeniden başlatılıyor, tekrar deneniyor');
+      rebuildClient();
+      start();
+      const waitMs = Math.min(3, Math.max(1, Number(getCfg().restartWaitSec || 20))) * 1000;
+      await new Promise(r => setTimeout(r, waitMs));
+      return sendImage(number, media, caption, true);
+    }
     return { sent: false, reason: e.message };
   }
 }
