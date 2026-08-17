@@ -52,6 +52,7 @@ function start() {
   function noteGroupId(msg) {
     try {
       const from = String((msg && (msg.from || (msg._data && msg._data.id && msg._data.id.remote))) || '');
+      if (from) db.addLog('WhatsApp GELEN MESAJ: from=' + from);
       const gid = from.toLowerCase().endsWith('@g.us') ? from : '';
       if (!gid) return;
       const config = db.getSettings().whatsapp || {};
@@ -167,24 +168,43 @@ async function resolveTarget(number, cfg) {
 async function listGroups() {
   if (!isReady()) return { error: 'WhatsApp bağlı değil (QR okutulmadı)' };
   try {
-    let chats = null;
+    const out = [];
+    // 1) Ana liste (hızlı)
     try {
-      chats = await client.getChats();
-    } catch (e1) {
-      // getChats bazen store hazır değilken "r" gibi kısa hata döner → store'dan oku.
-      if (client.store && client.store.chats && client.store.chats.models) {
-        chats = client.store.chats.models.map(m => ({ isGroup: m.isGroup, name: m.name, id: m.id }));
-      } else {
-        throw e1;
+      const chats = await client.getChats();
+      if (Array.isArray(chats)) {
+        chats.forEach(c => {
+          if (c && c.isGroup) {
+            out.push({ name: c.name || '(isimsiz)', id: (c.id && (c.id._serialized || c.id)) || '' });
+          }
+        });
       }
+    } catch (e) {
+      db.addLog('getChats toplu başarısız, tek tek deneniyor: ' + (e && e.message));
     }
-    if (!Array.isArray(chats)) return { error: 'Grup verisi dizi değil' };
-    return chats
-      .filter(c => c && c.isGroup)
-      .map(c => ({ name: c.name || '(isimsiz)', id: (c.id && (c.id._serialized || c.id)) || '' }))
-      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    // 2) Store'dan bireysel (getChats bozuksa)
+    try {
+      const models = (client.store && client.store.chats && client.store.chats.models) || [];
+      for (const m of models) {
+        try {
+          if (m.isGroup) {
+            out.push({ name: m.name || '(isimsiz)', id: (m.id && (m.id._serialized || m.id)) || '' });
+          }
+        } catch (e2) { /* tek sohbet atlanabilir */ }
+      }
+    } catch (e) { /* store erişilemedi */ }
+
+    // Benzersiz yap
+    const seen = new Set();
+    const uniq = [];
+    for (const g of out) {
+      if (!g.id || seen.has(g.id)) continue;
+      seen.add(g.id);
+      uniq.push(g);
+    }
+    return uniq.sort((a, b) => String(a.name).localeCompare(String(b.name)));
   } catch (e) {
-    db.addLog('WhatsApp grup listesi alınamadı: ' + (e && e.stack ? e.stack : String(e)));
+    db.addLog('WhatsApp grup listesi alınamadı: ' + (e && e.message ? e.message : String(e)));
     return { error: String((e && e.message) || e) };
   }
 }
