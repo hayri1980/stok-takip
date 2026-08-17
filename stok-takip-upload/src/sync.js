@@ -653,11 +653,28 @@ async function syncSharedStock() {
     }
 
     const ty = entries.find(e => e.kind === 'trendyol');
-    // Hedef her zaman TRENDYOL stoğudur (ana stok). Pazaryerlerindeki düşük/eski stoklar
-    // Trendyol'u düşürmez; pazaryerleri Trendyol değerine çekilir.
+    // Kural: Trendyol = ana stok (hedef). Ama bir pazaryerinde Trendyol'dan düşük
+    // görünen stok, o pazara son yazımdan bu yana geçen zamana göre değerlendirilir:
+    //  - Yazım penceresi içindeyse → gecikme (idefix/HB batch yansıması) → satış SAYILMAZ.
+    //  - Pencere dışında düşükse → GERÇEK SATIŞ → Trendyol dahil herkes o değere iner.
+    //  - 0 görünümler pasif/listing yok/onay bekleyen olabilir → satış sayılmaz.
     let target;
     if (ty && ty.qty !== null && ty.qty !== undefined) {
-      target = Number(ty.qty);
+      const tyQty = Number(ty.qty);
+      const realDrops = entries.filter(e => {
+        if (e.kind === 'trendyol') return false;
+        const q = Number(e.qty);
+        if (q <= 0) return false;
+        if (q >= tyQty) return false;
+        const writeRec = getStockWrite(e.kind, barcode);
+        if (writeRec && Date.now() - writeRec.ts < STOCK_WRITE_GRACE_MS) return false;
+        return true;
+      });
+      if (realDrops.length > 0) {
+        target = Math.min(...realDrops.map(e => Number(e.qty)));
+      } else {
+        target = tyQty;
+      }
     } else if (shared !== null && shared !== undefined) {
       target = Number(shared);
     } else {
