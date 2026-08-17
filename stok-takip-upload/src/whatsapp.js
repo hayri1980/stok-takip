@@ -122,13 +122,14 @@ async function listGroups() {
   if (!isReady()) return { error: 'WhatsApp bağlı değil (QR okutulmadı)' };
   try {
     const chats = await client.getChats();
+    if (!Array.isArray(chats)) return { error: 'Grup verisi dizi değil' };
     return chats
-      .filter(c => c.isGroup)
-      .map(c => ({ name: c.name || '(isimsiz)', id: c.id._serialized }))
+      .filter(c => c && c.isGroup)
+      .map(c => ({ name: c.name || '(isimsiz)', id: (c.id && c.id._serialized) || '' }))
       .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   } catch (e) {
-    db.addLog('WhatsApp grup listesi alınamadı: ' + e.message);
-    return { error: e.message };
+    db.addLog('WhatsApp grup listesi alınamadı: ' + (e && e.stack ? e.stack : String(e)));
+    return { error: String((e && e.message) || e) };
   }
 }
 
