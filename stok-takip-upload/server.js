@@ -303,10 +303,11 @@ app.post('/api/whatsapp/use-invite', async (req, res) => {
   const code = invite.toLowerCase().startsWith('https://chat.whatsapp.com/') ? invite.slice('https://chat.whatsapp.com/'.length) : invite;
   try {
     const joined = await whatsapp.acceptInvite(code);
-    const id = (joined && joined.id && joined.id._serialized) || '';
+    // acceptInvite, res.gid._serialized (string) döndürür (örn. "12036...@g.us")
+    const id = (typeof joined === 'string') ? joined : ((joined && joined.id && joined.id._serialized) || '');
     if (id) {
       db.setSettings({ whatsapp: { ...wa, targetGroupId: id, targetGroupInvite: invite } });
-      res.json({ ok: true, groupId: id, name: (joined && joined.name) || '' });
+      res.json({ ok: true, groupId: id, name: '' });
     } else {
       res.status(500).json({ error: 'Grup ID çözülemedi' });
     }

@@ -124,13 +124,13 @@ async function resolveTarget(number, cfg) {
     if (code) {
       try {
         const joined = await client.acceptInvite(code);
-        // acceptInvite grupta zaten üyesek "already in group" hatası verir; yine de ID dönebiliyor.
-        const id = (joined && joined.id && joined.id._serialized) || '';
+        // acceptInvite doğrudan grup ID string'i döndürür (örn. "12036...@g.us")
+        const id = (typeof joined === 'string') ? joined : ((joined && joined.id && joined.id._serialized) || '');
         if (id) return { chatId: id };
       } catch (e) {
         // Hata mesajında gid/kimlik arayalım
         const s = String((e && e.message) || e);
-        const m = s.match(/@g\.us|([0-9]{16,})@/);
+        const m = s.match(/([0-9]{10,})@(g\.us|lid)/);
         if (m) return { chatId: m[0] };
         db.addLog('WhatsApp davet çözülemedi: ' + s.slice(0, 200));
       }
