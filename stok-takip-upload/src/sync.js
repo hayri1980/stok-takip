@@ -500,11 +500,7 @@ async function checkOrders() {
           if (!notified.has(f.id)) {
             notified.add(f.id);
             const png = await ba.makeBarcode(trackingNo);
-            // Desi: toplam adede göre (tek ürün=1, daha fazla=2) — kullanıcı "2 desiyi geçmez" dedi
-            const items = o.lines || o.items || o.orderLines || o.lineItems || [];
-            const totalQty = items.reduce((s, li) => s + Number(li.quantity || li.quantityPurchased || 1), 0);
-            const desi = totalQty <= 1 ? 1 : 2;
-            const caption = (f.market || 'Pazaryeri') + ' siparişi\nSipariş no: ' + f.id + '\nKargo takip no: ' + trackingNo + (cargoProvider ? '\nKargo: ' + cargoProvider : '') + '\nDesi: ' + desi;
+            const caption = (f.market || 'Pazaryeri') + ' siparişi\nSipariş no: ' + f.id + '\nKargo takip no: ' + trackingNo + (cargoProvider ? '\nKargo: ' + cargoProvider : '') + '\nDesi: 1';
             const waRes = await wa.sendImage(target, { buffer: png, filename: 'kargo.png' }, caption);
             if (waRes.sent) {
               notified.push && void 0;
