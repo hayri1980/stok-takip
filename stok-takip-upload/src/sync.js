@@ -488,17 +488,18 @@ async function checkOrders() {
       db.addLog('Sipariş bildirimi gönderilemedi: ' + e.message);
     }
 
-    // WhatsApp: gerçek kargo takip numarası varsa barkodlu gönder
+    // WhatsApp: gerçek kargo takip numarası varsa barkodlu gönder (tüm pazaryerleri)
     const wcfg = (db.getSettings().whatsapp || {});
-    if (wcfg.enabled && (wcfg.autoSend === true) && trackingNo && f.market === 'Trendyol') {
+    if (wcfg.enabled && (wcfg.autoSend === true) && trackingNo) {
       try {
         const ba = require('./barcode');
         const wa = require('./whatsapp');
         const target = wcfg.targetNumber;
         if (target && !wcfg.notifiedOrderIdsSet) {
           const notified = new Set(wcfg.notifiedOrderIds || []);
-          if (!notified.has(f.id)) {
-            notified.add(f.id);
+          const nid = f.market + ':' + f.id;
+          if (!notified.has(nid)) {
+            notified.add(nid);
             const png = await ba.makeBarcode(trackingNo);
             const caption = (f.market || 'Pazaryeri') + '\nDesi: 1';
             const waRes = await wa.sendImage(target, { buffer: png, filename: 'kargo.png' }, caption);
