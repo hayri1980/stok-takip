@@ -49,21 +49,22 @@ function start() {
     qrData = null;
     db.addLog('WhatsApp bağlandı (hazır)');
   });
-  client.on('message_create', (msg) => {
-    if (!msg || !msg.from) return;
-    const from = String(msg.from);
-    if (from.toLowerCase().endsWith('@g.us')) {
-      // Gelen gruptaki mesaj: grup adını/ID'yi ayarlara not edelim (hedef grup bulma amaçlı).
-      const chatName = (msg.getChat && msg.getChat().then ? null : null) ||
-        (msg._data && msg._data.id && msg._data.id.remote) || '';
-      const gid = from;
+  function noteGroupId(msg) {
+    try {
+      const from = String((msg && (msg.from || (msg._data && msg._data.id && msg._data.id.remote))) || '');
+      const gid = from.toLowerCase().endsWith('@g.us') ? from : '';
+      if (!gid) return;
       const config = db.getSettings().whatsapp || {};
-      db.addLog('WhatsApp GRUP MESAJI: id=' + gid + (chatName ? ' name=' + chatName : ''));
+      db.addLog('WhatsApp GRUP MESAJI: id=' + gid);
       if (!config.foundGroupId || config.foundGroupId !== gid) {
         db.setSettings({ whatsapp: { ...config, foundGroupId: gid, foundGroupAt: new Date().toISOString() } });
       }
+    } catch (e) {
+      db.addLog('WhatsApp grup mesajı izleme hatası: ' + e.message);
     }
-  });
+  }
+  client.on('message', (msg) => noteGroupId(msg));
+  client.on('message_create', (msg) => noteGroupId(msg));
   client.on('auth_failure', (msg) => {
     startError = 'WhatsApp oturum hatası: ' + String(msg || '');
     db.addLog(startError);
