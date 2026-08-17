@@ -133,12 +133,19 @@ function healthStatus() {
 }
 
 let lastHealthy = null;
+let lastAlarmTs = 0;
+const ALARM_MIN_INTERVAL_MS = 30 * 60 * 1000;
+const STARTUP_GRACE_MS = 5 * 60 * 1000;
+const bootTs = Date.now();
 
-async function sendAlarm() {
+async function sendAlarm(reason) {
   const tg = db.getSettings().telegram;
   if (!(tg.enabled && tg.chatId)) return;
+  if (Date.now() - bootTs < STARTUP_GRACE_MS) return;
+  if (Date.now() - lastAlarmTs < ALARM_MIN_INTERVAL_MS) return;
+  lastAlarmTs = Date.now();
   const h = healthStatus();
-  const detail = h.issues && h.issues.length ? h.issues.join(' | ') : '';
+  const detail = (reason ? reason + '\n' : '') + (h.issues && h.issues.length ? h.issues.join(' | ') : '');
   if (detail) {
     try {
       await sendTelegramTo(tg.chatId,
@@ -180,7 +187,7 @@ async function checkHealthState() {
     }
     lastHealthy = true;
   } else {
-    await sendAlarm();
+    await sendAlarm('Saglik kontrolu');
     lastHealthy = false;
   }
 }
