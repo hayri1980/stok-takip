@@ -5,6 +5,15 @@ let client = null;
 let qrData = null;
 let starting = false;
 let startError = null;
+let autoRetryTimer = null;
+
+function scheduleAutoRetry() {
+  if (autoRetryTimer) return;
+  autoRetryTimer = setInterval(() => {
+    const cfg = getCfg();
+    if (cfg.enabled && !starting && !isReady() && !client) start();
+  }, 30000);
+}
 
 function getCfg() {
   return db.getSettings().whatsapp || {};
@@ -16,6 +25,7 @@ function isReady() {
 
 function start() {
   if (starting || isReady()) return;
+  scheduleAutoRetry();
   const cfg = getCfg();
   const sessionPath = cfg.sessionPath || '/opt/stok-takip/.whatsapp-session';
   starting = true;
@@ -55,6 +65,7 @@ function start() {
   client.initialize().catch(e => {
     startError = 'WhatsApp başlatma hatası: ' + e.message;
     db.addLog(startError);
+    client = null;
     starting = false;
   });
 }
