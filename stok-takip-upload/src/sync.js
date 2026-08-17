@@ -387,6 +387,17 @@ function toIsoDate(d) {
 
 let lastOrderCheckTs = 0;
 
+// WhatsApp kargo barkodu GÖNDERİM PENCERESİ (kargocuya teslim zamanına göre)
+// Hafta içi (Pzt-Cum): 09:00-16:00  | Cumartesi: 09:00-14:00 | Pazar: kapalı (birikir)
+function isWhatsAppSendWindow() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Pazar, 6=Cumartesi
+  const mins = now.getHours() * 60 + now.getMinutes();
+  if (day === 0) return false;
+  if (day === 6) return mins >= 9 * 60 && mins < 14 * 60;
+  return mins >= 9 * 60 && mins < 16 * 60;
+}
+
 async function checkOrders() {
   if (Date.now() - lastOrderCheckTs < 15 * 1000) return { skipped: true, reason: 'henüz zamanı değil' };
   lastOrderCheckTs = Date.now();
@@ -523,39 +534,97 @@ async function checkOrders() {
   }
   if (fresh.length) db.addLog(fresh.length + ' yeni sipariş bulundu, ' + sent + ' bildirim gönderildi');
 
-  // WhatsApp barkod gönderimi — sadece YENİ siparişler + idefix (takip no sonradan dolar).
-  // Eski siparişlerde (orderNotifiedIds'te kayıtlı) tekrar gönderilmez → deploy sonrası 7 günlük
-  // tüm geçmiş siparişlerin bir anda gönderilmesi önlendi. idefix için takip no sonradan gerekir.
+  // WhatsApp barkod gönderimi — ZAMAN PENCERELİ + KUYRUKLU.
+  // Kural (kargocu anlaşması, kullanıcı isteği):
+  //  - Hafta içi: 09:00-16:00 arası gönderim açık; 16:00 sonrası gelenler kuyruğa → ertesi sabah.
+  //  - Cumartesi: 09:00-14:00 açık.
+  //  - Pazar: kapalı → birikir → Pazartesi sabah 09:00 gönderilir.
+  //  - Telefon kapalıysa gönderim başarısız olur; kuyrukta kalır ve ne zaman açılırsa (pencere
+  //    içinde) otomatik gönderilir. Kuyruk whatsapp.pendingOrderIds'te tutulur (kalıcı).
   const wcfgAll = (db.getSettings().whatsapp || {});
   const waTargetPresent = !!(wcfgAll.targetNumber || wcfgAll.targetGroupId || wcfgAll.targetGroupName);
   if (wcfgAll.enabled && wcfgAll.autoSend === true && waTargetPresent) {
-    const waNotified = new Set(wcfgAll.notifiedOrderIds || []);
+    let waNotified = new Set(wcfgAll.notifiedOrderIds || []);
+    let pending = Array.isArray(wcfgAll.pendingOrderIds) ? wcfgAll.pendingOrderIds : [];
+    const win = isWhatsAppSendWindow();
     let waSent = 0;
+    const pendingSet = new Map(pending.map(p => [p.nid, p]));
+
+    async function trySend(fe) {
+      const ba = require('./barcode');
+      const wa = require('./whatsapp');
+      const o = fe.order || {};
+      const trackingNo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
+      if (!trackingNo) return false;
+      const png = await ba.makeBarcode(trackingNo);
+      const caption = (o._market || 'Pazaryeri') + '\nDesi: 1';
+      const waRes = await wa.sendImage(wcfgAll.targetNumber, { buffer: png, filename: 'kargo.png' }, caption);
+      return waRes.sent;
+    }
+
+    // 1) Bekleyen kuyruktaki siparişleri gönder (telefon açılmış/bağlanmış olabilir)
+    if (win) {
+      const remaining = [];
+      for (const p of pending) {
+        if (waNotified.has(p.nid)) continue;
+        const fe = { order: { cargoTrackingNumber: p.trackingNo, _market: p.market } };
+        try {
+          const ok = await trySend(fe);
+          if (ok) {
+            waNotified.add(p.nid);
+            waSent++;
+            db.addLog('WhatsApp kargo barkodu (kuyruk) gönderildi: ' + p.trackingNo + ' (' + p.market + ')');
+          } else {
+            remaining.push(p);
+          }
+        } catch (waErr) {
+          db.addLog('WhatsApp kargo gönderimi hatası: ' + waErr.message);
+          remaining.push(p);
+        }
+      }
+      pending = remaining;
+    }
+
+    // 2) Yeni tespit edilen siparişler: pencere içindeyse hemen; dışındaysa kuyruğa
     for (const f of allOrders) {
       if (f.market !== 'idefix' && notified.has(f.id)) continue;
       const o = f.order || {};
       const trackingNo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
       if (!trackingNo) continue;
       const nid = f.market + ':' + f.id;
-      if (waNotified.has(nid)) continue;
-      try {
-        const ba = require('./barcode');
-        const wa = require('./whatsapp');
-        const png = await ba.makeBarcode(trackingNo);
-        const caption = (f.market || 'Pazaryeri') + '\nDesi: 1';
-        const waRes = await wa.sendImage(wcfgAll.targetNumber, { buffer: png, filename: 'kargo.png' }, caption);
-        if (waRes.sent) {
-          waNotified.add(nid);
-          db.setSettings({ whatsapp: { ...wcfgAll, notifiedOrderIds: Array.from(waNotified).slice(-500) } });
-          db.addLog('WhatsApp kargo barkodu gönderildi: ' + trackingNo + ' (' + f.market + ')');
-          waSent++;
+      if (waNotified.has(nid) || pendingSet.has(nid)) continue;
+      const fe = { order: { ...o, cargoTrackingNumber: trackingNo, _market: f.market || 'Pazaryeri' } };
+      if (win) {
+        try {
+          const ok = await trySend(fe);
+          if (ok) {
+            waNotified.add(nid);
+            waSent++;
+            db.addLog('WhatsApp kargo barkodu gönderildi: ' + trackingNo + ' (' + f.market + ')');
+          } else {
+            pending.push({ nid, trackingNo, market: f.market || 'Pazaryeri' });
+          }
+        } catch (waErr) {
+          db.addLog('WhatsApp kargo gönderimi hatası: ' + waErr.message);
+          pending.push({ nid, trackingNo, market: f.market || 'Pazaryeri' });
         }
-      } catch (waErr) {
-        db.addLog('WhatsApp kargo gönderimi hatası: ' + waErr.message);
+      } else {
+        pending.push({ nid, trackingNo, market: f.market || 'Pazaryeri' });
       }
     }
-    if (waSent > 0) db.addLog('WhatsApp: ' + waSent + ' kargo barkodu gönderildi');
-    return { total: fresh.length, sent, waSent };
+
+    // 3) Sonsuz büyümesin, güncelliği koru
+    pending = pending.filter(p => !waNotified.has(p.nid)).slice(-300);
+    if (win || pending.length > 0) {
+      db.setSettings({ whatsapp: { ...wcfgAll, notifiedOrderIds: Array.from(waNotified).slice(-500), pendingOrderIds: pending } });
+    }
+
+    if (waSent > 0) {
+      db.addLog('WhatsApp: ' + waSent + ' kargo barkodu gönderildi' + (pending.length ? ', ' + pending.length + ' kuyrukta' : ''));
+    } else if (!win && allOrders.length) {
+      db.addLog('WhatsApp gönderim penceresi kapalı — ' + pending.length + ' barkod kuyrukta (sabah gönderilecek)');
+    }
+    return { total: fresh.length, sent, waSent, pending: pending.length };
   }
 
   return { total: fresh.length, sent };
