@@ -103,11 +103,21 @@ async function resolveTarget(number, cfg) {
   if (grpId.toLowerCase().endsWith('@g.us')) return { chatId: grpId };
   const grpName = String(cfg.targetGroupName || '').trim();
   if (grpName) {
-    const chats = await client.getChats();
-    const g = chats.find(c => c.isGroup && String(c.name || '').toLowerCase().trim() === grpName.toLowerCase().trim());
-    if (g) return { chatId: g.id._serialized };
-    const g2 = chats.find(c => c.isGroup && String(c.name || '').toLowerCase().includes(grpName.toLowerCase()));
-    if (g2) return { chatId: g2.id._serialized };
+    let chats = null;
+    try {
+      chats = await client.getChats();
+    } catch (e1) {
+      if (client.store && client.store.chats && client.store.chats.models) {
+        chats = client.store.chats.models.map(m => ({ isGroup: m.isGroup, name: m.name, id: m.id }));
+      } else {
+        throw e1;
+      }
+    }
+    const gl = (chats || []).filter(c => c && c.isGroup);
+    const g = gl.find(c => String(c.name || '').toLowerCase().trim() === grpName.toLowerCase().trim());
+    if (g) return { chatId: (g.id && (g.id._serialized || g.id)) || '' };
+    const g2 = gl.find(c => String(c.name || '').toLowerCase().includes(grpName.toLowerCase()));
+    if (g2) return { chatId: (g2.id && (g2.id._serialized || g2.id)) || '' };
     return null;
   }
   let raw = String(number || cfg.targetNumber || '').trim();
@@ -121,11 +131,21 @@ async function resolveTarget(number, cfg) {
 async function listGroups() {
   if (!isReady()) return { error: 'WhatsApp bağlı değil (QR okutulmadı)' };
   try {
-    const chats = await client.getChats();
+    let chats = null;
+    try {
+      chats = await client.getChats();
+    } catch (e1) {
+      // getChats bazen store hazır değilken "r" gibi kısa hata döner → store'dan oku.
+      if (client.store && client.store.chats && client.store.chats.models) {
+        chats = client.store.chats.models.map(m => ({ isGroup: m.isGroup, name: m.name, id: m.id }));
+      } else {
+        throw e1;
+      }
+    }
     if (!Array.isArray(chats)) return { error: 'Grup verisi dizi değil' };
     return chats
       .filter(c => c && c.isGroup)
-      .map(c => ({ name: c.name || '(isimsiz)', id: (c.id && c.id._serialized) || '' }))
+      .map(c => ({ name: c.name || '(isimsiz)', id: (c.id && (c.id._serialized || c.id)) || '' }))
       .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   } catch (e) {
     db.addLog('WhatsApp grup listesi alınamadı: ' + (e && e.stack ? e.stack : String(e)));
