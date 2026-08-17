@@ -500,7 +500,7 @@ async function checkOrders() {
           if (!notified.has(f.id)) {
             notified.add(f.id);
             const png = await ba.makeBarcode(trackingNo);
-            const caption = '📦 ' + (f.market || 'Pazaryeri') + '\n' + trackingNo + '\nDesi: 1';
+            const caption = (f.market || 'Pazaryeri') + '\nDesi: 1';
             const waRes = await wa.sendImage(target, { buffer: png, filename: 'kargo.png' }, caption);
             if (waRes.sent) {
               notified.push && void 0;
