@@ -397,24 +397,31 @@ async function checkOrders() {
   const notified = new Set(db.getOrderNotifiedIds());
   const firstRun = notified.size === 0;
 
-  // Hepsiburada OMS
+  // Hepsiburada OMS — siparişler PAKET (package) ucundan gelir; barkod/takip/desi orada
   const hb = db.getSettings().hepsiburada || {};
   if ((hb.merchantId || hb.username) && hb.password) {
     try {
       const user = hb.merchantId || hb.username;
       const headers = {
         'Authorization': 'Basic ' + Buffer.from(user + ':' + hb.password).toString('base64'),
-        'User-Agent': hb.userAgent || 'caparici_dev'
+        'User-Agent': hb.userAgent || 'caparici_dev',
+        'Accept': 'application/json'
       };
-      const url = 'https://oms-external.hepsiburada.com/orders/merchantid/' + encodeURIComponent(user) +
-        '?startDate=' + toIsoDate(startDate) + '&endDate=' + toIsoDate(endDate) + '&limit=100&offset=0';
+      const p2 = n => String(n).padStart(2, '0');
+      const fmt = (d) => d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+      const url = 'https://oms-external.hepsiburada.com/packages/merchantid/' + encodeURIComponent(user) +
+        '?offset=0&limit=100&begindate=' + encodeURIComponent(fmt(startDate)) + '&enddate=' + encodeURIComponent(fmt(endDate));
       const res = await fetch(url, { headers });
       if (res.ok) {
         const data = await res.json();
-        for (const o of (data && data.items) || []) {
-          const id = String(o.orderNumber || o.orderId || '');
+        const list = Array.isArray(data) ? data : ((data && data.items) || []);
+        for (const o of list) {
+          const id = String(o.orderNumber || o.packageNumber || o.id || '');
           if (!id || notified.has(id)) continue;
-          fresh.push({ market: 'Hepsiburada', id, order: o });
+          // kargo takip no: barcode (paketin barkodu) öncelik; yoksa trackingInfoCode
+          const cargoTrack = o.barcode || o.trackingInfoCode || o.packageNumber || '';
+          // order için paketi olduğu gibi taşı (id = sipariş no; market öneki notified'da zaten var)
+          fresh.push({ market: 'Hepsiburada', id: String(o.orderNumber || o.packageNumber || id), order: { ...o, orderNumber: String(o.orderNumber || o.packageNumber || id), cargoTrackingNumber: cargoTrack, cargoProviderName: o.cargoCompany || 'Hepsiburada', desi: o.totalDeci || o.deci || 1, lines: Array.isArray(o.items) ? o.items : [] } });
         }
       }
     } catch (e) {
