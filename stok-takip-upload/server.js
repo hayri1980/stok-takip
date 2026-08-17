@@ -308,6 +308,7 @@ app.post('/api/whatsapp/use-invite', async (req, res) => {
   } catch (e) {
     let id = null;
     const s = String((e && e.message) || e);
+    db.addLog('WhatsApp davet hatası: ' + s.slice(0, 300));
     const m = s.match(/([0-9]{10,})@g\.us/);
     if (m) id = m[0];
     if (id) {
