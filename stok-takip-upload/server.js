@@ -314,7 +314,7 @@ app.post('/api/whatsapp/use-invite', async (req, res) => {
     let id = null;
     const s = String((e && e.message) || e);
     db.addLog('WhatsApp davet hatası: ' + s.slice(0, 300));
-    const m = s.match(/([0-9]{10,})@g\.us/);
+    const m = s.match(/([0-9]{10,})@g\.us|([0-9]{10,})@lid/);
     if (m) id = m[0];
     if (id) {
       db.setSettings({ whatsapp: { ...wa, targetGroupId: id, targetGroupInvite: invite } });
