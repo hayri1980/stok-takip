@@ -527,7 +527,8 @@ async function checkOrders() {
   // Eski siparişlerde (orderNotifiedIds'te kayıtlı) tekrar gönderilmez → deploy sonrası 7 günlük
   // tüm geçmiş siparişlerin bir anda gönderilmesi önlendi. idefix için takip no sonradan gerekir.
   const wcfgAll = (db.getSettings().whatsapp || {});
-  if (wcfgAll.enabled && wcfgAll.autoSend === true && wcfgAll.targetNumber) {
+  const waTargetPresent = !!(wcfgAll.targetNumber || wcfgAll.targetGroupId || wcfgAll.targetGroupName);
+  if (wcfgAll.enabled && wcfgAll.autoSend === true && waTargetPresent) {
     const waNotified = new Set(wcfgAll.notifiedOrderIds || []);
     let waSent = 0;
     for (const f of allOrders) {

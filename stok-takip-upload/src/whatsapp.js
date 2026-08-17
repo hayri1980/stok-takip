@@ -96,15 +96,50 @@ async function ensureNumber(cfg) {
   return { ok: true };
 }
 
+async function resolveTarget(number, cfg) {
+  // Öncelik: (1) ayardaki grup ID (@g.us), (2) ayardaki grup ADI (gruplarda ara),
+  // (3) parametre olarak verilen hedef (numara ya da @g.us).
+  const grpId = String(cfg.targetGroupId || '').trim();
+  if (grpId.toLowerCase().endsWith('@g.us')) return { chatId: grpId };
+  const grpName = String(cfg.targetGroupName || '').trim();
+  if (grpName) {
+    const chats = await client.getChats();
+    const g = chats.find(c => c.isGroup && String(c.name || '').toLowerCase().trim() === grpName.toLowerCase().trim());
+    if (g) return { chatId: g.id._serialized };
+    const g2 = chats.find(c => c.isGroup && String(c.name || '').toLowerCase().includes(grpName.toLowerCase()));
+    if (g2) return { chatId: g2.id._serialized };
+    return null;
+  }
+  let raw = String(number || cfg.targetNumber || '').trim();
+  if (raw.toLowerCase().endsWith('@g.us')) return { chatId: raw };
+  const n = parseNumber(raw);
+  const contact = await client.getNumberId(n);
+  if (!contact || !contact._serialized) return null;
+  return { chatId: contact._serialized };
+}
+
+async function listGroups() {
+  if (!isReady()) return { error: 'WhatsApp bağlı değil (QR okutulmadı)' };
+  try {
+    const chats = await client.getChats();
+    return chats
+      .filter(c => c.isGroup)
+      .map(c => ({ name: c.name || '(isimsiz)', id: c.id._serialized }))
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  } catch (e) {
+    db.addLog('WhatsApp grup listesi alınamadı: ' + e.message);
+    return { error: e.message };
+  }
+}
+
 async function sendText(number, text) {
   const cfg = getCfg();
   const chk = await ensureNumber(cfg);
   if (chk.err) return { sent: false, reason: chk.err };
   try {
-    const n = parseNumber(number);
-    const contact = await client.getNumberId(n);
-    if (!contact || !contact._serialized) return { sent: false, reason: 'Numara WhatsApp sahibi değil: ' + n };
-    await client.sendMessage(contact._serialized, String(text));
+    const t = await resolveTarget(number, cfg);
+    if (!t) return { sent: false, reason: 'Hedef bulunamadı (numara WhatsApp sahibi değil veya grup yok)' };
+    await client.sendMessage(t.chatId, String(text));
     return { sent: true };
   } catch (e) {
     db.addLog('WhatsApp mesaj GÖNDERİLEMEDİ: ' + e.message);
@@ -129,10 +164,9 @@ async function sendImage(number, media, caption, _retry) {
   const chk = await ensureNumber(cfg);
   if (chk.err) return { sent: false, reason: chk.err };
   try {
-    const n = parseNumber(number);
-    const contact = await client.getNumberId(n);
-    if (!contact || !contact._serialized) return { sent: false, reason: 'Numara WhatsApp sahibi değil: ' + n };
-    await client.sendMessage(contact._serialized, new MessageMedia('image/png', media.buffer.toString('base64'), media.filename), { caption: caption || '' });
+    const t = await resolveTarget(number, cfg);
+    if (!t) return { sent: false, reason: 'Hedef bulunamadı (numara WhatsApp sahibi değil veya grup yok)' };
+    await client.sendMessage(t.chatId, new MessageMedia('image/png', media.buffer.toString('base64'), media.filename), { caption: caption || '' });
     return { sent: true };
   } catch (e) {
     db.addLog('WhatsApp görsel GÖNDERİLEMEDİ: ' + e.message);
@@ -148,4 +182,4 @@ async function sendImage(number, media, caption, _retry) {
   }
 }
 
-module.exports = { start, getQr, getStatus, sendText, sendImage, isReady };
+module.exports = { start, getQr, getStatus, sendText, sendImage, isReady, listGroups };

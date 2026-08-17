@@ -267,11 +267,12 @@ app.post('/api/whatsapp/test', async (req, res) => {
 });
 
 app.post('/api/whatsapp/test-barcode', async (req, res) => {
-  const number = (req.body && req.body.number) || db.getSettings().whatsapp.targetNumber;
+  const waCfg = db.getSettings().whatsapp || {};
+  const number = (req.body && req.body.number) || waCfg.targetNumber || '';
   const barcodeText = (req.body && req.body.barcode) || '7270035946910447';
   const market = (req.body && req.body.market) || 'Trendyol';
   const desi = (req.body && req.body.desi) || 1;
-  if (!number) return res.status(400).json({ error: 'Numara gerekli' });
+  if (!number && !waCfg.targetGroupId && !waCfg.targetGroupName) return res.status(400).json({ error: 'Numara veya hedef grup gerekli' });
   await whatsapp.start();
   try {
     const png = await barcode.makeBarcode(barcodeText);
@@ -281,6 +282,12 @@ app.post('/api/whatsapp/test-barcode', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+app.get('/api/whatsapp/groups', async (req, res) => {
+  await whatsapp.start();
+  const g = await whatsapp.listGroups();
+  res.json(g);
 });
 
 // ---- Senkron ----
