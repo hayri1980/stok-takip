@@ -440,8 +440,12 @@ async function checkOrders() {
       for (const o of shipments) {
         const id = String(o.id || o.orderNumber || '');
         if (!id) continue;
-        const cargoTrack = o.cargoTrackingNumber || '';
-        const order = { ...o, orderNumber: String(o.orderNumber || id), cargoTrackingNumber: cargoTrack || '', cargoProviderName: o.cargoCompany || 'idefix', desi: 1, lines: Array.isArray(o.items) ? o.items : [] };
+        // idefix barkodu "IPS" ön eki + shipment id (ör. IPS63396338). cargoTrackingNumber
+        // kargoya verilince dolar; yoksa IPS+id ile barkod üretilir (şoförün barkodu eşleşsin diye).
+        const ipsBarcode = String(o.cargoTrackingNumber || '').startsWith('IPS')
+          ? String(o.cargoTrackingNumber)
+          : ('IPS' + String(o.id || ''));
+        const order = { ...o, orderNumber: String(o.orderNumber || id), cargoTrackingNumber: ipsBarcode, cargoProviderName: o.cargoCompany || 'idefix', desi: 1, lines: Array.isArray(o.items) ? o.items : [] };
         allOrders.push({ market: 'idefix', id, order });
         if (!notified.has(id)) fresh.push({ market: 'idefix', id, order });
       }
