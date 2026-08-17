@@ -7,7 +7,9 @@ function makeBarcode(text, opts = {}) {
       text: String(text),
       scale: opts.scale || 4,
       height: opts.height || 14,
-      includetext: false,
+      includetext: true,
+      textxalign: 'center',
+      textsize: 14,
       paddingwidth: opts.paddingwidth || 24,
       paddingheight: opts.paddingheight || 16
     }, (err, png) => {
