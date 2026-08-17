@@ -469,6 +469,14 @@ async function checkOrders() {
       lines.push('- ' + (o.productName || o.merchantSku) + (o.quantity ? ' x' + o.quantity : ''));
     }
     lines.push('Tutar: ' + (o.totalPrice || o.amount || o.packageTotalPrice || o.totalAmount || '?') + ' TL');
+
+    // Kargo takip bilgisi (Trendyol: cargoTrackingNumber / cargoProviderName)
+    const trackingNo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
+    const cargoProvider = o.cargoProviderName || o.cargoProvider || '';
+    if (trackingNo) {
+      lines.push('Kargo takip no: ' + trackingNo + (cargoProvider ? ' (' + cargoProvider + ')' : ''));
+    }
+
     try {
       const r = await notifier.notify(
         'YENİ SİPARİŞ (' + f.market + '): ' + f.id,
@@ -478,6 +486,32 @@ async function checkOrders() {
       if (r && r.telegram && r.telegram.sent) sent++;
     } catch (e) {
       db.addLog('Sipariş bildirimi gönderilemedi: ' + e.message);
+    }
+
+    // WhatsApp: gerçek kargo takip numarası varsa barkodlu gönder
+    const wcfg = (db.getSettings().whatsapp || {});
+    if (wcfg.enabled && (wcfg.autoSend === true) && trackingNo && f.market === 'Trendyol') {
+      try {
+        const ba = require('./barcode');
+        const wa = require('./whatsapp');
+        const target = wcfg.targetNumber;
+        if (target && !wcfg.notifiedOrderIdsSet) {
+          const notified = new Set(wcfg.notifiedOrderIds || []);
+          if (!notified.has(f.id)) {
+            notified.add(f.id);
+            const png = await ba.makeBarcode(trackingNo);
+            const waRes = await wa.sendImage(target, { buffer: png, filename: 'kargo.png' }, 'Kargo: ' + trackingNo + (cargoProvider ? ' (' + cargoProvider + ')' : ''));
+            if (waRes.sent) {
+              notified.push && void 0;
+              const set = new Set(notified);
+              db.setSettings({ whatsapp: { ...wcfg, notifiedOrderIds: Array.from(set).slice(-500) } });
+              db.addLog('WhatsApp kargo barkodu gönderildi: ' + trackingNo);
+            }
+          }
+        }
+      } catch (waErr) {
+        db.addLog('WhatsApp kargo gönderimi hatası: ' + waErr.message);
+      }
     }
   }
   if (fresh.length) db.addLog(fresh.length + ' yeni sipariş bulundu, ' + sent + ' bildirim gönderildi');

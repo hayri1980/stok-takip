@@ -244,6 +244,7 @@ function mergeSettings(base, partial) {
     sync: { ...base.sync, ...(partial.sync || {}) },
     report: { ...base.report, ...(partial.report || {}) },
     notifications: { ...(base.notifications || {}), ...(partial.notifications || {}) },
+    whatsapp: { ...(base.whatsapp || {}), ...(partial.whatsapp || {}) },
     ignoreBarcodes: Array.isArray(partial.ignoreBarcodes) ? partial.ignoreBarcodes : (Array.isArray(base.ignoreBarcodes) ? base.ignoreBarcodes : []),
     cost: { ...(base.cost || {}), ...(partial.cost || {}) },
     productPush: mergeProductPush(base.productPush || {}, partial.productPush || {})

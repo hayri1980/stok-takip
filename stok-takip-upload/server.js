@@ -11,6 +11,8 @@ const audit = require('./src/audit');
 const trendyol = require('./src/trendyol');
 const iyzico = require('./src/iyzico');
 const kargo = require('./src/kargo');
+const barcode = require('./src/barcode');
+const whatsapp = require('./src/whatsapp');
 
 process.on('uncaughtException', (e) => {
   db.addLog('Beklenmeyen hata (uncaughtException): ' + (e && e.stack ? e.stack : String(e)));
@@ -205,6 +207,50 @@ app.get('/api/log', (req, res) => {
 // ---- Bildirim kuyruğu (masaüstü popup için) ----
 app.get('/api/notifications', (req, res) => {
   res.json({ items: notifier.getRecentNotifications(req.query.after) });
+});
+
+// ---- Makara: barkod + WhatsApp (kargo etiketi ilet) ----
+app.get('/api/barcode/:text', async (req, res) => {
+  try {
+    const png = await barcode.makeBarcode(req.params.text);
+    res.setHeader('Content-Type', 'image/png');
+    res.send(png);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.get('/api/whatsapp/status', (req, res) => {
+  res.json(whatsapp.getStatus());
+});
+
+app.get('/api/whatsapp/qr', (req, res) => {
+  const qr = whatsapp.getQr();
+  if (!qr) return res.json({ qr: null });
+  // QR base64 olarak dön (telefonla okutmak için panelde gösterilir)
+  res.json({ qr });
+});
+
+app.post('/api/whatsapp/test', async (req, res) => {
+  const number = (req.body && req.body.number) || db.getSettings().whatsapp.targetNumber;
+  if (!number) return res.status(400).json({ error: 'Numara gerekli' });
+  await whatsapp.start();
+  const r = await whatsapp.sendText(number, 'Stok Takip test mesajı (WhatsApp bağlantısı denemesi)');
+  res.json(r);
+});
+
+app.post('/api/whatsapp/test-barcode', async (req, res) => {
+  const number = (req.body && req.body.number) || db.getSettings().whatsapp.targetNumber;
+  const barcodeText = (req.body && req.body.barcode) || '7270035946910447';
+  if (!number) return res.status(400).json({ error: 'Numara gerekli' });
+  await whatsapp.start();
+  try {
+    const png = await barcode.makeBarcode(barcodeText);
+    const r = await whatsapp.sendImage(number, { buffer: png, filename: 'kargo.png' }, 'Kargo barkodu: ' + barcodeText);
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ---- Senkron ----
@@ -596,6 +642,9 @@ async function start() {
   db.addLog('Uygulama başlatıldı (port ' + port + ')');
   scheduleCron();
   telegramBot.start();
+  if ((db.getSettings().whatsapp || {}).enabled) {
+    whatsapp.start();
+  }
   if (syncEnabled) {
     for (const kind of sync.MARKETS) {
       try {
