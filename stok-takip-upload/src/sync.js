@@ -241,8 +241,9 @@ async function syncMarketplace(kind) {
         db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
       } else {
         db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
-        // Satış: yazım penceresi DIŞINDA düşüş → gerçek satış.
-        if (diff > 0) {
+        // Satış: yazım penceresi DIŞINDA düşüş → gerçek satış. SADECE Trendyol'dan kaydedilir
+        // (diğer pazarların stokları sistemin kendi yazımlarıyla yönetilir; oradaki dalgalanma sahte satış üretir).
+        if (diff > 0 && kind === 'trendyol') {
           sales.push({
             name: existing.name,
             barcode,
