@@ -49,6 +49,21 @@ function start() {
     qrData = null;
     db.addLog('WhatsApp bağlandı (hazır)');
   });
+  client.on('message_create', (msg) => {
+    if (!msg || !msg.from) return;
+    const from = String(msg.from);
+    if (from.toLowerCase().endsWith('@g.us')) {
+      // Gelen gruptaki mesaj: grup adını/ID'yi ayarlara not edelim (hedef grup bulma amaçlı).
+      const chatName = (msg.getChat && msg.getChat().then ? null : null) ||
+        (msg._data && msg._data.id && msg._data.id.remote) || '';
+      const gid = from;
+      const config = db.getSettings().whatsapp || {};
+      db.addLog('WhatsApp GRUP MESAJI: id=' + gid + (chatName ? ' name=' + chatName : ''));
+      if (!config.foundGroupId || config.foundGroupId !== gid) {
+        db.setSettings({ whatsapp: { ...config, foundGroupId: gid, foundGroupAt: new Date().toISOString() } });
+      }
+    }
+  });
   client.on('auth_failure', (msg) => {
     startError = 'WhatsApp oturum hatası: ' + String(msg || '');
     db.addLog(startError);
