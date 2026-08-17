@@ -738,7 +738,11 @@ async function syncSharedStock() {
     let target;
     if (ty && ty.qty !== null && ty.qty !== undefined) {
       const tyQty = Number(ty.qty);
-      const realDrops = entries.filter(e => {
+      // STOK GİRİŞİ kontrolü: Trendyol stoğu eski ortak değerden (shared) BÜYÜKSE
+      // bu "stok girişi"dir (kullanıcı Trendyol'a elle girdi). O zaman diğer pazarlardaki
+      // eski/düşük değerler yansıma gecikmesidir, GERÇEK SATIŞ SAYILMAZ → hedef yeni TY.
+      const stockEntry = shared !== null && shared !== undefined && tyQty > Number(shared);
+      const realDrops = stockEntry ? [] : entries.filter(e => {
         if (e.kind === 'trendyol') return false;
         const q = Number(e.qty);
         if (q <= 0) return false;
