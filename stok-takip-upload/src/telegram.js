@@ -133,8 +133,6 @@ function healthStatus() {
 }
 
 let lastHealthy = null;
-let lastAlarmTs = 0;
-const ALARM_MIN_INTERVAL_MS = 30 * 60 * 1000;
 const STARTUP_GRACE_MS = 5 * 60 * 1000;
 const bootTs = Date.now();
 
@@ -142,8 +140,6 @@ async function sendAlarm(reason) {
   const tg = db.getSettings().telegram;
   if (!(tg.enabled && tg.chatId)) return;
   if (Date.now() - bootTs < STARTUP_GRACE_MS) return;
-  if (Date.now() - lastAlarmTs < ALARM_MIN_INTERVAL_MS) return;
-  lastAlarmTs = Date.now();
   const h = healthStatus();
   const detail = (reason ? reason + '\n' : '') + (h.issues && h.issues.length ? h.issues.join(' | ') : '');
   if (detail) {
