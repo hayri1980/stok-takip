@@ -397,7 +397,7 @@ async function checkOrders() {
   const notified = new Set(db.getOrderNotifiedIds());
   const firstRun = notified.size === 0;
 
-  // Hepsiburada OMS — siparişler PAKET (package) ucundan gelir; barkod/takip/desi orada
+  // Hepsiburada OMS — siparişler PAKET (package) ucundan gelir; timespan ile (begindate/enddate 0 döner!)
   const hb = db.getSettings().hepsiburada || {};
   if ((hb.merchantId || hb.username) && hb.password) {
     try {
@@ -407,10 +407,9 @@ async function checkOrders() {
         'User-Agent': hb.userAgent || 'caparici_dev',
         'Accept': 'application/json'
       };
-      const p2 = n => String(n).padStart(2, '0');
-      const fmt = (d) => d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+      // timespan=336 → son 14 gün (dokümana göre packages ucu timespan kullanır)
       const url = 'https://oms-external.hepsiburada.com/packages/merchantid/' + encodeURIComponent(user) +
-        '?offset=0&limit=100&begindate=' + encodeURIComponent(fmt(startDate)) + '&enddate=' + encodeURIComponent(fmt(endDate));
+        '?timespan=336&limit=100&Offset=0';
       const res = await fetch(url, { headers });
       if (res.ok) {
         const data = await res.json();
@@ -420,7 +419,7 @@ async function checkOrders() {
           if (!id || notified.has(id)) continue;
           // kargo takip no: barcode (paketin barkodu) öncelik; yoksa trackingInfoCode
           const cargoTrack = o.barcode || o.trackingInfoCode || o.packageNumber || '';
-          // order için paketi olduğu gibi taşı (id = sipariş no; market öneki notified'da zaten var)
+          // order için paketi olduğu gibi taşı (id = paket no; market öneki notified'da var)
           fresh.push({ market: 'Hepsiburada', id: String(o.orderNumber || o.packageNumber || id), order: { ...o, orderNumber: String(o.orderNumber || o.packageNumber || id), cargoTrackingNumber: cargoTrack, cargoProviderName: o.cargoCompany || 'Hepsiburada', desi: o.totalDeci || o.deci || 1, lines: Array.isArray(o.items) ? o.items : [] } });
         }
       }
