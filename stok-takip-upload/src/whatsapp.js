@@ -113,8 +113,28 @@ async function ensureNumber(cfg) {
 }
 
 async function resolveTarget(number, cfg) {
-  // Öncelik: (1) ayardaki grup ID (@g.us), (2) ayardaki grup ADI (gruplarda ara),
-  // (3) parametre olarak verilen hedef (numara ya da @g.us).
+  // Öncelik: (1) davet linki/kodu (acceptInvite ile çöz), (2) ayardaki grup ID (@g.us),
+  // (3) ayardaki grup ADI (gruplarda ara), (4) numara / @g.us.
+  const invite = String(cfg.targetGroupInvite || '').trim();
+  if (invite) {
+    const code = invite.toLowerCase().startsWith('https://chat.whatsapp.com/')
+      ? invite.slice('https://chat.whatsapp.com/'.length).trim()
+      : invite;
+    if (code) {
+      try {
+        const joined = await client.acceptInvite(code);
+        // acceptInvite grupta zaten üyesek "already in group" hatası verir; yine de ID dönebiliyor.
+        const id = (joined && joined.id && joined.id._serialized) || '';
+        if (id) return { chatId: id };
+      } catch (e) {
+        // Hata mesajında gid/kimlik arayalım
+        const s = String((e && e.message) || e);
+        const m = s.match(/@g\.us|([0-9]{16,})@/);
+        if (m) return { chatId: m[0] };
+        db.addLog('WhatsApp davet çözülemedi: ' + s.slice(0, 200));
+      }
+    }
+  }
   const grpId = String(cfg.targetGroupId || '').trim();
   if (grpId.toLowerCase().endsWith('@g.us')) return { chatId: grpId };
   const grpName = String(cfg.targetGroupName || '').trim();
@@ -219,4 +239,9 @@ async function sendImage(number, media, caption, _retry) {
   }
 }
 
-module.exports = { start, getQr, getStatus, sendText, sendImage, isReady, listGroups };
+async function acceptInvite(code) {
+  if (!isReady()) throw new Error('WhatsApp bağlı değil (QR okutulmadı)');
+  return client.acceptInvite(code);
+}
+
+module.exports = { start, getQr, getStatus, sendText, sendImage, isReady, listGroups, acceptInvite };

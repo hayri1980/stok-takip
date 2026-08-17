@@ -290,6 +290,35 @@ app.get('/api/whatsapp/groups', async (req, res) => {
   res.json(g);
 });
 
+app.post('/api/whatsapp/use-invite', async (req, res) => {
+  const invite = (req.body && req.body.invite) || '';
+  if (!invite) return res.status(400).json({ error: 'Davet linki/kodu gerekli' });
+  await whatsapp.start();
+  const wa = db.getSettings().whatsapp || {};
+  const code = invite.toLowerCase().startsWith('https://chat.whatsapp.com/') ? invite.slice('https://chat.whatsapp.com/'.length) : invite;
+  try {
+    const joined = await whatsapp.acceptInvite(code);
+    const id = (joined && joined.id && joined.id._serialized) || '';
+    if (id) {
+      db.setSettings({ whatsapp: { ...wa, targetGroupId: id, targetGroupInvite: invite } });
+      res.json({ ok: true, groupId: id, name: (joined && joined.name) || '' });
+    } else {
+      res.status(500).json({ error: 'Grup ID çözülemedi' });
+    }
+  } catch (e) {
+    let id = null;
+    const s = String((e && e.message) || e);
+    const m = s.match(/([0-9]{10,})@g\.us/);
+    if (m) id = m[0];
+    if (id) {
+      db.setSettings({ whatsapp: { ...wa, targetGroupId: id, targetGroupInvite: invite } });
+      res.json({ ok: true, groupId: id, note: 'zaten üyeyiz (hata mesajından id çözüldü)' });
+    } else {
+      res.status(500).json({ error: s.slice(0, 300) });
+    }
+  }
+});
+
 // ---- Senkron ----
 app.post('/api/sync', async (req, res) => {
   const results = {};
