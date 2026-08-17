@@ -692,6 +692,7 @@ function normalizeBarcodeKey(s) {
 
 const lastStockWrite = new Map();
 const STOCK_WRITE_GRACE_MS = 60 * 60 * 1000;
+let lastSharedLogTs = 0;
 
 function getStockWrite(kind, barcode) {
   return lastStockWrite.get(kind + ':' + normalizeBarcodeKey(barcode)) || null;
@@ -869,13 +870,28 @@ async function syncSharedStock() {
     }
   }
 
-  if (written > 0 || errors.length > 0 || failures.length > 0) {
+  // Log throttling: başarılı senkron (written>0) her zaman loglanır; sadece hata durumunda
+  // aynı mesajın her 15 sn'de logu doldurmasını önlemek için en fazla 10 dk'da bir loglanır
+  // (PTT rate-limit "5 dakika sonra gönderin" gibi tekrarlayan redler logu doldurup,
+  // gerçek olayları/alarm kayıtlarını silidiyordu).
+  if (written > 0) {
     const msg = 'Ortak stok senkronu: ' + written + ' ürün eşitlendi, ' +
       matched + ' eşleşti, ' + skippedSingle + ' tek pazarda listelenen atlandı';
     const errDetail = errors.slice(0, 5).map(e => e).join(' | ');
     db.addLog(msg +
       (errors.length > 0 ? ', ' + errors.length + ' hata' + (errDetail ? ': ' + errDetail : '') : '') +
       (failures.length > 0 ? ', ' + failures.length + ' pazar arızalı: ' + failures.join(', ') : ''));
+  } else if (errors.length > 0 || failures.length > 0) {
+    const nowTs = Date.now();
+    if (nowTs - lastSharedLogTs > 10 * 60 * 1000) {
+      lastSharedLogTs = nowTs;
+      const msg = 'Ortak stok senkronu: ' + written + ' ürün eşitlendi, ' +
+        matched + ' eşleşti, ' + skippedSingle + ' tek pazarda listelenen atlandı';
+      const errDetail = errors.slice(0, 5).map(e => e).join(' | ');
+      db.addLog(msg +
+        (errors.length > 0 ? ', ' + errors.length + ' hata' + (errDetail ? ': ' + errDetail : '') : '') +
+        (failures.length > 0 ? ', ' + failures.length + ' pazar arızalı: ' + failures.join(', ') : ''));
+    }
   }
 
   return { written, matched, skippedSingle, errors, failures };
