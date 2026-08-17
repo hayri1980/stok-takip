@@ -394,6 +394,7 @@ async function checkOrders() {
   const endDate = new Date();
   const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fresh = [];
+  const allOrders = [];
   const notified = new Set(db.getOrderNotifiedIds());
   const firstRun = notified.size === 0;
 
@@ -416,15 +417,36 @@ async function checkOrders() {
         const list = Array.isArray(data) ? data : ((data && data.items) || []);
         for (const o of list) {
           const id = String(o.orderNumber || o.packageNumber || o.id || '');
-          if (!id || notified.has(id)) continue;
+          if (!id) continue;
           // kargo takip no: barcode (paketin barkodu) öncelik; yoksa trackingInfoCode
           const cargoTrack = o.barcode || o.trackingInfoCode || o.packageNumber || '';
           // order için paketi olduğu gibi taşı (id = paket no; market öneki notified'da var)
-          fresh.push({ market: 'Hepsiburada', id: String(o.orderNumber || o.packageNumber || id), order: { ...o, orderNumber: String(o.orderNumber || o.packageNumber || id), cargoTrackingNumber: cargoTrack, cargoProviderName: o.cargoCompany || 'Hepsiburada', desi: o.totalDeci || o.deci || 1, lines: Array.isArray(o.items) ? o.items : [] } });
+          const order = { ...o, orderNumber: String(o.orderNumber || o.packageNumber || id), cargoTrackingNumber: cargoTrack, cargoProviderName: o.cargoCompany || 'Hepsiburada', desi: o.totalDeci || o.deci || 1, lines: Array.isArray(o.items) ? o.items : [] };
+          const fid = String(o.orderNumber || o.packageNumber || id);
+          allOrders.push({ market: 'Hepsiburada', id: fid, order });
+          if (!notified.has(id)) fresh.push({ market: 'Hepsiburada', id: fid, order });
         }
       }
     } catch (e) {
       db.addLog('HB sipariş çekme hatası: ' + e.message);
+    }
+  }
+
+  // idefix OMS — shipment list (cargoTrackingNumber kargoya verilince dolar; WhatsApp barkodu için uygun)
+  const ix = db.getSettings().idefix || {};
+  if (ix.apiKey && ix.apiSecret && ix.vendorId) {
+    try {
+      const shipments = await idefix.fetchOrders(ix);
+      for (const o of shipments) {
+        const id = String(o.id || o.orderNumber || '');
+        if (!id) continue;
+        const cargoTrack = o.cargoTrackingNumber || '';
+        const order = { ...o, orderNumber: String(o.orderNumber || id), cargoTrackingNumber: cargoTrack || '', cargoProviderName: o.cargoCompany || 'idefix', desi: 1, lines: Array.isArray(o.items) ? o.items : [] };
+        allOrders.push({ market: 'idefix', id, order });
+        if (!notified.has(id)) fresh.push({ market: 'idefix', id, order });
+      }
+    } catch (e) {
+      db.addLog('idefix sipariş çekme hatası: ' + e.message);
     }
   }
 
@@ -441,8 +463,9 @@ async function checkOrders() {
         const data = await res.json();
         for (const o of (data && data.content) || []) {
           const id = String(o.orderNumber || o.id || '');
-          if (!id || notified.has(id)) continue;
-          fresh.push({ market: 'Trendyol', id, order: o });
+          if (!id) continue;
+          allOrders.push({ market: 'Trendyol', id, order: o });
+          if (!notified.has(id)) fresh.push({ market: 'Trendyol', id, order: o });
         }
       }
     } catch (e) {
@@ -493,36 +516,41 @@ async function checkOrders() {
     } catch (e) {
       db.addLog('Sipariş bildirimi gönderilemedi: ' + e.message);
     }
+  }
+  if (fresh.length) db.addLog(fresh.length + ' yeni sipariş bulundu, ' + sent + ' bildirim gönderildi');
 
-    // WhatsApp: gerçek kargo takip numarası varsa barkodlu gönder (tüm pazaryerleri)
-    const wcfg = (db.getSettings().whatsapp || {});
-    if (wcfg.enabled && (wcfg.autoSend === true) && trackingNo) {
+  // WhatsApp barkod gönderimi — fresh dışında TÜM tespit edilen siparişlere uygulanır.
+  // (orderNotifiedIds'ten bağımsız; takip no sonradan dolarsa bile gönderilir — örn. idefix picking→kargo)
+  const wcfgAll = (db.getSettings().whatsapp || {});
+  if (wcfgAll.enabled && wcfgAll.autoSend === true && wcfgAll.targetNumber) {
+    const waNotified = new Set(wcfgAll.notifiedOrderIds || []);
+    let waSent = 0;
+    for (const f of allOrders) {
+      const o = f.order || {};
+      const trackingNo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
+      if (!trackingNo) continue;
+      const nid = f.market + ':' + f.id;
+      if (waNotified.has(nid)) continue;
       try {
         const ba = require('./barcode');
         const wa = require('./whatsapp');
-        const target = wcfg.targetNumber;
-        if (target && !wcfg.notifiedOrderIdsSet) {
-          const notified = new Set(wcfg.notifiedOrderIds || []);
-          const nid = f.market + ':' + f.id;
-          if (!notified.has(nid)) {
-            notified.add(nid);
-            const png = await ba.makeBarcode(trackingNo);
-            const caption = (f.market || 'Pazaryeri') + '\nDesi: 1';
-            const waRes = await wa.sendImage(target, { buffer: png, filename: 'kargo.png' }, caption);
-            if (waRes.sent) {
-              notified.push && void 0;
-              const set = new Set(notified);
-              db.setSettings({ whatsapp: { ...wcfg, notifiedOrderIds: Array.from(set).slice(-500) } });
-              db.addLog('WhatsApp kargo barkodu gönderildi: ' + trackingNo);
-            }
-          }
+        const png = await ba.makeBarcode(trackingNo);
+        const caption = (f.market || 'Pazaryeri') + '\nDesi: 1';
+        const waRes = await wa.sendImage(wcfgAll.targetNumber, { buffer: png, filename: 'kargo.png' }, caption);
+        if (waRes.sent) {
+          waNotified.add(nid);
+          db.setSettings({ whatsapp: { ...wcfgAll, notifiedOrderIds: Array.from(waNotified).slice(-500) } });
+          db.addLog('WhatsApp kargo barkodu gönderildi: ' + trackingNo + ' (' + f.market + ')');
+          waSent++;
         }
       } catch (waErr) {
         db.addLog('WhatsApp kargo gönderimi hatası: ' + waErr.message);
       }
     }
+    if (waSent > 0) db.addLog('WhatsApp: ' + waSent + ' kargo barkodu gönderildi');
+    return { total: fresh.length, sent, waSent };
   }
-  if (fresh.length) db.addLog(fresh.length + ' yeni sipariş bulundu, ' + sent + ' bildirim gönderildi');
+
   return { total: fresh.length, sent };
 }
 

@@ -42,6 +42,17 @@ async function getPool(cfg) {
   return items;
 }
 
+async function fetchOrders(cfg, opts = {}) {
+  const qs = new URLSearchParams({
+    limit: String(opts.limit || 100),
+    sortByField: 'id',
+    sortDirection: 'desc',
+    ...(opts.state ? { state: opts.state } : {})
+  }).toString();
+  const data = await getJson(BASE + '/oms/' + encodeURIComponent(cfg.vendorId) + '/list?' + qs, cfg);
+  return (data && data.items) || [];
+}
+
 async function fetchStock(cfg) {
   const stockByBarcode = new Map();
   const items = await getInventory(cfg);
@@ -162,4 +173,4 @@ async function createProduct(cfg, p) {
   return true;
 }
 
-module.exports = { fetchStock, fetchProducts, updateStock, createProduct };
+module.exports = { fetchStock, fetchProducts, updateStock, createProduct, fetchOrders };
