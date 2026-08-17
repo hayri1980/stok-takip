@@ -91,8 +91,9 @@ async function sendText(number, text) {
   if (chk.err) return { sent: false, reason: chk.err };
   try {
     const n = parseNumber(number);
-    const chat = await client.getChatIdByNumber(n);
-    await client.sendMessage(chat, String(text));
+    const contact = await client.getNumberId(n);
+    if (!contact || !contact._serialized) return { sent: false, reason: 'Numara WhatsApp sahibi değil: ' + n };
+    await client.sendMessage(contact._serialized, String(text));
     return { sent: true };
   } catch (e) {
     db.addLog('WhatsApp mesaj GÖNDERİLEMEDİ: ' + e.message);
@@ -106,8 +107,9 @@ async function sendImage(number, media, caption) {
   if (chk.err) return { sent: false, reason: chk.err };
   try {
     const n = parseNumber(number);
-    const chat = await client.getChatIdByNumber(n);
-    await client.sendMessage(chat, new MessageMedia('image/png', media.buffer.toString('base64'), media.filename), { caption: caption || '' });
+    const contact = await client.getNumberId(n);
+    if (!contact || !contact._serialized) return { sent: false, reason: 'Numara WhatsApp sahibi değil: ' + n };
+    await client.sendMessage(contact._serialized, new MessageMedia('image/png', media.buffer.toString('base64'), media.filename), { caption: caption || '' });
     return { sent: true };
   } catch (e) {
     db.addLog('WhatsApp görsel GÖNDERİLEMEDİ: ' + e.message);
