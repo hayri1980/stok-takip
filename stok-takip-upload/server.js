@@ -231,6 +231,33 @@ app.get('/api/whatsapp/qr', (req, res) => {
   res.json({ qr });
 });
 
+// QR'i PNG goruntu olarak dondur (canli QR sayfasi icin)
+app.get('/api/whatsapp/qr-image', async (req, res) => {
+  const qr = whatsapp.getQr();
+  if (!qr) return res.status(404).json({ qr: null });
+  try {
+    const QRCode = require('qrcode');
+    const png = await QRCode.toBuffer(qr, { width: 360, errorCorrectionLevel: 'L', margin: 2 });
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.send(png);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Canlı QR sayfası (otomatik yenilenir — kullanıcı telefondan okutur)
+app.get('/whatsapp-qr', (req, res) => {
+  res.send(`<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WhatsApp QR — Stok Takip</title><style>body{font-family:sans-serif;background:#075e54;color:#fff;display:flex;flex-direction:column;align-items:center;padding:16px}h1{font-size:20px}img#qr{background:#fff;padding:14px;border-radius:12px;max-width:92vw}button{padding:10px 22px;font-size:16px;margin:6px;border:none;border-radius:8px;cursor:pointer}#st{font-size:14px;opacity:.9;margin-top:10px}</style></head><body><h1>WhatsApp bağlamak için telefonunun WhatsApp'ıyla oku</h1><img id="qr" alt="QR"><div id="st">QR yükleniyor…</div><div><button onclick="refresh()">Yenile</button></div><script>
+const IMG=document.getElementById('qr'),ST=document.getElementById('st');
+async function refresh(){
+  try{const r=await fetch('/api/whatsapp/qr-image',{cache:'no-store'});if(r.status===404){ST.textContent='Bağlandı ya da QR yok.';IMG.alt='yok';return;}IMG.src=URL.createObjectURL(await r.blob());ST.textContent='OKUT — QR sürekli güncelleniyor (1-2 sn).';}
+  catch(e){ST.textContent='Hata: '+e.message;}
+}
+refresh();setInterval(refresh,4500);
+</script></body></html>`);
+});
+
 app.post('/api/whatsapp/test', async (req, res) => {
   const number = (req.body && req.body.number) || db.getSettings().whatsapp.targetNumber;
   if (!number) return res.status(400).json({ error: 'Numara gerekli' });
