@@ -386,6 +386,7 @@ function toIsoDate(d) {
 }
 
 let lastOrderCheckTs = 0;
+let lastWindowClosedLogTs = 0;
 
 // WhatsApp kargo barkodu GÖNDERİM PENCERESİ (kargocuya teslim zamanına göre)
 // Hafta içi (Pzt-Cum): 09:00-16:00  | Cumartesi: 09:00-14:00 | Pazar: kapalı (birikir)
@@ -621,8 +622,13 @@ async function checkOrders() {
 
     if (waSent > 0) {
       db.addLog('WhatsApp: ' + waSent + ' kargo barkodu gönderildi' + (pending.length ? ', ' + pending.length + ' kuyrukta' : ''));
-    } else if (!win && allOrders.length) {
-      db.addLog('WhatsApp gönderim penceresi kapalı — ' + pending.length + ' barkod kuyrukta (sabah gönderilecek)');
+    } else if (!win && pending.length > 0) {
+      // Pencere kapalı ve kuyrukta barkod var → nadiren bilgilendir (spam değil)
+      const ts = Date.now();
+      if (ts - lastWindowClosedLogTs > 10 * 60 * 1000) {
+        lastWindowClosedLogTs = ts;
+        db.addLog('WhatsApp gönderim penceresi kapalı — ' + pending.length + ' barkod kuyrukta (sabah gönderilecek)');
+      }
     }
     return { total: fresh.length, sent, waSent, pending: pending.length };
   }

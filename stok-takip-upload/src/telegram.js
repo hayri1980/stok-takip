@@ -142,6 +142,7 @@ async function sendAlarm(reason) {
   if (Date.now() - bootTs < STARTUP_GRACE_MS) return;
   const h = healthStatus();
   const detail = (reason ? reason + '\n' : '') + (h.issues && h.issues.length ? h.issues.join(' | ') : '');
+  db.addLog('ALARM TETIKLENDI: ' + (detail || 'sebepsiz') + ' | syncAge=' + (h.syncAge === null ? 'null' : h.syncAge + 'dk'));
   if (detail) {
     try {
       await sendTelegramTo(tg.chatId,
