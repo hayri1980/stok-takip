@@ -284,6 +284,11 @@ app.post('/api/whatsapp/test-barcode', async (req, res) => {
   }
 });
 
+app.get('/api/whatsapp/profile', async (req, res) => {
+  await whatsapp.start();
+  res.json(whatsapp.getProfile());
+});
+
 app.get('/api/whatsapp/groups', async (req, res) => {
   await whatsapp.start();
   const g = await whatsapp.listGroups();

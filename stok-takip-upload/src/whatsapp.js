@@ -239,9 +239,22 @@ async function sendImage(number, media, caption, _retry) {
   }
 }
 
+async function getProfile() {
+  if (!isReady()) return { error: 'WhatsApp bağlı değil' };
+  try {
+    return {
+      wid: (client.info && client.info.wid && client.info.wid._serialized) || '',
+      pushname: (client.info && client.info.pushname) || '',
+      phone: (client.info && client.info.me && client.info.me.user) || ''
+    };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
 async function acceptInvite(code) {
   if (!isReady()) throw new Error('WhatsApp bağlı değil (QR okutulmadı)');
   return client.acceptInvite(code);
 }
 
-module.exports = { start, getQr, getStatus, sendText, sendImage, isReady, listGroups, acceptInvite };
+module.exports = { start, getQr, getStatus, sendText, sendImage, isReady, listGroups, acceptInvite, getProfile };
