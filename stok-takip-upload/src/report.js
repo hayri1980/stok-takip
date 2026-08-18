@@ -81,23 +81,18 @@ function buildCriticalStockText() {
   const settings = db.getSettings();
   const threshold = Math.max(0, Number(settings.sync.threshold) || 1);
   const products = db.getProducts();
-  const critical = products.filter(p => sync.MARKETS.some(k => {
-    const v = p[k + 'Stock'];
+  // Kritik stok bölümü sadece Trendyol stoğuna bakar (diğer pazaryerleri Trendyol ile eşit).
+  const critical = products.filter(p => {
+    const v = p.trendyolStock;
     return v !== null && v !== undefined && Number(v) <= threshold;
-  }));
+  });
   if (critical.length === 0) return null;
   const lines = [];
   lines.push('');
   lines.push('KRITIK STOK HATIRLATMALARI');
   lines.push('--------------------------------');
   for (const p of critical) {
-    const details = sync.MARKETS
-      .filter(k => {
-        const v = p[k + 'Stock'];
-        return v !== null && v !== undefined && Number(v) <= threshold;
-      })
-      .map(k => sync.kindLabel(k) + ': ' + p[k + 'Stock']);
-    lines.push(p.barcode + (p.price ? ' (' + p.price + ' TL)' : '') + ' - ' + details.join(', '));
+    lines.push(p.barcode + (p.price ? ' (' + p.price + ' TL)' : '') + ' - Trendyol: ' + p.trendyolStock);
   }
   return lines.join('\n');
 }

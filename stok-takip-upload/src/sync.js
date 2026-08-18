@@ -315,35 +315,36 @@ async function checkStocks() {
   const settings = db.getSettings();
   const threshold = Math.max(0, Number(settings.sync.threshold) || 1);
   const products = db.getProducts();
+  // Kritik stok uyarısı SADECE Trendyol'dan gelir (diğer pazaryerleri Trendyol ile eşit olduğu için
+  // her pazardan uyarı gelseydi aynı ürün için üst üste tekrarlı bildirim olurdu).
+  const kind = 'trendyol';
   for (const p of products) {
-    for (const kind of MARKETS) {
-      const qty = p[stockField(kind)];
-      if (qty === null || qty === undefined) continue;
-      const stock = Number(qty);
+    const qty = p[stockField(kind)];
+    if (qty === null || qty === undefined) continue;
+    const stock = Number(qty);
 
-      if (stock <= threshold) {
-        if (!p[notifiedField(kind)]) {
-          db.updateProduct(p.id, { [notifiedField(kind)]: true });
-          const market = kindLabel(kind);
-          const subject = 'KRİTİK STOK: ' + p.name + ' (' + market + ')';
-          const html =
-            '<h3>Dikkat! Stok kritik seviyede</h3>' +
-            '<p><b>Ürün:</b> ' + p.name + '</p>' +
-            '<p><b>Barkod:</b> ' + p.barcode + '</p>' +
-            '<p><b>Pazar yeri:</b> ' + market + '</p>' +
-            '<p><b>Kalan stok:</b> ' + stock + '</p>' +
-            '<p style="color:#c0392b"><b>' + market + ' mağazasında stok ' + threshold + ' ve altına düştü. Lütfen stok girişi yap.</b></p>';
-          const text =
-            'KRITIK STOK: ' + p.name + ' (' + market + ')\n' +
-            'Barkod: ' + p.barcode + '\n' +
-            'Kalan stok: ' + stock + '\n' +
-            market + ' magazasinda stok ' + threshold + ' ve altina dustu. Lutfen stok girisi yap.';
-          await notifier.notify(subject, html, text);
-        }
-      } else {
-        if (p[notifiedField(kind)]) {
-          db.updateProduct(p.id, { [notifiedField(kind)]: false });
-        }
+    if (stock <= threshold) {
+      if (!p[notifiedField(kind)]) {
+        db.updateProduct(p.id, { [notifiedField(kind)]: true });
+        const market = kindLabel(kind);
+        const subject = 'KRİTİK STOK: ' + p.name + ' (' + market + ')';
+        const html =
+          '<h3>Dikkat! Stok kritik seviyede</h3>' +
+          '<p><b>Ürün:</b> ' + p.name + '</p>' +
+          '<p><b>Barkod:</b> ' + p.barcode + '</p>' +
+          '<p><b>Pazar yeri:</b> ' + market + '</p>' +
+          '<p><b>Kalan stok:</b> ' + stock + '</p>' +
+          '<p style="color:#c0392b"><b>' + market + ' mağazasında stok ' + threshold + ' ve altına düştü. Lütfen stok girişi yap.</b></p>';
+        const text =
+          'KRITIK STOK: ' + p.name + ' (' + market + ')\n' +
+          'Barkod: ' + p.barcode + '\n' +
+          'Kalan stok: ' + stock + '\n' +
+          market + ' magazasinda stok ' + threshold + ' ve altina dustu. Lutfen stok girisi yap.';
+        await notifier.notify(subject, html, text);
+      }
+    } else {
+      if (p[notifiedField(kind)]) {
+        db.updateProduct(p.id, { [notifiedField(kind)]: false });
       }
     }
   }
