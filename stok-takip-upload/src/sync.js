@@ -401,6 +401,17 @@ function isWhatsAppSendWindow() {
   return mins >= 9 * 60 && mins < 16 * 60;
 }
 
+// Kargo gönderim SIRASI: kullanıcı isteği → önce Trendyol, sonra Hepsiburada, sonra idefix.
+// Aynı pazaryeri içinde sıra korunur (stabil sort); diğer pazaryerleri en sona eklenir.
+const WHATSAPP_MARKET_ORDER = ['Trendyol', 'Hepsiburada', 'idefix'];
+function whatsappMarketPriority(market) {
+  const idx = WHATSAPP_MARKET_ORDER.indexOf(market);
+  return idx === -1 ? WHATSAPP_MARKET_ORDER.length : idx;
+}
+function sortByMarketPriority(items, marketOf) {
+  return items.slice().sort((a, b) => whatsappMarketPriority(marketOf(a)) - whatsappMarketPriority(marketOf(b)));
+}
+
 async function checkOrders() {
   if (Date.now() - lastOrderCheckTs < 15 * 1000) return { skipped: true, reason: 'henüz zamanı değil' };
   lastOrderCheckTs = Date.now();
@@ -566,9 +577,11 @@ async function checkOrders() {
     }
 
     // 1) Bekleyen kuyruktaki siparişleri gönder (telefon açılmış/bağlanmış olabilir)
+    //    Sıra: önce Trendyol, sonra Hepsiburada, sonra idefix (kullanıcı isteği)
     if (win) {
       const remaining = [];
-      for (const p of pending) {
+      const orderedPending = sortByMarketPriority(pending, p => p.market);
+      for (const p of orderedPending) {
         if (waNotified.has(p.nid)) continue;
         const fe = { order: { cargoTrackingNumber: p.trackingNo, _market: p.market } };
         try {
@@ -588,8 +601,10 @@ async function checkOrders() {
       pending = remaining;
     }
 
-    // 2) Yeni tespit edilen siparişler: pencere içindeyse hemen; dışındaysa kuyruğa
-    for (const f of allOrders) {
+    // 2) Yeni tespit edilen siparişler: pencere içindeyse hemen; dışındaysa kuyruğa.
+    //    Sıra: önce Trendyol, sonra Hepsiburada, sonra idefix (kullanıcı isteği)
+    const orderedAll = sortByMarketPriority(allOrders, f => f.market);
+    for (const f of orderedAll) {
       if (f.market !== 'idefix' && notified.has(f.id)) continue;
       const o = f.order || {};
       const trackingNo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
