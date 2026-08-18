@@ -515,6 +515,14 @@ async function checkOrders() {
           }
           allOrders.push({ market: 'Hepsiburada', id: fid, order });
           if (!notified.has(id)) fresh.push({ market: 'Hepsiburada', id: fid, order });
+          await trackShipment({
+            market: 'Hepsiburada',
+            orderNo: fid,
+            trackingNo: cargoTrack,
+            status: o.status || o.currentStatus || o.packageStatus || '',
+            statusDescription: o.statusDescription || '',
+            provider: o.cargoCompany || 'Hepsiburada'
+          });
         }
       }
     } catch (e) {
@@ -542,6 +550,14 @@ async function checkOrders() {
         }
         allOrders.push({ market: 'idefix', id, order });
         if (!notified.has(id)) fresh.push({ market: 'idefix', id, order });
+        await trackShipment({
+          market: 'idefix',
+          orderNo: id,
+          trackingNo: ipsBarcode,
+          status: o.status || '',
+          statusDescription: o.statusDescription || '',
+          provider: o.cargoCompany || 'idefix'
+        });
       }
     } catch (e) {
       db.addLog('idefix sipariş çekme hatası: ' + e.message);
@@ -828,11 +844,15 @@ function isCancelledStatus(st) {
 // shippedAt = sistemin takip numarasını İLK gördüğü an (kargoya veriliş anı).
 const MISSED_DELIVERY_DAYS = 5;
 
-async function trackShipment({ market, orderNo, trackingNo, status, provider }) {
+async function trackShipment({ market, orderNo, trackingNo, status, statusDescription, provider }) {
   if (!trackingNo || !orderNo) return;
-  const now = Date.now();
+  // Teslim durumu bilinemeyen siparişi izleme (yanlış "5 gün" alarmı üretmemek için)
   const st = String(status || '').toLowerCase();
-  const delivered = st.indexOf('deliver') !== -1 || st === 'delivered';
+  const stDesc = String(statusDescription || '').toLowerCase();
+  if (!st && !stDesc) return;
+  const now = Date.now();
+  const delivered = st.indexOf('deliver') !== -1 || st === 'delivered' ||
+    stDesc.indexOf('deliver') !== -1 || stDesc.indexOf('teslim') !== -1;
   const old = db.getShipment(market, orderNo);
   const rec = {
     orderNo: String(orderNo),
@@ -840,6 +860,7 @@ async function trackShipment({ market, orderNo, trackingNo, status, provider }) 
     trackingNo: String(trackingNo),
     provider: String(provider || ''),
     status: st,
+    statusDescription: stDesc,
     shippedAt: (old && old.shippedAt) || now,
     delivered: delivered || !!(old && old.delivered),
     deliveredAt: delivered ? now : (old && old.deliveredAt) || null,
