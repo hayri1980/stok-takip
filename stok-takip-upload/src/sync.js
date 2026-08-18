@@ -391,13 +391,13 @@ let lastOrderCheckTs = 0;
 let lastWindowClosedLogTs = 0;
 
 // WhatsApp kargo barkodu GÖNDERİM PENCERESİ (kargocuya teslim zamanına göre)
-// Hafta içi (Pzt-Cum): 09:00-17:30  | Cumartesi: 09:00-14:00 | Pazar: kapalı (birikir)
+// Hafta içi (Pzt-Cum): 09:00-17:30  | Cumartesi: 09:00-15:00 | Pazar: kapalı (birikir)
 function isWhatsAppSendWindow() {
   const now = new Date();
   const day = now.getDay(); // 0=Pazar, 6=Cumartesi
   const mins = now.getHours() * 60 + now.getMinutes();
   if (day === 0) return false;
-  if (day === 6) return mins >= 9 * 60 && mins < 14 * 60;
+  if (day === 6) return mins >= 9 * 60 && mins < 15 * 60;
   return mins >= 9 * 60 && mins < 17.5 * 60;
 }
 
