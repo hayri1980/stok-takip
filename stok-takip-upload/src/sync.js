@@ -480,6 +480,7 @@ async function checkOrders() {
   const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const fresh = [];
   const allOrders = [];
+  const cancelledIds = new Set();
   const notified = new Set(db.getOrderNotifiedIds());
   const firstRun = notified.size === 0;
 
@@ -508,6 +509,10 @@ async function checkOrders() {
           // order için paketi olduğu gibi taşı (id = paket no; market öneki notified'da var)
           const order = { ...o, orderNumber: String(o.orderNumber || o.packageNumber || id), cargoTrackingNumber: cargoTrack, cargoProviderName: o.cargoCompany || 'Hepsiburada', desi: o.totalDeci || o.deci || 1, lines: Array.isArray(o.items) ? o.items : [] };
           const fid = String(o.orderNumber || o.packageNumber || id);
+          if (isCancelledStatus(o.status)) {
+            cancelledIds.add('Hepsiburada:' + fid);
+            continue;
+          }
           allOrders.push({ market: 'Hepsiburada', id: fid, order });
           if (!notified.has(id)) fresh.push({ market: 'Hepsiburada', id: fid, order });
         }
@@ -531,6 +536,10 @@ async function checkOrders() {
           ? String(o.cargoTrackingNumber)
           : ('IPS' + String(o.id || ''));
         const order = { ...o, orderNumber: String(o.orderNumber || id), cargoTrackingNumber: ipsBarcode, cargoProviderName: o.cargoCompany || 'idefix', desi: 1, lines: Array.isArray(o.items) ? o.items : [] };
+        if (isCancelledStatus(o.status)) {
+          cancelledIds.add('idefix:' + id);
+          continue;
+        }
         allOrders.push({ market: 'idefix', id, order });
         if (!notified.has(id)) fresh.push({ market: 'idefix', id, order });
       }
@@ -554,8 +563,8 @@ async function checkOrders() {
           const id = String(o.orderNumber || o.id || '');
           if (!id) continue;
           // İptal/red edilmiş siparişleri BİLDİRİM ve WhatsApp kuyruğundan çıkar
-          const st = String(o.status || '').toLowerCase();
-          if (st === 'cancelled' || st === 'rejected' || st === 'canceled') {
+          if (isCancelledStatus(o.status)) {
+            cancelledIds.add('Trendyol:' + id);
             continue;
           }
           allOrders.push({ market: 'Trendyol', id, order: o });
@@ -643,11 +652,16 @@ async function checkOrders() {
 
     // 1) Bekleyen kuyruktaki siparişleri gönder (telefon açılmış/bağlanmış olabilir)
     //    Sıra: önce Trendyol, sonra Hepsiburada, sonra idefix (kullanıcı isteği)
+    //    GÖNDERMEDEN ÖNCE: canlı sipariş durumuna göre iptal edilenler kuyruktan silinir.
     if (win) {
       const remaining = [];
       const orderedPending = sortByMarketPriority(pending, p => p.market);
       for (const p of orderedPending) {
         if (waNotified.has(p.nid)) continue;
+        if (cancelledIds.has(p.nid)) {
+          db.addLog('İptal edilen sipariş kuyruktan çıkarıldı: ' + p.nid + ' (' + p.trackingNo + ')');
+          continue;
+        }
         const fe = { order: { cargoTrackingNumber: p.trackingNo, _market: p.market } };
         try {
           const ok = await trySend(fe);
@@ -794,6 +808,12 @@ async function checkQuestions() {
 
 function normalizeBarcodeKey(s) {
   return String(s || '').trim().toLowerCase();
+}
+
+// Sipariş durumu iptal/red mi? (kargo göndermeden önce kuyruk temizliği için)
+function isCancelledStatus(st) {
+  const s = String(st || '').toLowerCase();
+  return s === 'cancelled' || s === 'canceled' || s === 'rejected' || s.indexOf('cancel') !== -1;
 }
 
 const lastStockWrite = new Map();
