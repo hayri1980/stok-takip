@@ -737,7 +737,7 @@ async function syncSharedStock() {
   }
 
   const barcodeKinds = new Map();
-  for (const kind of kinds) {
+  for (const kind of reachable) {
     const maps = byMarket.get(kind);
     for (const barcode of maps.byBarcode.keys()) {
       // idefix barkodları 6 haneye pad'lenmiş olabilir (07ktx3 vs 7ktx3) → padsız anahtarda topla
