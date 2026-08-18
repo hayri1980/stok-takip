@@ -41,6 +41,7 @@ function defaultData() {
     financeNotifiedIds: [],
     financeRecords: [],
     orderShipments: [],
+    stockWrites: [],
     dailySales: [],
       shop: {
         products: [],
@@ -362,6 +363,20 @@ function upsertShipment(rec) {
   return state.orderShipments;
 }
 
+// Stok yazım kayıtları (lastStockWrite) kalıcı tutulur — restart'ta kaybolup
+// yazım-yansımasının "satış" sanılmaması için.
+function getPersistedStockWrites() {
+  load();
+  return state.stockWrites || [];
+}
+
+function setPersistedStockWrites(arr) {
+  load();
+  state.stockWrites = (Array.isArray(arr) ? arr : []).slice(-2000);
+  save();
+  return state.stockWrites;
+}
+
 function addOrderNotifiedIds(ids) {
   load();
   const set = new Set(state.orderNotifiedIds || []);
@@ -620,6 +635,8 @@ module.exports = {
   addOrderNotifiedIds,
   getShipment,
   upsertShipment,
+  getPersistedStockWrites,
+  setPersistedStockWrites,
   localDayKey,
   addDailySale,
   getDailySales,

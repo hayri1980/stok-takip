@@ -425,6 +425,32 @@ app.post('/api/sales/remove', (req, res) => {
   }
 });
 
+// Elle satış kaydı ekle (ciler için geri yükleme vb.). Body: { name?, barcode, market, qty, price?, cost?, ts? }
+app.post('/api/sales/add', (req, res) => {
+  try {
+    const b = req.body || {};
+    const qty = Number(b.qty);
+    if (!b.barcode || !Number.isFinite(qty) || qty <= 0) {
+      return res.status(400).json({ error: 'barcode ve qty gerekli' });
+    }
+    const product = db.findProductByBarcode(b.barcode) || {};
+    const ts = String(b.ts || new Date().toISOString());
+    db.addDailySale({
+      name: b.name || product.name || b.barcode,
+      barcode: String(b.barcode),
+      market: String(b.market || 'Trendyol'),
+      qty,
+      price: Number(b.price !== undefined ? b.price : product.price),
+      cost: Number(b.cost !== undefined ? b.cost : product.cost),
+      ts
+    });
+    db.addLog('Elle satış kaydı eklendi: ' + b.barcode + ' x' + qty + ' (' + (b.market || 'Trendyol') + ')');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---- Soru kontrolü ----
 app.post('/api/sync/questions', async (req, res) => {
   try {

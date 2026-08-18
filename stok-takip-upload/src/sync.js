@@ -277,8 +277,17 @@ async function syncMarketplace(kind) {
               ts: now
             });
           } else {
-            // Diğer pazaryerleri: gerçek satış BİLDİRİLİR ama GÜN SONU CİROSUNA EKLENMEZ.
-            // (ciro yalnız Trendyol'dan hesaplanır; asenkron yazım gecikmeleri sahte satış üretmesin diye)
+            // Diğer pazaryerlerinde GERÇEK satış: kayıt + bildirim. (Zoraki yazım-yansıması
+            // yukarıdaki withinGrace ile elenir; buraya sadece gerçek müşteri düşüşü gelir.)
+            db.addDailySale({
+              name: existing.name,
+              barcode,
+              market: kindLabel(kind),
+              qty: diff,
+              price: existing.price,
+              cost: existing.cost,
+              ts: now
+            });
             await notifyMarketSale({
               name: existing.name,
               barcode,
@@ -910,6 +919,24 @@ const STOCK_WRITE_GRACE_MS = 60 * 60 * 1000;
 const STOCK_WRITE_SETTLE_MS = 48 * 60 * 60 * 1000;
 let lastSharedLogTs = 0;
 
+// Yazım kayıtlarını kalıcı tut (restart'ta kaybolup "satış" sanılmasın). En fazla 60 sn'de bir yaz.
+let lastWritesSaveTs = 0;
+function persistStockWrites() {
+  if (Date.now() - lastWritesSaveTs < 60 * 1000) return;
+  lastWritesSaveTs = Date.now();
+  try {
+    db.setPersistedStockWrites(Array.from(lastStockWrite.entries()).slice(-2000));
+  } catch (e) {
+    db.addLog('Yazım kaydı saklama hatası: ' + e.message);
+  }
+}
+// Başlangıçta kalıcı kayıtları belleğe yükle
+try {
+  for (const [k, v] of db.getPersistedStockWrites()) {
+    if (k && v && typeof v.ts === 'number') lastStockWrite.set(k, v);
+  }
+} catch (e) {}
+
 function getStockWrite(kind, barcode) {
   return lastStockWrite.get(kind + ':' + normalizeBarcodeKey(barcode)) || null;
 }
@@ -923,6 +950,7 @@ function isWithinStockWriteGrace(kind, barcode) {
 // sonraki senkron okumasındaki düşüş "satış" sayılmaz (sahte ciro/alarm olmaz).
 function markStockAdjustment(kind, barcode) {
   lastStockWrite.set((kind || 'trendyol') + ':' + normalizeBarcodeKey(barcode), { ts: Date.now(), qty: Number.NaN });
+  persistStockWrites();
 }
 
 function lowerMapKeys(map) {
@@ -1079,6 +1107,7 @@ async function syncSharedStock() {
         errors.push(barcode + ' [' + kindLabel(e.kind) + ']: ' + err.message);
       }
     }
+    persistStockWrites();
 
     if (ok) {
       const update = { sharedStock: target, lastSync: now };
