@@ -233,17 +233,12 @@ async function syncMarketplace(kind) {
       const oldQtyNum = (oldQty !== null && oldQty !== undefined) ? Number(oldQty) : null;
       const diff = oldQtyNum !== null ? oldQtyNum - qty : 0;
       const writeRec = oldQtyNum !== null ? getStockWrite(kind, barcode) : null;
-      // Yazım-yansıma penceresi: pazaryerine bizim yazdığımız değer henüz uygulanmamış olabilir
-      // (özellikle idefix asenkron batch saatlerce gecikebilir). Bu durumda düşüş "satış" sayılmaz:
-      //  - 1 saat içinde her durumda yansıma kabul edilir;
-      //  - 48 saat içinde okunan değer bizim yazdığımız değerin ALTINA İNMEDİYSE yine yansımadır
-      //    (okunan >= yazılan: yazım henüz uygulanıyor veya hâlâ eski değerde).
-      //  - Gerçek satış: okunan değer bizim yazdığımız değerin ALTINA inerse (qty < writeRec.qty).
+      // Yazım-yansıma: bizim yazdığımız değer uygulanmamış olabilir. AMA yazım ancak
+      // okunan değer BİZİM YAZDIĞIMIZ DEĞERDEN AŞAĞI DEĞİLSE yansımadır.
+      // Okunan değer yazdığımız değerin ALTINDA ise (örn. 1 yazdık, pazar 0 gösteriyor)
+      // bu bizim yazımımız OLAMAZ → GERÇEK SATIŞ (son adet) demektir, 0'a çekilir.
       const writeAge = writeRec ? (Date.now() - writeRec.ts) : Number.POSITIVE_INFINITY;
-      const withinGrace = !!writeRec && (
-        writeAge < STOCK_WRITE_GRACE_MS ||
-        (writeAge < STOCK_WRITE_SETTLE_MS && qty >= writeRec.qty)
-      );
+      const withinGrace = !!writeRec && writeAge < STOCK_WRITE_SETTLE_MS && qty >= writeRec.qty;
       if (withinGrace) {
         // Yazım penceresi: bu pazaryerine yakın zamanda stok yazıldı; okunan değer henüz
         // yansımamış eski/geçici olabilir (özellikle idefix asenkron batch gecikmesi).
@@ -1084,7 +1079,9 @@ async function syncSharedStock() {
         if (q === 0 && !(existing && Number(existing[stockField(e.kind)]) > 0)) return false;
         if (q >= tyQty) return false;
         const writeRec = getStockWrite(e.kind, barcode);
-        if (writeRec && Date.now() - writeRec.ts < STOCK_WRITE_GRACE_MS) return false;
+        // Yansıma ancak okunan >= yazdığımız değerken: yazılan değerin ALTI satıştır (0 dahil engellenmez).
+        const writeAge = writeRec ? (Date.now() - writeRec.ts) : Number.POSITIVE_INFINITY;
+        if (writeRec && writeAge < STOCK_WRITE_SETTLE_MS && q >= writeRec.qty) return false;
         return true;
       });
       if (realDrops.length > 0) {
