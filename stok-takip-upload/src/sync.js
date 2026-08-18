@@ -569,6 +569,13 @@ async function checkOrders() {
           }
           allOrders.push({ market: 'Trendyol', id, order: o });
           if (!notified.has(id)) fresh.push({ market: 'Trendyol', id, order: o });
+          await trackShipment({
+            market: 'Trendyol',
+            orderNo: id,
+            trackingNo: o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '',
+            status: o.status || '',
+            provider: o.cargoProviderName || ''
+          });
         }
       }
     } catch (e) {
@@ -814,6 +821,62 @@ function normalizeBarcodeKey(s) {
 function isCancelledStatus(st) {
   const s = String(st || '').toLowerCase();
   return s === 'cancelled' || s === 'canceled' || s === 'rejected' || s.indexOf('cancel') !== -1;
+}
+
+// Kargo teslim takibi: kargoya verilen sipariş X gün içinde teslim edilmezse bildir.
+// Durum Trendyol sipariş API'sinden gelir ("Delivered" = müşteri teslim aldı).
+// shippedAt = sistemin takip numarasını İLK gördüğü an (kargoya veriliş anı).
+const MISSED_DELIVERY_DAYS = 5;
+
+async function trackShipment({ market, orderNo, trackingNo, status, provider }) {
+  if (!trackingNo || !orderNo) return;
+  const now = Date.now();
+  const st = String(status || '').toLowerCase();
+  const delivered = st.indexOf('deliver') !== -1 || st === 'delivered';
+  const old = db.getShipment(market, orderNo);
+  const rec = {
+    orderNo: String(orderNo),
+    market,
+    trackingNo: String(trackingNo),
+    provider: String(provider || ''),
+    status: st,
+    shippedAt: (old && old.shippedAt) || now,
+    delivered: delivered || !!(old && old.delivered),
+    deliveredAt: delivered ? now : (old && old.deliveredAt) || null,
+    notifiedMissed: !!(old && old.notifiedMissed)
+  };
+  const changed =
+    !old ||
+    old.status !== rec.status ||
+    old.trackingNo !== rec.trackingNo ||
+    old.delivered !== rec.delivered ||
+    old.notifiedMissed !== rec.notifiedMissed;
+
+  if (delivered) {
+    rec.notifiedMissed = true; // teslim edildi, artık 5 gün uyarısı gerekmez
+  } else if (!rec.notifiedMissed && now - rec.shippedAt >= MISSED_DELIVERY_DAYS * 24 * 60 * 60 * 1000) {
+    rec.notifiedMissed = true;
+    const ageDays = Math.floor((now - rec.shippedAt) / (24 * 60 * 60 * 1000));
+    try {
+      const subject = 'KARGO TESLİM EDİLMEDİ (' + ageDays + ' GÜN): ' + orderNo;
+      const text = 'KARGO TESLIM EDILMEDI (' + ageDays + ' gun)\n' +
+        'Siparis: ' + orderNo + ' (' + market + ')\n' +
+        'Takip no: ' + trackingNo +
+        (provider ? '\nKargo: ' + provider : '') +
+        '\n\nMusteri kargoyu teslim almadi. Siparisi/takibi kontrol et.';
+      const html = '<h3>Kargo ' + ageDays + ' gündür teslim edilmedi</h3>' +
+        '<p><b>Sipariş:</b> ' + orderNo + ' (' + market + ')</p>' +
+        '<p><b>Takip no:</b> ' + trackingNo + '</p>' +
+        (provider ? '<p><b>Kargo:</b> ' + provider + '</p>' : '');
+      await notifier.notify(subject, html, text);
+    } catch (e) {
+      db.addLog('Teslim uyarısı gönderilemedi: ' + e.message);
+    }
+  }
+
+  if (changed) {
+    db.upsertShipment(rec);
+  }
 }
 
 const lastStockWrite = new Map();

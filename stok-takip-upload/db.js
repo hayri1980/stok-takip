@@ -40,6 +40,7 @@ function defaultData() {
     orderNotifiedIds: [],
     financeNotifiedIds: [],
     financeRecords: [],
+    orderShipments: [],
     dailySales: [],
       shop: {
         products: [],
@@ -344,6 +345,23 @@ function getOrderNotifiedIds() {
   return state.orderNotifiedIds || [];
 }
 
+// ---- Kargo teslim takibi (gönderilen siparişlerin teslim durumu) ----
+// Her sipariş: { orderNo, market, trackingNo, status, shippedAt, delivered, notifiedMissed }
+function getShipment(market, orderNo) {
+  load();
+  return (state.orderShipments || []).find(s => s && s.market === market && String(s.orderNo) === String(orderNo)) || null;
+}
+
+function upsertShipment(rec) {
+  load();
+  if (!Array.isArray(state.orderShipments)) state.orderShipments = [];
+  const others = state.orderShipments.filter(s => !(s && s.market === rec.market && String(s.orderNo) === String(rec.orderNo)));
+  others.push(rec);
+  state.orderShipments = others.slice(-2000);
+  save();
+  return state.orderShipments;
+}
+
 function addOrderNotifiedIds(ids) {
   load();
   const set = new Set(state.orderNotifiedIds || []);
@@ -600,6 +618,8 @@ module.exports = {
   addFinanceRecord,
   getOrderNotifiedIds,
   addOrderNotifiedIds,
+  getShipment,
+  upsertShipment,
   localDayKey,
   addDailySale,
   getDailySales,
