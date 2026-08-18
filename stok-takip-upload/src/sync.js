@@ -250,7 +250,13 @@ async function syncMarketplace(kind) {
         // Pencere içinde okunan fark satış sayılmaz; DB yazılan değerde tutulur.
         db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
       } else {
-        db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
+        // 0'a düşen GERÇEK satış (diğer pazarda): DB'yi hemen 0 yapma — ortak senkron
+        // "eski stok > 0" bilgisini görüp 0'ı herkese yaysın. Aksi halde 0 koruması sahte sayar.
+        if (kind !== 'trendyol' && diff > 0 && qty === 0) {
+          db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
+        } else {
+          db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
+        }
         // Satış: yazım penceresi DIŞINDA düşüş → gerçek satış.
         // - Trendyol: KENDİ stoğu kendiliğinden düştüyse (müşteri satışı) kayıt+bildirim.
         //   (Başka pazardaki satış yüzünden ortak senkron Trendyol'u DÜŞÜRÜRSE bu düşüş
@@ -1072,7 +1078,10 @@ async function syncSharedStock() {
       const realDrops = stockEntry ? [] : entries.filter(e => {
         if (e.kind === 'trendyol') return false;
         const q = Number(e.qty);
-        if (q <= 0) return false;
+        if (q < 0) return false;
+        // 0 görünümü sadece KİMSE daha önce o pazarda stok GÖRMEDİYSE pasif/onay-bekleyen sayılır.
+        // O pazarda daha önce stok (DB > 0) vardı ve şimdi 0 → GERÇEK SATIŞ (son adet) → 0'a inilir.
+        if (q === 0 && !(existing && Number(existing[stockField(e.kind)]) > 0)) return false;
         if (q >= tyQty) return false;
         const writeRec = getStockWrite(e.kind, barcode);
         if (writeRec && Date.now() - writeRec.ts < STOCK_WRITE_GRACE_MS) return false;
