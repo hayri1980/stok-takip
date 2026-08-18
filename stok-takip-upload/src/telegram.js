@@ -209,12 +209,17 @@ function healthStatus() {
 
 let lastHealthy = null;
 const STARTUP_GRACE_MS = 5 * 60 * 1000;
+const ALARM_MIN_INTERVAL_MS = 30 * 60 * 1000;
 const bootTs = Date.now();
+let lastAlarmTs = 0;
 
 async function sendAlarm(reason) {
   const tg = db.getSettings().telegram;
   if (!(tg.enabled && tg.chatId)) return;
   if (Date.now() - bootTs < STARTUP_GRACE_MS) return;
+  // Alarm tekrar kısıtı: aynı arızada çarpı yağmuru olmasın (en fazla 30 dk'da bir)
+  if (Date.now() - lastAlarmTs < ALARM_MIN_INTERVAL_MS) return;
+  lastAlarmTs = Date.now();
   const h = healthStatus();
   const detail = (reason ? reason + '\n' : '') + (h.issues && h.issues.length ? h.issues.join(' | ') : '');
   db.addLog('ALARM TETIKLENDI: ' + (detail || 'sebepsiz') + ' | syncAge=' + (h.syncAge === null ? 'null' : h.syncAge + 'dk'));
