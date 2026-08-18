@@ -233,7 +233,17 @@ async function syncMarketplace(kind) {
       const oldQtyNum = (oldQty !== null && oldQty !== undefined) ? Number(oldQty) : null;
       const diff = oldQtyNum !== null ? oldQtyNum - qty : 0;
       const writeRec = oldQtyNum !== null ? getStockWrite(kind, barcode) : null;
-      const withinGrace = !!writeRec && Date.now() - writeRec.ts < STOCK_WRITE_GRACE_MS;
+      // Yazım-yansıma penceresi: pazaryerine bizim yazdığımız değer henüz uygulanmamış olabilir
+      // (özellikle idefix asenkron batch saatlerce gecikebilir). Bu durumda düşüş "satış" sayılmaz:
+      //  - 1 saat içinde her durumda yansıma kabul edilir;
+      //  - 48 saat içinde okunan değer bizim yazdığımız değerin ALTINA İNMEDİYSE yine yansımadır
+      //    (okunan >= yazılan: yazım henüz uygulanıyor veya hâlâ eski değerde).
+      //  - Gerçek satış: okunan değer bizim yazdığımız değerin ALTINA inerse (qty < writeRec.qty).
+      const writeAge = writeRec ? (Date.now() - writeRec.ts) : Number.POSITIVE_INFINITY;
+      const withinGrace = !!writeRec && (
+        writeAge < STOCK_WRITE_GRACE_MS ||
+        (writeAge < STOCK_WRITE_SETTLE_MS && qty >= writeRec.qty)
+      );
       if (withinGrace) {
         // Yazım penceresi: bu pazaryerine yakın zamanda stok yazıldı; okunan değer henüz
         // yansımamış eski/geçici olabilir (özellikle idefix asenkron batch gecikmesi).
@@ -267,15 +277,8 @@ async function syncMarketplace(kind) {
               ts: now
             });
           } else {
-            db.addDailySale({
-              name: existing.name,
-              barcode,
-              market: kindLabel(kind),
-              qty: diff,
-              price: existing.price,
-              cost: existing.cost,
-              ts: now
-            });
+            // Diğer pazaryerleri: gerçek satış BİLDİRİLİR ama GÜN SONU CİROSUNA EKLENMEZ.
+            // (ciro yalnız Trendyol'dan hesaplanır; asenkron yazım gecikmeleri sahte satış üretmesin diye)
             await notifyMarketSale({
               name: existing.name,
               barcode,
@@ -902,6 +905,9 @@ async function trackShipment({ market, orderNo, trackingNo, status, statusDescri
 
 const lastStockWrite = new Map();
 const STOCK_WRITE_GRACE_MS = 60 * 60 * 1000;
+// Asenkron pazaryeri yazımının en geç bu sürede uygulanacağı kabul edilir (idefix batch gecikmesi).
+// Bu pencere içinde okunan değer bizim yazdığımız değerin altında değilse yansıma sayılır (satış değil).
+const STOCK_WRITE_SETTLE_MS = 48 * 60 * 60 * 1000;
 let lastSharedLogTs = 0;
 
 function getStockWrite(kind, barcode) {
