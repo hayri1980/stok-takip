@@ -653,19 +653,7 @@ async function checkOrders() {
   return { total: fresh.length, sent };
 }
 
-async function checkQuestions() {
-  const settings = db.getSettings();
-  const cfg = settings.trendyol;
-  if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) {
-    return { skipped: true, reason: 'Trendyol API ayarları eksik' };
-  }  let questions;
-  try {
-    questions = await trendyol.fetchQuestions(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
-  } catch (e) {
-    db.addLog('Trendyol soru çekme hatası: ' + e.message);
-    return { error: e.message };
-  }
-
+async function processQuestions(questions, marketLabel) {
   const notified = new Set(db.getQnaNotifiedIds());
   const fresh = questions.filter(q => !notified.has(q.id));
   let sent = 0;
@@ -678,28 +666,65 @@ async function checkQuestions() {
     }
     const subject = 'YENİ SORU: ' + q.productName;
     const html =
-      '<h3>Trendyol üzerinden yeni bir ürün sorusu geldi</h3>' +
+      '<h3>' + marketLabel + ' üzerinden yeni bir ürün sorusu geldi</h3>' +
       '<p><b>Ürün:</b> ' + q.productName + '</p>' +
       '<p><b>Soru:</b> ' + q.question + '</p>' +
       '<p><b>Tarih:</b> ' + q.createdDate + '</p>' +
       '<p><b>Soru ID:</b> ' + q.id + '</p>' +
-      '<p style="color:#c0392b"><b>Lütfen Trendyol panelinden cevaplayın.</b></p>';
+      '<p style="color:#c0392b"><b>Lütfen ' + marketLabel + ' panelinden cevaplayın.</b></p>';
     const text =
-      'YENI SORU (Trendyol)\n' +
+      'YENI SORU (' + marketLabel + ')\n' +
       'Urun: ' + q.productName + '\n' +
       'Soru: ' + q.question + '\n' +
       'Tarih: ' + q.createdDate + '\n' +
-      'Lutfen Trendyol panelinden cevaplayin.';
+      'Lutfen ' + marketLabel + ' panelinden cevaplayin.';
     const result = await notifier.notify(subject, html, text);
     if ((result.email && result.email.sent) || (result.telegram && result.telegram.sent)) sent++;
   }
 
   if (fresh.length > 0) {
     db.addQnaNotifiedIds(fresh.map(q => q.id));
-    db.addLog(fresh.length + ' yeni soru bulundu, ' + sent + ' bildirim gönderildi');
+  }
+  return { fresh: fresh.length, sent };
+}
+
+async function checkQuestions() {
+  const results = { total: 0, fresh: 0, sent: 0 };
+  let any = false;
+
+  // Trendyol soruları (resmi Q&A API)
+  const ty = db.getSettings().trendyol;
+  if (ty.apiKey && ty.apiSecret && ty.sellerId) {
+    any = true;
+    try {
+      const questions = await trendyol.fetchQuestions(ty.sellerId, ty.apiKey, ty.apiSecret);
+      const r = await processQuestions(questions, 'Trendyol');
+      results.total += questions.length;
+      results.fresh += r.fresh;
+      results.sent += r.sent;
+    } catch (e) {
+      db.addLog('Trendyol soru çekme hatası: ' + e.message);
+    }
   }
 
-  return { total: questions.length, fresh: fresh.length, sent };
+  // idefix soruları (/pim/vendor/{id}/question/filter, doğrulandı)
+  const ix = db.getSettings().idefix;
+  if (ix.apiKey && ix.apiSecret && ix.vendorId) {
+    any = true;
+    try {
+      const questions = await idefix.fetchQuestions(ix);
+      const r = await processQuestions(questions, 'idefix');
+      results.total += questions.length;
+      results.fresh += r.fresh;
+      results.sent += r.sent;
+    } catch (e) {
+      db.addLog('idefix soru çekme hatası: ' + e.message);
+    }
+  }
+
+  if (!any) return { skipped: true, reason: 'Soru API ayarları yok (Trendyol veya idefix)' };
+  if (results.fresh > 0) db.addLog(results.fresh + ' yeni soru bulundu, ' + results.sent + ' bildirim gönderildi');
+  return results;
 }
 
 function normalizeBarcodeKey(s) {

@@ -173,4 +173,32 @@ async function createProduct(cfg, p) {
   return true;
 }
 
-module.exports = { fetchStock, fetchProducts, updateStock, createProduct, fetchOrders };
+function normalizeQuestion(q) {
+  return {
+    id: 'idefix:' + String(q.id),
+    market: 'idefix',
+    productName: q.product || '',
+    question: q.question || '',
+    createdDate: q.createdAt || ''
+  };
+}
+
+async function fetchQuestions(cfg) {
+  const items = [];
+  let page = 1;
+  let pageCount = 1;
+  while (page <= pageCount && page < 50) {
+    const url = BASE + '/pim/vendor/' + encodeURIComponent(cfg.vendorId) +
+      '/question/filter?page=' + page + '&limit=50&sort=newest';
+    const data = await getJson(url, cfg);
+    const list = Array.isArray(data) ? data : (data.items || []);
+    items.push(...list);
+    const pc = Number((data && data.pageCount) || 0);
+    if (pc > pageCount) pageCount = pc;
+    if (!list.length || page >= pageCount) break;
+    page++;
+  }
+  return items.map(normalizeQuestion).filter(q => q.id && q.question);
+}
+
+module.exports = { fetchStock, fetchProducts, updateStock, createProduct, fetchOrders, fetchQuestions };
