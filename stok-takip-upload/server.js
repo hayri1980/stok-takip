@@ -188,6 +188,26 @@ app.get('/api/export/csv', (req, res) => {
   res.send('\uFEFF' + csv);
 });
 
+// ---- Para (pazar yerlerinden yatan paralar) CSV ----
+app.get('/api/export/para', (req, res) => {
+  const records = db.getFinanceRecords();
+  const lines = [];
+  lines.push('Para (Pazar Yerlerinden Yatanlar)');
+  lines.push('Tarih;Turu;Tutar (TL);Aciklama;No');
+  const sorted = records.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  for (const r of sorted) {
+    const when = r.date ? new Date(r.date).toLocaleString('tr-TR') : '';
+    lines.push([when, r.type, String(r.amount), String(r.description || '').replace(/;/g, ' '), r.id].join(';'));
+  }
+  lines.push('');
+  const total = records.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  lines.push('TOPLAM;;' + total + ';;');
+  const csv = lines.join('\r\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="stok-takip-para.csv"');
+  res.send('\uFEFF' + csv);
+});
+
 // ---- Ayarlar ----
 app.get('/api/settings', (req, res) => {
   res.json(db.getSettings());

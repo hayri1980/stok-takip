@@ -408,6 +408,21 @@ async function checkFinancialTransfers() {
     db.addLog('Finans çekme hatası: ' + e.message);
     return { error: e.message };
   }
+  // Pazar yerinden yatan paraları birikimli sakla (masaüstü Excel dışa aktarımı için)
+  try {
+    const records = (transfers || [])
+      .filter(t => t && t.id)
+      .map(t => ({
+        id: String(t.id),
+        type: String(t.transactionType || t.type || 'WireTransfer'),
+        amount: Number(t.credit || t.amount) || 0,
+        description: String(t.description || ''),
+        date: t.transactionDate ? new Date(Number(t.transactionDate)).toISOString() : ''
+      }));
+    db.setFinanceRecords(records);
+  } catch (e) {
+    db.addLog('Finans kayıt saklama hatası: ' + e.message);
+  }
   const seen = new Set(db.getFinanceNotifiedIds());
   const fresh = (transfers || []).filter(t => t.id && !seen.has(String(t.id)));
   if (fresh.length === 0) return { fresh: 0 };

@@ -38,6 +38,8 @@ function defaultData() {
     log: [],
     qnaNotifiedIds: [],
     orderNotifiedIds: [],
+    financeNotifiedIds: [],
+    financeRecords: [],
     dailySales: [],
       shop: {
         products: [],
@@ -292,6 +294,29 @@ function addFinanceNotifiedIds(ids) {
   state.financeNotifiedIds = Array.from(set).slice(-1000);
   save();
   return state.financeNotifiedIds;
+}
+
+// Pazar yerlerinden yatan paraların birikimli kaydı (Excel dışa aktarımı için).
+// Her sorguda en güncel liste yazılır; en fazla 2000 kayıt tutulur.
+function getFinanceRecords() {
+  load();
+  if (!Array.isArray(state.financeRecords)) state.financeRecords = [];
+  return state.financeRecords;
+}
+
+function setFinanceRecords(records) {
+  load();
+  const seen = new Map();
+  for (const r of (records || [])) {
+    if (r && r.id) seen.set(String(r.id), r);
+  }
+  const old = Array.isArray(state.financeRecords) ? state.financeRecords : [];
+  for (const r of old) {
+    if (r && r.id && !seen.has(String(r.id))) seen.set(String(r.id), r);
+  }
+  state.financeRecords = Array.from(seen.values()).slice(-2000);
+  save();
+  return state.financeRecords;
 }
 
 function getOrderNotifiedIds() {
@@ -550,6 +575,8 @@ module.exports = {
   addQnaNotifiedIds,
   getFinanceNotifiedIds,
   addFinanceNotifiedIds,
+  getFinanceRecords,
+  setFinanceRecords,
   getOrderNotifiedIds,
   addOrderNotifiedIds,
   localDayKey,
