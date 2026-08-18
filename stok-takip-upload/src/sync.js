@@ -553,6 +553,11 @@ async function checkOrders() {
         for (const o of (data && data.content) || []) {
           const id = String(o.orderNumber || o.id || '');
           if (!id) continue;
+          // İptal/red edilmiş siparişleri BİLDİRİM ve WhatsApp kuyruğundan çıkar
+          const st = String(o.status || '').toLowerCase();
+          if (st === 'cancelled' || st === 'rejected' || st === 'canceled') {
+            continue;
+          }
           allOrders.push({ market: 'Trendyol', id, order: o });
           if (!notified.has(id)) fresh.push({ market: 'Trendyol', id, order: o });
         }
