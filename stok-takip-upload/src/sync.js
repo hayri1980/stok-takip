@@ -241,26 +241,50 @@ async function syncMarketplace(kind) {
         db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
       } else {
         db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
-        // Satış: yazım penceresi DIŞINDA düşüş → gerçek satış. SADECE Trendyol'dan kaydedilir
-        // (diğer pazarların stokları sistemin kendi yazımlarıyla yönetilir; oradaki dalgalanma sahte satış üretir).
-        if (diff > 0 && kind === 'trendyol') {
-          sales.push({
-            name: existing.name,
-            barcode,
-            market: kindLabel(kind),
-            diff,
-            oldQty: Number(oldQty),
-            newQty: qty
-          });
-          db.addDailySale({
-            name: existing.name,
-            barcode,
-            market: kindLabel(kind),
-            qty: diff,
-            price: existing.price,
-            cost: existing.cost,
-            ts: now
-          });
+        // Satış: yazım penceresi DIŞINDA düşüş → gerçek satış.
+        // - Trendyol: KENDİ stoğu kendiliğinden düştüyse (müşteri satışı) kayıt+bildirim.
+        //   (Başka pazardaki satış yüzünden ortak senkron Trendyol'u DÜŞÜRÜRSE bu düşüş
+        //   yazım penceresi içinde olduğundan SATIŞ sayılmaz/bildirilmez.)
+        // - Diğer pazaryerleri: sistemin kendi yazımı DEĞİLSE gerçek satıştır → kendi adıyla bildir
+        //   (PTT AVM, Hepsiburada, idefix dahil).
+        if (diff > 0) {
+          if (kind === 'trendyol') {
+            sales.push({
+              name: existing.name,
+              barcode,
+              market: kindLabel(kind),
+              diff,
+              oldQty: Number(oldQty),
+              newQty: qty
+            });
+            db.addDailySale({
+              name: existing.name,
+              barcode,
+              market: kindLabel(kind),
+              qty: diff,
+              price: existing.price,
+              cost: existing.cost,
+              ts: now
+            });
+          } else {
+            db.addDailySale({
+              name: existing.name,
+              barcode,
+              market: kindLabel(kind),
+              qty: diff,
+              price: existing.price,
+              cost: existing.cost,
+              ts: now
+            });
+            await notifyMarketSale({
+              name: existing.name,
+              barcode,
+              market: kindLabel(kind),
+              diff,
+              oldQty: Number(oldQty),
+              newQty: qty
+            });
+          }
         }
       }
       updated++;
@@ -308,6 +332,26 @@ function notifySale(sale) {
     'Barkod: ' + sale.barcode + '\n' +
     'Satilan adet: ' + sale.diff + '\n' +
     'Stok: ' + sale.oldQty + ' -> ' + sale.newQty;
+  return notifier.notify(subject, html, text);
+}
+
+// Trendyol dışı pazaryerindeki GERÇEK satış bildirimi (PTT AVM / Hepsiburada / idefix).
+// Sistemin kendi stok yazımları yazım penceresiyle ayıklandığı için bu, gerçek müşteri satışıdır.
+async function notifyMarketSale(sale) {
+  const subject = 'SATIŞ: ' + sale.name + ' (' + sale.market + ')';
+  const html =
+    '<h3>' + sale.market + ' üzerinden gerçek satış</h3>' +
+    '<p><b>Ürün:</b> ' + sale.name + '</p>' +
+    '<p><b>Barkod:</b> ' + sale.barcode + '</p>' +
+    '<p><b>Satılan adet:</b> ' + sale.diff + '</p>' +
+    '<p><b>Stok:</b> ' + sale.oldQty + ' → ' + sale.newQty + '</p>';
+  const text =
+    'SATIS (' + sale.market + ')\n' +
+    'Urun: ' + sale.name + '\n' +
+    'Barkod: ' + sale.barcode + '\n' +
+    'Satilan adet: ' + sale.diff + '\n' +
+    'Stok: ' + sale.oldQty + ' -> ' + sale.newQty;
+  db.addLog('Gerçek satış (' + sale.market + '): ' + sale.barcode + ' x' + sale.diff);
   return notifier.notify(subject, html, text);
 }
 
