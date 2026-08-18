@@ -414,6 +414,7 @@ async function checkFinancialTransfers() {
       .filter(t => t && t.id)
       .map(t => ({
         id: String(t.id),
+        market: 'Trendyol',
         type: String(t.transactionType || t.type || 'WireTransfer'),
         amount: Number(t.credit || t.amount) || 0,
         description: String(t.description || ''),

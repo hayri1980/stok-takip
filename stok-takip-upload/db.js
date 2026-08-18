@@ -319,6 +319,26 @@ function setFinanceRecords(records) {
   return state.financeRecords;
 }
 
+// Tek bir kayıt ekler (elle /api/para veya Telegram /para ile). id tekil ise eklenir.
+function addFinanceRecord(record) {
+  load();
+  if (!Array.isArray(state.financeRecords)) state.financeRecords = [];
+  if (!record || !record.id) return state.financeRecords;
+  const id = String(record.id);
+  if (state.financeRecords.some(r => r && String(r.id) === id)) return state.financeRecords;
+  state.financeRecords.push({
+    id,
+    market: record.market || 'Trendyol',
+    type: record.type || 'WireTransfer',
+    amount: Number(record.amount) || 0,
+    description: String(record.description || ''),
+    date: record.date || new Date().toISOString()
+  });
+  state.financeRecords = state.financeRecords.slice(-2000);
+  save();
+  return state.financeRecords;
+}
+
 function getOrderNotifiedIds() {
   load();
   return state.orderNotifiedIds || [];
@@ -577,6 +597,7 @@ module.exports = {
   addFinanceNotifiedIds,
   getFinanceRecords,
   setFinanceRecords,
+  addFinanceRecord,
   getOrderNotifiedIds,
   addOrderNotifiedIds,
   localDayKey,

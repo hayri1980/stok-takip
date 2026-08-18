@@ -66,6 +66,49 @@ function isAllowedChat(chatId) {
   return !!(tg.chatId && String(tg.chatId) === String(chatId));
 }
 
+const PARA_MARKETS = {
+  hb: 'Hepsiburada', hepsiburada: 'Hepsiburada',
+  ptt: 'PTT AVM', pttavm: 'PTT AVM',
+  idefix: 'idefix',
+  n11: 'N11',
+  cicek: 'Çiçeksepeti', ciceksepeti: 'Çiçeksepeti',
+  trendyol: 'Trendyol'
+};
+
+// Pazar yerinden yatan parayı Excel'e kaydet (API'si olmayan pazarlar elle eklenir).
+// Kullanım: /para 1500   -> Trendyol 1500 TL
+//          /para HB 800  -> Hepsiburada 800 TL
+//          /para PTT 350 -> PTT AVM 350 TL
+async function addParaRecord(chatId, rest) {
+  const arg = String(rest || '').trim();
+  if (!arg) {
+    return sendTelegramTo(chatId, 'Kullanim: /para <tutar>\nOrnek: /para 1500  |  /para HB 800  |  /para PTT 350\n(Pazar: HB/PTT/idefix/N11 — yazmazsan Trendyol)');
+  }
+  const m = arg.match(/^(?:(hb|hepsiburada|ptt|pttavm|idefix|n11|cicek|ciceksepeti|trendyol)\s+)?(\d+(?:[.,]\d+)?)(?:\s+(.*))?$/i);
+  if (!m || !m[2]) {
+    return sendTelegramTo(chatId, 'Tutar taninamadi. Ornek: /para 1500  veya  /para HB 800');
+  }
+  const market = m[1] ? (PARA_MARKETS[m[1].toLowerCase()] || 'Trendyol') : 'Trendyol';
+  const amount = parseFloat(String(m[2]).replace(',', '.'));
+  const description = (m[3] || '').trim();
+  try {
+    db.addFinanceRecord({
+      id: 'manual:' + market + ':' + Date.now(),
+      market,
+      type: 'Banka yatisi',
+      amount,
+      description,
+      date: new Date().toISOString()
+    });
+    const total = db.getFinanceRecords().reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    db.addLog('Elle para kaydi: ' + market + ' ' + amount + ' TL');
+    return sendTelegramTo(chatId, market + ' para kaydedildi: ' + amount + ' TL' + (description ? ' (' + description + ')' : '') + '\nExcel TOPLAM: ' + total + ' TL');
+  } catch (e) {
+    db.addLog('Para kaydi hatasi: ' + e.message);
+    return sendTelegramTo(chatId, 'Kaydedilemedi: ' + e.message);
+  }
+}
+
 // Türkçe karakterleri ASCII'e çevirir (ç→c, ı→i, ö→o, ş→s, ü→u, ğ→g) — böylece
 // "çıkar" / "cikar", "düşür" / "dusur" gibi yazımların hepsi aynı şekilde eşleşir.
 function trNorm(s) {
@@ -318,6 +361,7 @@ function helpText() {
     '/stok - tum urunlerin stok durumu\n' +
     '/stok STOK KODU - tek urunun stoku (ornek: /stok 10TX4)\n' +
     '/fiyat - tum urunlerin fiyatlari\n' +
+    '/para TUTAR - yatan parayi kaydet (orn: /para 1500, /para HB 800)\n' +
     '/senkron - pazaryerlerini simdi senkronla\n' +
     '/denetim - sistemi tara, arizalari tamir et ve raporla\n' +
     '/log - son islem kayitlari\n' +
@@ -405,6 +449,8 @@ async function handleMessage(msg) {
       );
       await sendTelegramTo(chatId, 'FIYATLAR (' + products.length + ')\n\n' + lines.join('\n'));
     }
+  } else if (cmd === '/para') {
+    await addParaRecord(chatId, parts.slice(1).join(' '));
   } else if (cmd === '/sorular' || cmd === '/qa') {
     const cfg = db.getSettings().trendyol;
     if (!cfg.apiKey || !cfg.apiSecret || !cfg.sellerId) {

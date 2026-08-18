@@ -189,23 +189,48 @@ app.get('/api/export/csv', (req, res) => {
 });
 
 // ---- Para (pazar yerlerinden yatan paralar) CSV ----
-app.get('/api/export/para', (req, res) => {
-  const records = db.getFinanceRecords();
+function financeRows(records) {
   const lines = [];
   lines.push('Para (Pazar Yerlerinden Yatanlar)');
-  lines.push('Tarih;Turu;Tutar (TL);Aciklama;No');
+  lines.push('Tarih;Pazar;Turu;Tutar (TL);Aciklama;No');
   const sorted = records.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
   for (const r of sorted) {
     const when = r.date ? new Date(r.date).toLocaleString('tr-TR') : '';
-    lines.push([when, r.type, String(r.amount), String(r.description || '').replace(/;/g, ' '), r.id].join(';'));
+    lines.push([when, r.market || 'Trendyol', r.type, String(r.amount), String(r.description || '').replace(/;/g, ' '), r.id].join(';'));
   }
   lines.push('');
   const total = records.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-  lines.push('TOPLAM;;' + total + ';;');
-  const csv = lines.join('\r\n');
+  lines.push('TOPLAM;;;' + total + ';;');
+  return lines;
+}
+
+app.get('/api/export/para', (req, res) => {
+  const csv = financeRows(db.getFinanceRecords()).join('\r\n');
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="stok-takip-para.csv"');
   res.send('\uFEFF' + csv);
+});
+
+// Elle para kaydı (diğer pazaryerlerinin yatırdıkları: HB/PTT/idefix gibi — API'leri yok).
+// Body: { market, amount, description? }  market değerleri: Trendyol / Hepsiburada / PTT AVM / idefix ...
+app.post('/api/para', (req, res) => {
+  const b = req.body || {};
+  const market = String(b.market || 'Trendyol');
+  const amount = Number(b.amount);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'Gecersiz tutar' });
+  }
+  const rec = {
+    id: 'manual:' + market + ':' + Date.now(),
+    market,
+    type: 'Banka yatisi',
+    amount,
+    description: String(b.description || ''),
+    date: new Date().toISOString()
+  };
+  const list = db.addFinanceRecord(rec);
+  db.addLog('Elle para kaydi: ' + market + ' ' + amount + ' TL');
+  res.json({ ok: true, total: list.length });
 });
 
 // ---- Ayarlar ----
