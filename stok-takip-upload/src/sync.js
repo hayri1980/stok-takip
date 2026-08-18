@@ -719,6 +719,12 @@ function isWithinStockWriteGrace(kind, barcode) {
   return !!rec && Date.now() - rec.ts < STOCK_WRITE_GRACE_MS;
 }
 
+// Telegram uzaktan stok düzeltmesi: kullanıcı botla stok ekler/çıkarırsa bu işaret sayesinde
+// sonraki senkron okumasındaki düşüş "satış" sayılmaz (sahte ciro/alarm olmaz).
+function markStockAdjustment(kind, barcode) {
+  lastStockWrite.set((kind || 'trendyol') + ':' + normalizeBarcodeKey(barcode), { ts: Date.now(), qty: Number.NaN });
+}
+
 function lowerMapKeys(map) {
   const out = new Map();
   for (const [k, v] of map.entries()) out.set(normalizeBarcodeKey(k), v);
@@ -1035,4 +1041,4 @@ async function pushNewProducts() {
   return { created, errors };
 }
 
-module.exports = { syncMarketplace, checkStocks, checkFinancialTransfers, checkQuestions, syncSharedStock, pushNewProducts, checkOrders, MARKETS, kindLabel, marketConfiguredKinds };
+module.exports = { syncMarketplace, checkStocks, checkFinancialTransfers, checkQuestions, syncSharedStock, pushNewProducts, checkOrders, markStockAdjustment, MARKETS, kindLabel, marketConfiguredKinds };

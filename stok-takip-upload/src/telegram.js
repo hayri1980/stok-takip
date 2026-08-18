@@ -66,6 +66,59 @@ function isAllowedChat(chatId) {
   return !!(tg.chatId && String(tg.chatId) === String(chatId));
 }
 
+// Serbest yazı ile uzaktan stok düzeltme: "10fx5 3 ekle", "30GRX5 5 çıkar", "7KTX3 bitir"
+async function handleNaturalStock(chatId, text) {
+  const addPat = text.match(/^(\S+)\s+(\d+)\s*(?:ekle|art(?:t|ır)|yukle|gir|koy)\b/i);
+  const remPat = text.match(/^(\S+)\s+(\d+)\s*(?:cikar|cik|azalt|dusur|indir|sil|kaldir)\b/i);
+  const zeroPat = text.match(/^(\S+)\s*(?:bitir|sifirla|sifir)\b/i);
+  let arg = null;
+  if (addPat) arg = { mode: 'add', barcode: addPat[1], qty: parseInt(addPat[2], 10) };
+  else if (remPat) arg = { mode: 'remove', barcode: remPat[1], qty: parseInt(remPat[2], 10) };
+  else if (zeroPat) arg = { mode: 'zero', barcode: zeroPat[1], qty: 0 };
+  if (!arg) return;
+  await adjustStock(chatId, arg.mode, arg.barcode, arg.qty);
+}
+
+// Trendyol'a stok yazar (ana stok) + DB'yi günceller; ortak stok diğer pazarları eşitler.
+async function adjustStock(chatId, mode, barcode, qty) {
+  const ty = db.getSettings().trendyol;
+  if (!(ty.apiKey && ty.apiSecret && ty.sellerId)) {
+    return sendTelegramTo(chatId, 'Trendyol API ayarlari eksik.');
+  }
+  if (!barcode) {
+    return sendTelegramTo(chatId, 'Stok kodu yaz (ornek: 10fx5 3 ekle).');
+  }
+  if (mode !== 'zero' && (!Number.isFinite(qty) || qty <= 0)) {
+    return sendTelegramTo(chatId, 'Adet gecersiz. Ornek: 10fx5 3 ekle.');
+  }
+  const p = db.findProductByBarcode(barcode);
+  if (!p) {
+    return sendTelegramTo(chatId, 'Stok kodu bulunamadi: ' + barcode);
+  }
+  const cur = (p.trendyolStock !== null && p.trendyolStock !== undefined) ? Number(p.trendyolStock) : 0;
+  let newVal;
+  if (mode === 'add') newVal = cur + qty;
+  else if (mode === 'remove') newVal = Math.max(0, cur - qty);
+  else newVal = 0;
+
+  try {
+    sync.markStockAdjustment('trendyol', barcode);
+    await trendyol.updateStock(ty.sellerId, ty.apiKey, ty.apiSecret, barcode, newVal);
+    db.updateProduct(p.id, {
+      trendyolStock: newVal,
+      sharedStock: newVal,
+      lastSync: new Date().toISOString(),
+      lastSeenAt: new Date().toISOString()
+    });
+    const lbl = mode === 'add' ? 'EKLENDI' : (mode === 'remove' ? 'CIKARILDI' : 'SIFIRLANDI');
+    db.addLog('Telegram uzaktan stok: ' + p.barcode + ' ' + lbl + ' (' + cur + ' -> ' + newVal + ')');
+    return sendTelegramTo(chatId, p.barcode + ' stok: ' + cur + ' -> ' + newVal + ' (' + lbl + ')\nTrendyol guncellendi. Diger pazarlar bir sonraki senkronla esitlenir.');
+  } catch (e) {
+    db.addLog('Telegram stok guncelleme hatasi: ' + e.message);
+    return sendTelegramTo(chatId, 'Stok guncellenemedi: ' + e.message);
+  }
+}
+
 function systemStatus() {
   const settings = db.getSettings();
   const ty = settings.trendyol || {};
@@ -243,14 +296,23 @@ function helpText() {
     '/log - son islem kayitlari\n' +
     '/sorular - bekleyen Trendyol urun sorulari\n' +
     '/test - bildirim testi gonder\n' +
-    '/yardim - bu mesaj';
+    '/yardim - bu mesaj\n' +
+    '\nUZAKTAN STOK (bosta yaz):\n' +
+    '10fx5 3 ekle - stok ekle\n' +
+    '30GRX5 5 cikar - stok cikar (0 altina inmez)\n' +
+    '7KTX3 bitir - stogu 0 (bitti) yap\n' +
+    'Ayrica: /stok-ekle KOD ADET / /stok-cikar KOD ADET / /stok-sil KOD';
 }
 
 async function handleMessage(msg) {
   const text = (msg.text || '').trim();
-  if (!text.startsWith('/')) return;
   const chatId = msg.chat.id;
   if (!isAllowedChat(chatId)) return;
+  if (!text.startsWith('/')) {
+    // Serbest yazı: "10fx5 3 ekle" / "30GRX5 5 çıkar" / "7KTX3 bitir" gibi → uzaktan stok düzeltme
+    await handleNaturalStock(chatId, text);
+    return;
+  }
   const parts = text.split(/\s+/);
   const cmd = parts[0].toLowerCase();
 
@@ -289,6 +351,22 @@ async function handleMessage(msg) {
     } else {
       await sendTelegramTo(chatId, stockReport());
     }
+  } else if (cmd === '/stok-ekle' || cmd === '/stok-cikar' || cmd === '/stok-sil') {
+    const mode = cmd === '/stok-ekle' ? 'add' : (cmd === '/stok-cikar' ? 'remove' : 'zero');
+    let barcode = '';
+    let qty = 0;
+    if (mode === 'zero') {
+      barcode = (parts[1] || '').trim();
+    } else {
+      const m = parts.slice(1).join(' ').match(/^(\S+)\s+(\d+)$/);
+      if (!m) {
+        await sendTelegramTo(chatId, 'Kullanim: ' + cmd + ' <stok kodu> <adet>\nOrnek: ' + cmd + ' 10fx5 3');
+        return;
+      }
+      barcode = m[1];
+      qty = parseInt(m[2], 10);
+    }
+    await adjustStock(chatId, mode, barcode, qty);
   } else if (cmd === '/fiyat') {
     const products = db.getProducts().filter(p => p.price !== null && p.price !== undefined);
     if (products.length === 0) {
