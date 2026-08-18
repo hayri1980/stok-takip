@@ -66,11 +66,33 @@ function isAllowedChat(chatId) {
   return !!(tg.chatId && String(tg.chatId) === String(chatId));
 }
 
-// Serbest yazı ile uzaktan stok düzeltme: "10fx5 3 ekle", "30GRX5 5 çıkar", "7KTX3 bitir"
+// Türkçe karakterleri ASCII'e çevirir (ç→c, ı→i, ö→o, ş→s, ü→u, ğ→g) — böylece
+// "çıkar" / "cikar", "düşür" / "dusur" gibi yazımların hepsi aynı şekilde eşleşir.
+function trNorm(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/ç/g, 'c')
+    .replace(/ğ/g, 'g')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ş/g, 's')
+    .replace(/ü/g, 'u');
+}
+
+// Serbest yazı ile uzaktan stok düzeltme: "10fx5 3 ekle", "30GRX5 5 çıkar", "7KTX3 bitir",
+// ayrıca ters / isteyerek yazımlar: "çıkar 30GRX5 5", "30grx5 e 5 ekle"
 async function handleNaturalStock(chatId, text) {
-  const addPat = text.match(/^(\S+)\s+(\d+)\s*(?:ekle|art(?:t|ır)|yukle|gir|koy)\b/i);
-  const remPat = text.match(/^(\S+)\s+(\d+)\s*(?:cikar|cik|azalt|dusur|indir|sil|kaldir)\b/i);
-  const zeroPat = text.match(/^(\S+)\s*(?:bitir|sifirla|sifir)\b/i);
+  const nt = trNorm(text);
+  const addPat =
+    nt.match(/^(\S+)\s+(\d+)\s*(?:ekle|art(?:t|ir)|yukle|gir|koy|yaz)\b/) ||
+    nt.match(/^(?:ekle|art(?:t|ir)|yukle|gir|koy|yaz)\s+(\S+)\s+(\d+)\b/) ||
+    nt.match(/^(\S+)\s+(?:e\s*)?(\d+)\s*(?:ekle|art(?:t|ir))\b/);
+  const remPat =
+    nt.match(/^(\S+)\s+(\d+)\s*(?:cikar|cik|azalt|dusur|indir|sil|kaldir)\b/) ||
+    nt.match(/^(?:cikar|cik|azalt|dusur|indir|sil|kaldir)\s+(\S+)\s+(\d+)\b/);
+  const zeroPat =
+    nt.match(/^(\S+)\s*(?:bitir|sifirla|sifir)\b/) ||
+    nt.match(/^(?:bitir|sifirla|sifir)\s+(\S+)\b/);
   let arg = null;
   if (addPat) arg = { mode: 'add', barcode: addPat[1], qty: parseInt(addPat[2], 10) };
   else if (remPat) arg = { mode: 'remove', barcode: remPat[1], qty: parseInt(remPat[2], 10) };
