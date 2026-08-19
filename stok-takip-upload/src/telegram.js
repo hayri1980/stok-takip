@@ -360,6 +360,9 @@ function helpText() {
     '/sk - kontrol et ve raporla\n' +
     '/stok - tum urunlerin stok durumu\n' +
     '/stok STOK KODU - tek urunun stoku (ornek: /stok 10TX4)\n' +
+    '/stok-ekle STOK KODU ADET - stok ekle (ornek: /stok-ekle 10fx5 3)\n' +
+    '/stok-cikar STOK KODU ADET - stok cikar (ornek: /stok-cikar 30GRX5 5)\n' +
+    '/stok-sil STOK KODU - stogu 0 yap (ornek: /stok-sil 7KTX3)\n' +
     '/fiyat - tum urunlerin fiyatlari\n' +
     '/para TUTAR - yatan parayi kaydet (orn: /para 1500, /para HB 800)\n' +
     '/senkron - pazaryerlerini simdi senkronla\n' +
@@ -368,11 +371,10 @@ function helpText() {
     '/sorular - bekleyen Trendyol urun sorulari\n' +
     '/test - bildirim testi gonder\n' +
     '/yardim - bu mesaj\n' +
-    '\nUZAKTAN STOK (bosta yaz):\n' +
+    '\nUZAKTAN STOK (bosta da yazar):\n' +
     '10fx5 3 ekle - stok ekle\n' +
     '30GRX5 5 cikar - stok cikar (0 altina inmez)\n' +
-    '7KTX3 bitir - stogu 0 (bitti) yap\n' +
-    'Ayrica: /stok-ekle KOD ADET / /stok-cikar KOD ADET / /stok-sil KOD';
+    '7KTX3 bitir - stogu 0 (bitti) yap';
 }
 
 async function handleMessage(msg) {
@@ -385,7 +387,7 @@ async function handleMessage(msg) {
     return;
   }
   const parts = text.split(/\s+/);
-  const cmd = parts[0].toLowerCase();
+  const cmd = parts[0].toLowerCase().replace(/-/g, '_');
 
   if (cmd === '/sk') {
     await sendTelegramTo(chatId, 'Kontrol basladi, biraz bekleyin...');
@@ -422,8 +424,8 @@ async function handleMessage(msg) {
     } else {
       await sendTelegramTo(chatId, stockReport());
     }
-  } else if (cmd === '/stok-ekle' || cmd === '/stok-cikar' || cmd === '/stok-sil') {
-    const mode = cmd === '/stok-ekle' ? 'add' : (cmd === '/stok-cikar' ? 'remove' : 'zero');
+  } else if (cmd === '/stok_ekle' || cmd === '/stok_cikar' || cmd === '/stok_sil') {
+    const mode = cmd === '/stok_ekle' ? 'add' : (cmd === '/stok_cikar' ? 'remove' : 'zero');
     let barcode = '';
     let qty = 0;
     if (mode === 'zero') {

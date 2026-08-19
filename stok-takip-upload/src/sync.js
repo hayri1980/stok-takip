@@ -939,7 +939,14 @@ try {
 } catch (e) {}
 
 function getStockWrite(kind, barcode) {
-  return lastStockWrite.get(kind + ':' + normalizeBarcodeKey(barcode)) || null;
+  const k = normalizeBarcodeKey(barcode);
+  // idefix barkodu pad'li gelebilir (0P7KX5) veya plain (P7KX5); yazım kaydı da iki
+  // biçimden biriyle tutulmuş olabilir → hepsini dene.
+  const plain = String(k).replace(/^0+/, '');
+  if (plain && plain !== k) {
+    return lastStockWrite.get(kind + ':' + k) || lastStockWrite.get(kind + ':' + plain) || null;
+  }
+  return lastStockWrite.get(kind + ':' + k) || lastStockWrite.get(kind + ':' + plain) || null;
 }
 
 function isWithinStockWriteGrace(kind, barcode) {
