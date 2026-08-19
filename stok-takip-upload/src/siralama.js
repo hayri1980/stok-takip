@@ -64,6 +64,16 @@ function toks(s) {
   return normalize(s).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(x => x.length > 1);
 }
 
+// Kelime ortaklık oranı (fallback ad etiketleme için).
+function score(nameTokens, itemTitle) {
+  const b = toks(itemTitle);
+  if (!b.length) return 0;
+  let hit = 0;
+  const sb = new Set(b);
+  for (const t of nameTokens) if (sb.has(t)) hit++;
+  return hit / nameTokens.length;
+}
+
 // Kelime karşılaştırma için kullanılan karakter-temiz sürüm (harf+rakam, boşluksuz).
 function collapse(s) {
   return normalize(s).replace(/[^a-z0-9]/g, '');
@@ -95,9 +105,15 @@ function matchProduct(itemTitle, urunler) {
       return { barcode: u.barcode, name: u.name, skor: 100 };
     }
   }
-  // 2) İmza bulunamadıysa ama kartta markamız varsa -> bizim ürün olduğu kesin,
-  //    ad eşleşmesi koptu (ürün başlığı çok kısa kesilmiş olabilir).
+  // 2) İmza bulunamadıysa ama kartta markamız varsa -> bizim ürün olduğu kesin;
+  //    adını en çok örtüşen tanımlı ürünle etiketle (başlık kesilmiş olabilir).
   if (/aparici/i.test(itemTitle)) {
+    let best = null, bestScore = 0;
+    for (const u of urunler) {
+      const s = score(toks(u.name), itemTitle);
+      if (s > bestScore) { bestScore = s; best = u; }
+    }
+    if (best) return { barcode: best.barcode, name: best.name, skor: Math.max(70, Math.round(bestScore * 100)) };
     return { barcode: 'CAPARICI', name: 'Çaparici (ürün adı eşleşmedi)', skor: 90 };
   }
   return null;
