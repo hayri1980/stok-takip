@@ -579,6 +579,29 @@ async function checkOrders() {
     }
   }
 
+  // PTT AVM sipariş (Sipariş Kontrol V2): /orders/search. Fatura bilgisi API'de YOK
+  // → sipariş bildirimi + MANUEL fatura takibi (checkInvoiceStatus).
+  const ptt = db.getSettings().pttavm || {};
+  if (ptt.apiKey && ptt.accessToken) {
+    try {
+      const pttOrders = await pttavm.fetchOrders(ptt);
+      for (const o of pttOrders) {
+        const id = String(o.id || o.orderNumber || '');
+        if (!id) continue;
+        if (isCancelledStatus(o.status)) {
+          cancelledIds.add('PTT:' + id);
+          continue;
+        }
+        const order = { ...o, orderNumber: id, orders: [], items: o.lines || [], lines: o.lines || [] };
+        allOrders.push({ market: 'PTT AVM', id, order });
+        if (!notified.has(id)) fresh.push({ market: 'PTT AVM', id, order });
+        await checkInvoiceStatus({ market: 'PTT AVM', id, order });
+      }
+    } catch (e) {
+      db.addLog('PTT AVM sipariş çekme hatası: ' + e.message);
+    }
+  }
+
   // Trendyol sipariş (doğru uç /orders; /packages kapatılmış)
   const ty = db.getSettings().trendyol || {};
   if (ty.apiKey && ty.apiSecret && ty.sellerId) {

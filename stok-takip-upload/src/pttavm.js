@@ -138,4 +138,36 @@ async function getTrackingResult(cfg, trackingId) {
   return res.json();
 }
 
-module.exports = { fetchStock, fetchProducts, updateStock, createProduct, getTrackingResult };
+// PTT AVM sipariş listesi (Sipariş Kontrol V2): GET /orders/search?startDate&endDate&isActiveOrders=false
+// Fatura kesildi bilgisi API'de YOK (sadece lineItem.isInvoice var) → fatura takibi MANUEL yapılır.
+async function fetchOrders(cfg, opts = {}) {
+  const end = opts.endDate || new Date();
+  const start = opts.startDate || new Date(Date.now() - 14 * 24 * 3600 * 1000);
+  const qs = 'startDate=' + encodeURIComponent(new Date(start).toISOString()) +
+    '&endDate=' + encodeURIComponent(new Date(end).toISOString()) +
+    '&isActiveOrders=false';
+  const url = BASE + '/orders/search?' + qs;
+  const data = await getJson(url, cfg);
+  const list = Array.isArray(data) ? data : (data.items || []);
+  return list.map(o => {
+    const lines = Array.isArray(o.siparisUrunler) ? o.siparisUrunler.map(u => ({
+      productName: u.urun || u.urunAdi || '',
+      quantity: Number(u.toplamIslemAdedi || u.quantityPurchased || 1),
+      barcode: u.urunBarkod || u.variantBarkod || '',
+      lineUnitPrice: Number(u.kdvHaricTutar || 0) || undefined,
+      isInvoice: !!u.isInvoice
+    })) : [];
+    return {
+      id: String(o.siparisNo || o.orderNumber || o.id || ''),
+      orderNumber: String(o.siparisNo || o.orderNumber || ''),
+      status: o.siparisDurumu || o.status || '',
+      orderDate: o.islemTarihi || o.orderDate || '',
+      totalPrice: Number(o.kdvDahilToplamTutar || o.orderTotal || o.kargoTutari || 0),
+      customerName: (o.musteriAdi || '') + ' ' + (o.musteriSoyadi || ''),
+      items: lines,
+      lines
+    };
+  }).filter(o => o.id);
+}
+
+module.exports = { fetchStock, fetchProducts, updateStock, createProduct, getTrackingResult, fetchOrders };
