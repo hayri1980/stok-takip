@@ -49,6 +49,8 @@ function defaultData() {
     dailySales: [],
     cartStats: { daily: {}, total: {} },
     siralama: { last: null },
+    hbVerileri: [],
+    reklamVerileri: [],
       shop: {
         products: [],
         orders: [],
@@ -101,6 +103,7 @@ function load() {
   if (!state.cartStats.daily || typeof state.cartStats.daily !== 'object') state.cartStats.daily = {};
   if (!state.cartStats.total || typeof state.cartStats.total !== 'object') state.cartStats.total = {};
   if (!state.siralama) state.siralama = { last: null };
+  if (!Array.isArray(state.reklamVerileri)) state.reklamVerileri = [];
   if (!state.shop) state.shop = {};
   if (!Array.isArray(state.shop.products)) state.shop.products = [];
   if (!Array.isArray(state.shop.orders)) state.shop.orders = [];
@@ -699,6 +702,30 @@ function getSiralamaLast() {
   return (state.siralama && state.siralama.last) || null;
 }
 
+// ---- Reklam (HB kampanya) günlük kayıt ----
+function getReklamVeri() {
+  load();
+  return state.reklamVerileri || [];
+}
+
+function addReklamVeri(rec) {
+  load();
+  if (!Array.isArray(state.reklamVerileri)) state.reklamVerileri = [];
+  state.reklamVerileri.unshift({
+    ts: new Date().toISOString(),
+    date: rec.date || new Date().toISOString().slice(0, 10),
+    id: String(rec.id || ''),
+    gor: Number(rec.gor) || 0,
+    tik: Number(rec.tik) || 0,
+    har: Number(rec.har) || 0,
+    sat: Number(rec.sat) || 0,
+    iade: Number(rec.iade) || 0
+  });
+  state.reklamVerileri = state.reklamVerileri.slice(0, 300);
+  save();
+  return state.reklamVerileri;
+}
+
 function setSiralamaLast(results) {
   load();
   state.siralama = state.siralama || { last: null };
@@ -783,5 +810,7 @@ module.exports = {
   getCartStats,
   addCartEvent,
   getSiralamaLast,
-  setSiralamaLast
+  setSiralamaLast,
+  getReklamVeri,
+  addReklamVeri
 };

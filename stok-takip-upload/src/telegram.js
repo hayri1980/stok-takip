@@ -373,6 +373,7 @@ function helpText() {
     '/fatura-kesildi SIPARISNO - faturayi kapat\n' +
     '/kuyruk - bekleyen kargo etiketleri\n' +
     '/sepet - web magazada sepete eklenen urunler (bugun/toplam kisi)\n' +
+    '/reklam - HB kampanya kaydi (ornek: /reklam gor 500 tik 37 har 120 sat 4)\n' +
     '/siralama - arama kelimesinde bizim urunler kacinci sirada (ornek: istavrit caparisi)\n' +
     '/test - bildirim testi gonder\n' +
     '/yardim - bu mesaj\n' +
@@ -485,6 +486,8 @@ async function handleMessage(msg) {
     await handlePendingBarcode(chatId);
   } else if (cmd === '/sepet' || cmd === '/cart') {
     await handleCartStats(chatId);
+  } else if (cmd === '/reklam') {
+    await handleReklam(chatId, parts.slice(1).join(' ').trim());
   } else if (cmd === '/siralama') {
     await sendTelegramTo(chatId, 'Sıralama taraması başladı ("' + (db.getSettings().siralama.keyword || 'istavrit çaparisi') + '") — tarayıcı açılıyor, biraz sürer...');
     try {
@@ -549,6 +552,40 @@ function cartStatsText() {
 
 async function handleCartStats(chatId) {
   await sendTelegramTo(chatId, cartStatsText());
+}
+
+// HB Reklam/Kampanya günlük kaydı: /reklam gor 500 tik 37 har 120 sat 4 [id kampanyaNo]
+// Sadece komut -> son kayıtlar listelenir, kayıtlar arası değişim gösterilir.
+async function handleReklam(chatId, arg) {
+  const tokens = String(arg || '').trim();
+  if (!tokens) {
+    const rows = db.getReklamVeri().slice(0, 8);
+    if (!rows.length) return sendTelegramTo(chatId, 'Reklam kaydi yok. Ekleme: /reklam gor 500 tik 37 har 120 sat 4');
+    const lines = ['REKLAM KAYITLARI (yeni->eski)'];
+    for (const r of rows) lines.push(r.date + (r.id ? ' [' + r.id + ']' : '') + ': gor ' + r.gor + ' | tik ' + r.tik + ' | har ' + r.har + ' TL | sat ' + r.sat);
+    return sendTelegramTo(chatId, lines.join('\n'));
+  }
+  const mId = tokens.match(/id\s+(\d+)/i);
+  const num = (k) => { const mm = tokens.match(new RegExp(k + '\\s+(\\d+[.,]?\\d*)', 'i')); return mm ? parseFloat(String(mm[1]).replace(',', '.')) : 0; };
+  const rec = {
+    id: mId ? mId[1] : '',
+    gor: Math.round(num('gor|gosterim')),
+    tik: Math.round(num('tik|tiklama|click')),
+    har: num('har|harcama'),
+    sat: Math.round(num('sat|satis')),
+    iade: Math.round(num('iade'))
+  };
+  if (rec.gor + rec.tik + rec.sat + rec.iade === 0) return sendTelegramTo(chatId, 'Rakam taninamadi. Ornek: /reklam gor 500 tik 37 har 120 sat 4');
+  db.addReklamVeri(rec);
+  const all = db.getReklamVeri();
+  let line = 'REKLAM KAYDEDILDI ' + (rec.id ? '[' + rec.id + '] ' : '') + rec.date + '\nGosterim: ' + rec.gor + ' | Tiklama: ' + rec.tik + ' | Harcama: ' + rec.har + ' TL | Satis: ' + rec.sat;
+  if (all.length >= 2) {
+    const p = all[1];
+    const d = (a, b) => { const x = a - b; return x > 0 ? ' (+' + x + ')' : (x < 0 ? ' (' + x + ')' : ''); };
+    line += '\nOnceki gune gore: gor' + d(rec.gor, p.gor) + ', tik' + d(rec.tik, p.tik) + ', har' + d(rec.har, p.har) + ', sat' + d(rec.sat, p.sat);
+  }
+  db.addLog('Reklam kaydi: ' + rec.date + ' gor ' + rec.gor + ' tik ' + rec.tik + ' har ' + rec.har + ' sat ' + rec.sat);
+  return sendTelegramTo(chatId, line);
 }
 
 async function handleInvoiceCommand(chatId, cmd, arg) {
