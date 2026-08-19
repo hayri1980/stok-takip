@@ -627,6 +627,21 @@ app.get('/api/shop/cart-stats', (req, res) => {
   res.json(db.getCartStats());
 });
 
+// Arama sıralama taramasını şimdi çalıştır (test/panel için)
+app.post('/api/siralama/run', async (req, res) => {
+  try {
+    if (siralamaRunning) return res.status(409).json({ error: 'Tarama zaten çalışıyor' });
+    siralamaRunning = true;
+    const r = await siralama.runScan({ notify: true });
+    res.json({ ok: true, keyword: r.keyword, markets: Object.keys(r.markets) });
+  } catch (e) {
+    db.addLog('Sıralama tarama hatası: ' + e.message);
+    res.status(500).json({ error: e.message });
+  } finally {
+    siralamaRunning = false;
+  }
+});
+
 app.get('/api/shop/orders/:id', (req, res) => {
   const order = db.getShopOrder(req.params.id);
   if (!order) return res.status(404).json({ error: 'Sipariş bulunamadı' });
