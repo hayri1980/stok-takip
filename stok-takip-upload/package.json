@@ -12,6 +12,7 @@
     "express": "^4.19.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.14",
+    "qrcode": "^1.5.4",
     "soap": "^1.10.0",
     "whatsapp-web.js": "^1.26.3"
   }
