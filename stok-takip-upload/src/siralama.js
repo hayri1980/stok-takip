@@ -64,44 +64,43 @@ function toks(s) {
   return normalize(s).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(x => x.length > 1);
 }
 
-// Ürün adı ile arama sonucu başlığını karşılaştır: ortak kelime oranı.
-function score(nameTokens, itemTitle) {
-  const b = toks(itemTitle);
-  if (!b.length) return 0;
-  let hit = 0;
-  const sb = new Set(b);
-  for (const t of nameTokens) if (sb.has(t)) hit++;
-  return hit / nameTokens.length;
+// Kelime karşılaştırma için kullanılan karakter-temiz sürüm (harf+rakam, boşluksuz).
+function collapse(s) {
+  return normalize(s).replace(/[^a-z0-9]/g, '');
 }
 
-const COMMON = new Set(['istavrit','caparisi','capari','igneli','igne','numara','beden','kostek','gram','adet','tuy','renk','gr','atari','ata']);
+// ---- Ürün İMZALARI (ayırt edici anahtar cümle) ----
+// Türkçe normalleştirme ile eşleşmesi için küçük harf + boşluklu yazılır;
+// eşleşmede collapse ile (türkçe harsiz + noktalama atılmış) karşılaştırılır.
+// Sıralama, "(5 Adet)" vs "(10 Adet)" gibi benzer kardeşleri ayırt eder.
+const PRODUCT_KEYS = {
+  '7KBX4': '6 numara kahve renk tuy 7 numara beyaz tuy',
+  '10TX4': 'tuy 4 adet 10 numara igne 025 beden 015 kostek 150 gr atar kapasitesi',
+  '7KTX3': '3 adet farkli igne farkli tuy',
+  'P15X4': '15 igneli istavrit caparisi 4 adet 60 gr 4 adet kursun',
+  '7TX3': 'istavrit uskumru kolyoz tuy capari',
+  'P7KX5': 'gece caparisi 5 adet 5 adet 30 gr kursun',
+  '10fx5': '5 adet 11 numara igne 025 beden 015 kostek 150 gr atarl kapasitesi kopuge sarili dugumlu el baglamasi',
+  'f10x10': '10 adet 11 numara igne 025 beden 015 kostek 150 gr atarl kapasitesi kopuge sarili dugumlu el baglamasi'
+};
 
-// itemTitle verilen arama sonucu, tanımlı ürünlerimizden HANGİSİ -> {barcode,name,skor} | null
+// itemTitle -> bizim hangi ürün olduğu {barcode,name,skor} | null
 function matchProduct(itemTitle, urunler) {
-  const itemToks = toks(itemTitle);
-  if (!itemToks.length) return null;
-  // Marka/satıcı etiketi: kart metninde "Çaparici/Caparici" geçiyorsa BİZİM ürün
-  // (rakipler "Aldos Çapari", "Barracuda..." - "aparici" yalnız bize özgü).
-  if (/aparici/i.test(itemTitle)) {
-    let best = null, bestScore = 0;
-    for (const u of urunler) {
-      const s = score(toks(u.name), itemTitle);
-      if (s > bestScore) { bestScore = s; best = u; }
-    }
-    if (best) return { barcode: best.barcode, name: best.name, skor: Math.max(70, Math.round(bestScore * 100)) };
-    return { barcode: 'CAPARICI', name: 'Çaparici (ürün adı eşleşmedi)', skor: 100 };
-  }
-  let best = null, bestScore = 0;
+  const card = collapse(itemTitle);
+  if (!card) return null;
+  // 1) Önce imza: ürünün ayırt edici cümlesi kart içinde geçiyorsa kesin o ürün.
   for (const u of urunler) {
-    const nt = toks(u.name);
-    const s = score(nt, itemTitle);
-    // Türkçe/uzunluk küçükse daha da hassas: üstünlük
-    if (s > bestScore) { bestScore = s; best = u; }
+    const key = PRODUCT_KEYS[u.barcode];
+    if (key && collapse(key).length >= 6 && card.indexOf(collapse(key)) !== -1) {
+      return { barcode: u.barcode, name: u.name, skor: 100 };
+    }
   }
-  if (!best) return null;
-  // IDEAL: çok benzer. minimum: 0.55 (ad olarak en az yarıdan fazlası örtüşüyor)
-  if (bestScore < 0.6) return null;
-  return { barcode: best.barcode, name: best.name, skor: bestScore };
+  // 2) İmza bulunamadıysa ama kartta markamız varsa -> bizim ürün olduğu kesin,
+  //    ad eşleşmesi koptu (ürün başlığı çok kısa kesilmiş olabilir).
+  if (/aparici/i.test(itemTitle)) {
+    return { barcode: 'CAPARICI', name: 'Çaparici (ürün adı eşleşmedi)', skor: 90 };
+  }
+  return null;
 }
 
 async function launchBrowser() {
