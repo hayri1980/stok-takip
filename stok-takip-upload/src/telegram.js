@@ -373,6 +373,7 @@ function helpText() {
     '/fatura-kesildi SIPARISNO - faturayi kapat\n' +
     '/kuyruk - bekleyen kargo etiketleri\n' +
     '/sepet - web magazada sepete eklenen urunler (bugun/toplam kisi)\n' +
+    '/siralama - arama kelimesinde bizim urunler kacinci sirada (ornek: istavrit caparisi)\n' +
     '/test - bildirim testi gonder\n' +
     '/yardim - bu mesaj\n' +
     '\nUZAKTAN STOK (bosta da yazar):\n' +
@@ -484,6 +485,16 @@ async function handleMessage(msg) {
     await handlePendingBarcode(chatId);
   } else if (cmd === '/sepet' || cmd === '/cart') {
     await handleCartStats(chatId);
+  } else if (cmd === '/siralama') {
+    await sendTelegramTo(chatId, 'Sıralama taraması başladı ("' + (db.getSettings().siralama.keyword || 'istavrit çaparisi') + '") — tarayıcı açılıyor, biraz sürer...');
+    try {
+      const siralama = require('./siralama');
+      const r = await siralama.runScan({ manual: true });
+      await sendTelegramTo(chatId, siralama.buildReport(r));
+    } catch (e) {
+      db.addLog('Sıralama komutu hatası: ' + e.message);
+      await sendTelegramTo(chatId, 'Sıralama taraması hata verdi: ' + e.message);
+    }
   } else if (cmd === '/test') {
     const extra = parts.slice(1).join(' ').trim();
     await sendTelegramTo(chatId, 'TEST MESAJI - Bildirim calisiyor.' + (extra ? ' (' + extra + ')' : ''));

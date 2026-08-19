@@ -13,6 +13,8 @@ const iyzico = require('./src/iyzico');
 const kargo = require('./src/kargo');
 const barcode = require('./src/barcode');
 const whatsapp = require('./src/whatsapp');
+const siralama = require('./src/siralama');
+const cron = require('node-cron');
 
 process.on('uncaughtException', (e) => {
   db.addLog('Beklenmeyen hata (uncaughtException): ' + (e && e.stack ? e.stack : String(e)));
@@ -241,6 +243,7 @@ app.get('/api/settings', (req, res) => {
 app.put('/api/settings', (req, res) => {
   const settings = db.setSettings(req.body);
   scheduleCron();
+  scheduleSiralama();
   res.json(settings);
 });
 
@@ -825,6 +828,27 @@ function scheduleCron() {
   db.addLog('Zamanlayıcı ayarlandı: her ' + ms / 1000 + ' saniyede bir kontrol');
 }
 
+// Arama sıralama taraması: node-cron ile her `everyHours` saatte bir. (siralama.enabled=false ise çalışmaz)
+let siralamaJob = null;
+function scheduleSiralama() {
+  if (siralamaJob) {
+    siralamaJob.stop();
+    siralamaJob = null;
+  }
+  const cfg = db.getSettings().siralama || {};
+  if (cfg.enabled === false) return;
+  const hours = Math.max(1, Math.min(24, Number(cfg.everyHours) || 2));
+  siralamaJob = cron.schedule('0 */' + hours + ' * * *', () => {
+    if (siralamaRunning) return;
+    siralamaRunning = true;
+    siralama.runScan({ notify: true })
+      .catch(e => db.addLog('Sıralama tarama hatası: ' + e.message))
+      .finally(() => { siralamaRunning = false; });
+  });
+  db.addLog('Sıralama taraması planlandı: her ' + hours + ' saatte bir ("' + (cfg.keyword || 'istavrit çaparisi') + '")');
+}
+let siralamaRunning = false;
+
 const port = process.env.PORT || 3000;
 
 async function start() {
@@ -840,6 +864,7 @@ async function start() {
   console.log('');
   db.addLog('Uygulama başlatıldı (port ' + port + ')');
   scheduleCron();
+  scheduleSiralama();
   telegramBot.start();
   if ((db.getSettings().whatsapp || {}).enabled) {
     whatsapp.start();

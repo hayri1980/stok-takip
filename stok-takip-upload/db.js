@@ -24,6 +24,7 @@ function defaultData() {
       report: { enabled: true },
       notifications: { sales: true, health: true, audit: true },
       sepet: { enabled: true },
+      siralama: { enabled: true, everyHours: 2, keyword: 'istavrit çaparisi', markets: ['idefix'] },
       ignoreBarcodes: [],
       productPush: {
         enabled: false,
@@ -47,6 +48,7 @@ function defaultData() {
     stockWrites: [],
     dailySales: [],
     cartStats: { daily: {}, total: {} },
+    siralama: { last: null },
       shop: {
         products: [],
         orders: [],
@@ -98,6 +100,7 @@ function load() {
   if (!state.cartStats || typeof state.cartStats !== 'object') state.cartStats = { daily: {}, total: {} };
   if (!state.cartStats.daily || typeof state.cartStats.daily !== 'object') state.cartStats.daily = {};
   if (!state.cartStats.total || typeof state.cartStats.total !== 'object') state.cartStats.total = {};
+  if (!state.siralama) state.siralama = { last: null };
   if (!state.shop) state.shop = {};
   if (!Array.isArray(state.shop.products)) state.shop.products = [];
   if (!Array.isArray(state.shop.orders)) state.shop.orders = [];
@@ -259,6 +262,7 @@ function mergeSettings(base, partial) {
     notifications: { ...(base.notifications || {}), ...(partial.notifications || {}) },
     whatsapp: { ...(base.whatsapp || {}), ...(partial.whatsapp || {}) },
     sepet: { ...(base.sepet || {}), ...(partial.sepet || {}) },
+    siralama: { ...(base.siralama || {}), ...(partial.siralama || {}) },
     ignoreBarcodes: Array.isArray(partial.ignoreBarcodes) ? partial.ignoreBarcodes : (Array.isArray(base.ignoreBarcodes) ? base.ignoreBarcodes : []),
     cost: { ...(base.cost || {}), ...(partial.cost || {}) },
     productPush: mergeProductPush(base.productPush || {}, partial.productPush || {})
@@ -689,6 +693,20 @@ function getCartStats() {
   return state.cartStats;
 }
 
+// ---- Sıralama (arama kelimesi) ----
+function getSiralamaLast() {
+  load();
+  return (state.siralama && state.siralama.last) || null;
+}
+
+function setSiralamaLast(results) {
+  load();
+  state.siralama = state.siralama || { last: null };
+  state.siralama.last = results || null;
+  save();
+  return state.siralama.last;
+}
+
 function addCartEvent(productId, sid) {
   load();
   const pid = String(productId || '');
@@ -763,5 +781,7 @@ module.exports = {
   recordShopVisit,
   getShopStats,
   getCartStats,
-  addCartEvent
+  addCartEvent,
+  getSiralamaLast,
+  setSiralamaLast
 };
