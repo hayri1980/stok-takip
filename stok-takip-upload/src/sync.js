@@ -605,6 +605,7 @@ async function checkOrders() {
             status: o.status || '',
             provider: o.cargoProviderName || ''
           });
+          await checkInvoiceStatus({ market: 'Trendyol', id, order: o });
         }
       }
     } catch (e) {
@@ -856,6 +857,46 @@ function isCancelledStatus(st) {
 // Durum Trendyol sipariş API'sinden gelir ("Delivered" = müşteri teslim aldı).
 // shippedAt = sistemin takip numarasını İLK gördüğü an (kargoya veriliş anı).
 const MISSED_DELIVERY_DAYS = 5;
+
+async function checkInvoiceStatus({ market, id, order }) {
+  // Fatura kesilmemiş sipariş uyarısı: sipariş 2 saatten eskiyse ve fatura hâlâ
+  // kesilmediyse ("Invoiced" değilse) Telegram'a BİR KEZ bildir.
+  const INVOICE_WAIT_MS = 2 * 60 * 60 * 1000;
+  const o = order || {};
+  const fiscalId = market + ':' + id;
+  const invoiceStatus = String(o.invoiceStatus || '').toLowerCase();
+  if (invoiceStatus === 'invoiced') return; // fatura kesilmiş
+  if (isCancelledStatus(o.status)) return;  // iptal bildirme
+  const orderTs = Number(o.orderDate || o.orderDateTime || 0);
+  if (!orderTs || Date.now() - orderTs < INVOICE_WAIT_MS) return; // 2 saat dolmadı
+  const notified = new Set(db.getInvoiceNotifiedIds());
+  if (notified.has(fiscalId)) return; // bir kez bildirildi
+  try {
+    const items = o.lines || o.items || o.orderLines || o.lineItems || [];
+    const lines = ['FATURA KESILMEDI (' + market + ')', 'Siparis no: ' + id];
+    if (items.length) {
+      for (const li of items.slice(0, 5)) {
+        const nm = li.productName || li.name || li.merchantSku || li.barcode || '';
+        const q = Number(li.quantity || li.quantityPurchased || 1);
+        const unit = Number(li.lineUnitPrice || li.unitPrice || li.price || 0);
+        lines.push('- ' + nm + ' x' + q + (unit ? ' = ' + (unit * q).toFixed(2) + ' TL' : ''));
+      }
+    }
+    lines.push('Tutar: ' + (o.totalPrice || o.amount || o.packageTotalPrice || '?') + ' TL');
+    lines.push('Fatura durumu: ' + (o.invoiceStatus || 'Bilinmiyor'));
+    const r = await notifier.notify(
+      'FATURA KESILMEDI (' + market + '): ' + id,
+      '<h3>Fatura kesilmedi</h3>' + lines.map(l => '<p>' + l + '</p>').join(''),
+      lines.join('\n')
+    );
+    if (r && r.telegram && r.telegram.sent) {
+      db.addInvoiceNotifiedIds([fiscalId]);
+      db.addLog('Fatura kesilmedi uyarısı gönderildi: ' + fiscalId);
+    }
+  } catch (e) {
+    db.addLog('Fatura kontrol hatası: ' + e.message);
+  }
+}
 
 async function trackShipment({ market, orderNo, trackingNo, status, statusDescription, provider }) {
   if (!trackingNo || !orderNo) return;

@@ -38,6 +38,7 @@ function defaultData() {
     log: [],
     qnaNotifiedIds: [],
     orderNotifiedIds: [],
+    invoiceNotifiedIds: [],
     financeNotifiedIds: [],
     financeRecords: [],
     orderShipments: [],
@@ -88,6 +89,7 @@ function load() {
   if (!Array.isArray(state.products)) state.products = [];
   if (!Array.isArray(state.log)) state.log = [];
   if (!Array.isArray(state.qnaNotifiedIds)) state.qnaNotifiedIds = [];
+  if (!Array.isArray(state.invoiceNotifiedIds)) state.invoiceNotifiedIds = [];
   if (!Array.isArray(state.dailySales)) state.dailySales = [];
   if (!state.shop) state.shop = {};
   if (!Array.isArray(state.shop.products)) state.shop.products = [];
@@ -282,6 +284,21 @@ function addQnaNotifiedIds(ids) {
   state.qnaNotifiedIds = Array.from(set).slice(-500);
   save();
   return state.qnaNotifiedIds;
+}
+
+// Fatura kesilmedi uyarısı: bir kez bildirilen siparişler hatırlanır.
+function getInvoiceNotifiedIds() {
+  load();
+  return state.invoiceNotifiedIds || [];
+}
+
+function addInvoiceNotifiedIds(ids) {
+  load();
+  const set = new Set(state.invoiceNotifiedIds || []);
+  for (const id of ids) set.add(String(id));
+  state.invoiceNotifiedIds = Array.from(set).slice(-2000);
+  save();
+  return state.invoiceNotifiedIds;
 }
 
 function getFinanceNotifiedIds() {
@@ -626,6 +643,8 @@ module.exports = {
   getLog,
   getQnaNotifiedIds,
   addQnaNotifiedIds,
+  getInvoiceNotifiedIds,
+  addInvoiceNotifiedIds,
   getFinanceNotifiedIds,
   addFinanceNotifiedIds,
   getFinanceRecords,
