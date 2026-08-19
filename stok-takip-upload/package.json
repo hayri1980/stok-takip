@@ -12,6 +12,8 @@
     "express": "^4.19.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.14",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "qrcode": "^1.5.4",
     "soap": "^1.10.0",
     "whatsapp-web.js": "^1.26.3"
