@@ -371,6 +371,7 @@ function helpText() {
     '/sorular - bekleyen Trendyol urun sorulari\n' +
     '/fatura - bekleyen faturalar\n' +
     '/fatura-kesildi SIPARISNO - faturayi kapat\n' +
+    '/kuyruk - bekleyen kargo etiketleri\n' +
     '/test - bildirim testi gonder\n' +
     '/yardim - bu mesaj\n' +
     '\nUZAKTAN STOK (bosta da yazar):\n' +
@@ -478,10 +479,30 @@ async function handleMessage(msg) {
     await sendTelegramTo(chatId, helpText());
   } else if (cmd === '/fatura' || cmd === '/fatura-kesildi') {
     await handleInvoiceCommand(chatId, cmd, parts.slice(1).join(' ').trim());
+  } else if (cmd === '/kuyruk' || cmd === '/ettiket') {
+    await handlePendingBarcode(chatId);
   } else if (cmd === '/test') {
     const extra = parts.slice(1).join(' ').trim();
     await sendTelegramTo(chatId, 'TEST MESAJI - Bildirim calisiyor.' + (extra ? ' (' + extra + ')' : ''));
   }
+}
+
+// WhatsApp kargo barkod kuyruğu: 17:30 sonrası / pencere dışı bekleyen etiketleri göster.
+async function handlePendingBarcode(chatId) {
+  const wcfg = db.getSettings().whatsapp || {};
+  const pending = Array.isArray(wcfg.pendingOrderIds) ? wcfg.pendingOrderIds : [];
+  if (pending.length === 0) {
+    await sendTelegramTo(chatId, 'Kargo kuyrugunda barkod yok. 🎉');
+    return;
+  }
+  const lines = pending.slice().reverse().map((p, i) => {
+    const nid = String(p.nid || p.id || '');
+    const market = p.market || 'Pazaryeri';
+    const orderPart = nid.split(':').pop() || nid;
+    return (i + 1) + ') ' + market + ' — ' + (p.trackingNo || nid) + (p.trackingNo ? ' | siparis ' + orderPart : '');
+  });
+  await sendTelegramTo(chatId, 'KARGO KUYRUGU (' + pending.length + ' barkod)\n\n' + lines.join('\n') +
+    '\n\n(Gönderim penceresi: Hafta ici 09:00-17:30 | Cumartesi 09:00-15:00 | Pazar kapali)');
 }
 
 async function handleInvoiceCommand(chatId, cmd, arg) {
