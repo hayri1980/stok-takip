@@ -369,6 +369,8 @@ function helpText() {
     '/denetim - sistemi tara, arizalari tamir et ve raporla\n' +
     '/log - son islem kayitlari\n' +
     '/sorular - bekleyen Trendyol urun sorulari\n' +
+    '/fatura - bekleyen faturalar\n' +
+    '/fatura-kesildi SIPARISNO - faturayi kapat\n' +
     '/test - bildirim testi gonder\n' +
     '/yardim - bu mesaj\n' +
     '\nUZAKTAN STOK (bosta da yazar):\n' +
@@ -474,9 +476,41 @@ async function handleMessage(msg) {
     }
   } else if (cmd === '/yardim' || cmd === '/help') {
     await sendTelegramTo(chatId, helpText());
+  } else if (cmd === '/fatura' || cmd === '/fatura-kesildi') {
+    await handleInvoiceCommand(chatId, cmd, parts.slice(1).join(' ').trim());
   } else if (cmd === '/test') {
     const extra = parts.slice(1).join(' ').trim();
     await sendTelegramTo(chatId, 'TEST MESAJI - Bildirim calisiyor.' + (extra ? ' (' + extra + ')' : ''));
+  }
+}
+
+async function handleInvoiceCommand(chatId, cmd, arg) {
+  if (cmd === '/fatura') {
+    const pending = db.getInvoiceReminders().filter(r => r && !r.done);
+    if (pending.length === 0) {
+      await sendTelegramTo(chatId, 'Bekleyen fatura yok. 🎉');
+      return;
+    }
+    const lines = pending.slice(-20).map(r => {
+      const ageH = Math.round((Date.now() - Number(r.orderTs || 0)) / 3600000);
+      return r.market + ' ' + r.orderNo + ' (' + ageH + ' saat)';
+    });
+    await sendTelegramTo(chatId, 'BEKLEYEN FATURALAR (' + pending.length + ')\n\n' + lines.join('\n') + '\n\nKesildiyse: /fatura-kesildi SIRANO');
+    return;
+  }
+  // /fatura-kesildi <siparis no>
+  if (!arg) {
+    await sendTelegramTo(chatId, 'Kullanim: /fatura-kesildi SIPARISNO\nOrnek: /fatura-kesildi 11520297965');
+    return;
+  }
+  const target = String(arg).trim().toLowerCase();
+  const all = db.getInvoiceReminders();
+  const match = all.find(r => r && !r.done && String(r.orderNo).toLowerCase() === target);
+  if (match) {
+    db.markInvoiceDone(match.key);
+    await sendTelegramTo(chatId, 'Fatura kesildi olarak isaretlendi: ' + match.market + ' ' + match.orderNo + ' ✅');
+  } else {
+    await sendTelegramTo(chatId, 'Bekleyen fatura bulunamadi: ' + arg + ' (fatura no veya siparis no?)');
   }
 }
 

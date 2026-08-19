@@ -536,6 +536,7 @@ async function checkOrders() {
             statusDescription: o.statusDescription || '',
             provider: o.cargoCompany || 'Hepsiburada'
           });
+          await checkInvoiceStatus({ market: 'Hepsiburada', id: fid, order });
         }
       }
     } catch (e) {
@@ -571,6 +572,7 @@ async function checkOrders() {
           statusDescription: o.statusDescription || '',
           provider: o.cargoCompany || 'idefix'
         });
+        await checkInvoiceStatus({ market: 'idefix', id, order });
       }
     } catch (e) {
       db.addLog('idefix sipariş çekme hatası: ' + e.message);
@@ -859,21 +861,45 @@ function isCancelledStatus(st) {
 const MISSED_DELIVERY_DAYS = 5;
 
 async function checkInvoiceStatus({ market, id, order }) {
-  // Fatura kesilmemiş sipariş uyarısı: sipariş 2 saatten eskiyse ve fatura hâlâ
-  // kesilmediyse ("Invoiced" değilse) Telegram'a BİR KEZ bildir.
+  // Fatura takibi — iki katmanlı:
+  // (a) Trendyol: sipariş API'si invoiceStatus verir; "Invoiced" ise otomatik kapanır.
+  // (b) Tüm pazarlar: 2 saat sonra hâlâ kapanmamışsa Telegram'a sorulur ("FATURA KESİLDİ Mİ?")
+  //     → kullanıcı /fatura-kesildi <no> yazınca kapanır. (API'de fatura bilgisi olmayan
+  //     HB/idefix/PTT için de bu manuel akış çalışır.)
   const INVOICE_WAIT_MS = 2 * 60 * 60 * 1000;
   const o = order || {};
-  const fiscalId = market + ':' + id;
+  const key = market + ':' + id;
+  if (isCancelledStatus(o.status)) return; // iptal takip edilmez
+
+  // (a) Otomatik: Trendyol fatura kesilmişse reminder'ı kapat
   const invoiceStatus = String(o.invoiceStatus || '').toLowerCase();
-  if (invoiceStatus === 'invoiced') return; // fatura kesilmiş
-  if (isCancelledStatus(o.status)) return;  // iptal bildirme
-  const orderTs = Number(o.orderDate || o.orderDateTime || 0);
-  if (!orderTs || Date.now() - orderTs < INVOICE_WAIT_MS) return; // 2 saat dolmadı
-  const notified = new Set(db.getInvoiceNotifiedIds());
-  if (notified.has(fiscalId)) return; // bir kez bildirildi
+  const already = db.getInvoiceReminders().find(r => r && r.key === key);
+  if (invoiceStatus === 'invoiced') {
+    if (already && !already.done) db.markInvoiceDone(key);
+    return;
+  }
+
+  const orderTs = Number(o.orderDate || o.orderDateTime || Date.now()) || Date.now();
+
+  // Reminder kaydını oluştur (varsa dokunma, notifiedAt korunur)
+  db.upsertInvoiceReminder({
+    key,
+    market,
+    orderNo: String(id),
+    orderTs,
+    done: !!(already && already.done),
+    notifiedAt: (already && already.notifiedAt) || 0
+  });
+
+  // (b) 2 saat doldu mu ve kapanmadıysa → bildir (her 6 saatte bir tekrar hatırlat)
+  if (already && already.done) return;
+  if (Date.now() - orderTs < INVOICE_WAIT_MS) return;
+  const notifiedAt = (already && already.notifiedAt) || 0;
+  if (notifiedAt && Date.now() - notifiedAt < 6 * 60 * 60 * 1000) return;
+
   try {
     const items = o.lines || o.items || o.orderLines || o.lineItems || [];
-    const lines = ['FATURA KESILMEDI (' + market + ')', 'Siparis no: ' + id];
+    const lines = ['FATURA KESILDI MI? (' + market + ')', 'Siparis no: ' + id];
     if (items.length) {
       for (const li of items.slice(0, 5)) {
         const nm = li.productName || li.name || li.merchantSku || li.barcode || '';
@@ -883,15 +909,16 @@ async function checkInvoiceStatus({ market, id, order }) {
       }
     }
     lines.push('Tutar: ' + (o.totalPrice || o.amount || o.packageTotalPrice || '?') + ' TL');
-    lines.push('Fatura durumu: ' + (o.invoiceStatus || 'Bilinmiyor'));
+    lines.push('');
+    lines.push('Fatura kesildiyse /fatura-kesildi ' + id + ' yaz. (Trendyol\'da otomatik algilanir)');
     const r = await notifier.notify(
-      'FATURA KESILMEDI (' + market + '): ' + id,
-      '<h3>Fatura kesilmedi</h3>' + lines.map(l => '<p>' + l + '</p>').join(''),
+      'FATURA KESILDI MI? (' + market + '): ' + id,
+      '<h3>Fatura kesilmedi?</h3>' + lines.map(l => '<p>' + l + '</p>').join(''),
       lines.join('\n')
     );
     if (r && r.telegram && r.telegram.sent) {
-      db.addInvoiceNotifiedIds([fiscalId]);
-      db.addLog('Fatura kesilmedi uyarısı gönderildi: ' + fiscalId);
+      db.upsertInvoiceReminder({ key, market, orderNo: String(id), orderTs, done: false, notifiedAt: Date.now() });
+      db.addLog('Fatura hatırlatması gönderildi: ' + key);
     }
   } catch (e) {
     db.addLog('Fatura kontrol hatası: ' + e.message);

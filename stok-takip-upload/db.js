@@ -39,6 +39,7 @@ function defaultData() {
     qnaNotifiedIds: [],
     orderNotifiedIds: [],
     invoiceNotifiedIds: [],
+    invoiceReminders: [],
     financeNotifiedIds: [],
     financeRecords: [],
     orderShipments: [],
@@ -90,6 +91,7 @@ function load() {
   if (!Array.isArray(state.log)) state.log = [];
   if (!Array.isArray(state.qnaNotifiedIds)) state.qnaNotifiedIds = [];
   if (!Array.isArray(state.invoiceNotifiedIds)) state.invoiceNotifiedIds = [];
+  if (!Array.isArray(state.invoiceReminders)) state.invoiceReminders = [];
   if (!Array.isArray(state.dailySales)) state.dailySales = [];
   if (!state.shop) state.shop = {};
   if (!Array.isArray(state.shop.products)) state.shop.products = [];
@@ -299,6 +301,36 @@ function addInvoiceNotifiedIds(ids) {
   state.invoiceNotifiedIds = Array.from(set).slice(-2000);
   save();
   return state.invoiceNotifiedIds;
+}
+
+// ---- Manuel fatura takibi (tüm pazaryerleri) ----
+// Her sipariş için reminder: { key, market, orderNo, orderTs, done, notifiedAt }
+function getInvoiceReminders() {
+  load();
+  return state.invoiceReminders || [];
+}
+
+function upsertInvoiceReminder(rec) {
+  load();
+  if (!Array.isArray(state.invoiceReminders)) state.invoiceReminders = [];
+  const idx = state.invoiceReminders.findIndex(r => r && r.key === rec.key);
+  if (idx >= 0) state.invoiceReminders[idx] = { ...state.invoiceReminders[idx], ...rec };
+  else state.invoiceReminders.push(rec);
+  state.invoiceReminders = state.invoiceReminders.filter(r => r).slice(-2000);
+  save();
+  return state.invoiceReminders;
+}
+
+function markInvoiceDone(key) {
+  load();
+  if (!Array.isArray(state.invoiceReminders)) return false;
+  const r = state.invoiceReminders.find(r => r && r.key === key);
+  if (r) {
+    r.done = true;
+    save();
+    return true;
+  }
+  return false;
 }
 
 function getFinanceNotifiedIds() {
@@ -645,6 +677,9 @@ module.exports = {
   addQnaNotifiedIds,
   getInvoiceNotifiedIds,
   addInvoiceNotifiedIds,
+  getInvoiceReminders,
+  upsertInvoiceReminder,
+  markInvoiceDone,
   getFinanceNotifiedIds,
   addFinanceNotifiedIds,
   getFinanceRecords,
