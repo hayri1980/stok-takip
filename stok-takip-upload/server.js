@@ -569,6 +569,61 @@ app.post('/api/shop/track', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Mağaza: sepete ekleme bildirimi ----
+// Web mağazadan (magaza) sepetete eklendiğinde tarayıcı burayı çağırır.
+// Pazaryerlerinin API'leri "sepete eklendi" verisi vermediği için bu kaynak
+// yalnızca sistemin KENDİ web mağazasıdır (bkz. notlar). Her ekleme kaydedilir;
+// Telegram'a ürün + bugün/toplam ekleyen kişi sayısı bildirilir.
+const lastCartNotifTs = {};
+async function notifyCartAdd(p, stats) {
+  const sepet = (db.getSettings().sepet || {});
+  if (sepet.enabled === false) return;
+  // Aynı ürüne 60 sn içinde tekrar bildirim yok (bot/tıklama spam'ına karşı) —
+  // farklı ürünler için her zaman anında bildirilir.
+  const now = Date.now();
+  if (now - (lastCartNotifTs[p.id] || 0) < 60 * 1000) return;
+  lastCartNotifTs[p.id] = now;
+  const lines = [
+    'SEPETE EKLENDI (Web Magaza)',
+    'Urun: ' + p.name,
+    'Stok kodu: ' + (p.barcode || ''),
+    'Bugun ekleyen: ' + stats.todaySessions + ' kisi (' + stats.todayCount + ' kez)',
+    'TOPLAM ekleyen: ' + stats.totalSessions + ' kisi (' + stats.totalCount + ' kez)'
+  ];
+  try {
+    await notifier.notify(
+      'SEPETE EKLENDI: ' + p.name,
+      '<h3>Web mağazanda sepete eklendi</h3>' +
+        '<p><b>Ürün:</b> ' + p.name + '</p>' +
+        '<p><b>Bugün ekleyen:</b> ' + stats.todaySessions + ' kişi (' + stats.todayCount + ' kez)</p>' +
+        '<p><b>Toplam ekleyen:</b> ' + stats.totalSessions + ' kişi (' + stats.totalCount + ' kez)</p>',
+      lines.join('\n')
+    );
+  } catch (e) {
+    db.addLog('Sepet bildirimi gönderilemedi: ' + e.message);
+  }
+}
+
+app.post('/api/shop/cart-event', (req, res) => {
+  try {
+    const b = req.body || {};
+    const pid = String(b.productId || '');
+    const p = db.getShopProduct(pid);
+    if (!p) return res.status(404).json({ error: 'Ürün bulunamadı' });
+    const stats = db.addCartEvent(pid, String(b.sid || ''));
+    db.addLog('Sepete eklendi: ' + (p.name || pid) + ' (bugun ' + stats.todaySessions + ' kisi, toplam ' + stats.totalCount + ' kez)');
+    notifyCartAdd(p, stats);
+    res.json({ ok: true, ...stats });
+  } catch (e) {
+    db.addLog('Sepet kaydı hatası: ' + e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/shop/cart-stats', (req, res) => {
+  res.json(db.getCartStats());
+});
+
 app.get('/api/shop/orders/:id', (req, res) => {
   const order = db.getShopOrder(req.params.id);
   if (!order) return res.status(404).json({ error: 'Sipariş bulunamadı' });

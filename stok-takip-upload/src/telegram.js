@@ -372,6 +372,7 @@ function helpText() {
     '/fatura - bekleyen faturalar\n' +
     '/fatura-kesildi SIPARISNO - faturayi kapat\n' +
     '/kuyruk - bekleyen kargo etiketleri\n' +
+    '/sepet - web magazada sepete eklenen urunler (bugun/toplam kisi)\n' +
     '/test - bildirim testi gonder\n' +
     '/yardim - bu mesaj\n' +
     '\nUZAKTAN STOK (bosta da yazar):\n' +
@@ -481,6 +482,8 @@ async function handleMessage(msg) {
     await handleInvoiceCommand(chatId, cmd, parts.slice(1).join(' ').trim());
   } else if (cmd === '/kuyruk' || cmd === '/ettiket') {
     await handlePendingBarcode(chatId);
+  } else if (cmd === '/sepet' || cmd === '/cart') {
+    await handleCartStats(chatId);
   } else if (cmd === '/test') {
     const extra = parts.slice(1).join(' ').trim();
     await sendTelegramTo(chatId, 'TEST MESAJI - Bildirim calisiyor.' + (extra ? ' (' + extra + ')' : ''));
@@ -503,6 +506,38 @@ async function handlePendingBarcode(chatId) {
   });
   await sendTelegramTo(chatId, 'KARGO KUYRUGU (' + pending.length + ' barkod)\n\n' + lines.join('\n') +
     '\n\n(Gönderim penceresi: Hafta ici 09:00-17:30 | Cumartesi 09:00-15:00 | Pazar kapali)');
+}
+
+// Web mağazada (caparici.com) bugün ve toplamda sepete eklenen ürün/kişi istatistiği.
+// Not: pazaryerleri (Trendyol/HB/PTT/idefix) bu veriyi API ile vermez; yalnız sistemin
+// kendi web mağazasından alınır.
+function cartStatsText() {
+  const stats = db.getCartStats();
+  const day = db.localDayKey(new Date());
+  const daily = (stats.daily && stats.daily[day]) || {};
+  const total = stats.total || {};
+  const entries = Object.keys(daily)
+    .map(pid => ({
+      pid,
+      count: Number((daily[pid] && daily[pid].count) || 0),
+      sessions: Number((daily[pid] && daily[pid].sessionCount) || 0),
+      totalCount: Number((total[pid] && total[pid].count) || 0),
+      totalSessions: Number((total[pid] && total[pid].sessionCount) || 0)
+    }))
+    .sort((a, b) => b.count - a.count);
+  if (entries.length === 0) return 'SEPET ISTATISTIGI\nBugun henuz sepete ekleyen yok.';
+  const lines = entries.map((e, i) => {
+    const p = db.getShopProduct(e.pid);
+    const name = p ? p.name : e.pid;
+    return (i + 1) + ') ' + name +
+      '\n   Bugun: ' + e.sessions + ' kisi (' + e.count + ' kez)' +
+      '\n   Toplam: ' + e.totalSessions + ' kisi (' + e.totalCount + ' kez)';
+  });
+  return 'SEPET ISTATISTIGI (bugun)\n\n' + lines.join('\n');
+}
+
+async function handleCartStats(chatId) {
+  await sendTelegramTo(chatId, cartStatsText());
 }
 
 async function handleInvoiceCommand(chatId, cmd, arg) {

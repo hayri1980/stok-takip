@@ -23,6 +23,7 @@ function defaultData() {
       sync: { intervalMinutes: 30, threshold: 1, pollSeconds: 15, enabled: false },
       report: { enabled: true },
       notifications: { sales: true, health: true, audit: true },
+      sepet: { enabled: true },
       ignoreBarcodes: [],
       productPush: {
         enabled: false,
@@ -45,6 +46,7 @@ function defaultData() {
     orderShipments: [],
     stockWrites: [],
     dailySales: [],
+    cartStats: { daily: {}, total: {} },
       shop: {
         products: [],
         orders: [],
@@ -93,6 +95,9 @@ function load() {
   if (!Array.isArray(state.invoiceNotifiedIds)) state.invoiceNotifiedIds = [];
   if (!Array.isArray(state.invoiceReminders)) state.invoiceReminders = [];
   if (!Array.isArray(state.dailySales)) state.dailySales = [];
+  if (!state.cartStats || typeof state.cartStats !== 'object') state.cartStats = { daily: {}, total: {} };
+  if (!state.cartStats.daily || typeof state.cartStats.daily !== 'object') state.cartStats.daily = {};
+  if (!state.cartStats.total || typeof state.cartStats.total !== 'object') state.cartStats.total = {};
   if (!state.shop) state.shop = {};
   if (!Array.isArray(state.shop.products)) state.shop.products = [];
   if (!Array.isArray(state.shop.orders)) state.shop.orders = [];
@@ -253,6 +258,7 @@ function mergeSettings(base, partial) {
     report: { ...base.report, ...(partial.report || {}) },
     notifications: { ...(base.notifications || {}), ...(partial.notifications || {}) },
     whatsapp: { ...(base.whatsapp || {}), ...(partial.whatsapp || {}) },
+    sepet: { ...(base.sepet || {}), ...(partial.sepet || {}) },
     ignoreBarcodes: Array.isArray(partial.ignoreBarcodes) ? partial.ignoreBarcodes : (Array.isArray(base.ignoreBarcodes) ? base.ignoreBarcodes : []),
     cost: { ...(base.cost || {}), ...(partial.cost || {}) },
     productPush: mergeProductPush(base.productPush || {}, partial.productPush || {})
@@ -660,6 +666,52 @@ function getShopStats() {
   };
 }
 
+// ---- Sepete ekleme istatistiği (web mağaza) ----
+// Tarayıcıdan "sepete eklendi" olduğunda çağrılır. Her kayıt:
+//   count (toplam ekleme sayısı) + sessionCount (farklı kişi sayısı, sid ile).
+// Saklama: cartStats = { daily: { 'YYYY-MM-DD': { productId: {count, sessions{}, sessionCount} } }, total: { productId: {...} } }
+function cartRec(parent, id, sid) {
+  if (!parent[id]) parent[id] = { count: 0, sessions: {}, sessionCount: 0 };
+  const rec = parent[id];
+  rec.count = (Number(rec.count) || 0) + 1;
+  if (sid) {
+    if (rec.sessionCount > 3000) { rec.sessions = {}; rec.sessionCount = 0; }
+    if (!rec.sessions[sid]) {
+      rec.sessions[sid] = 1;
+      rec.sessionCount = (Number(rec.sessionCount) || 0) + 1;
+    }
+  }
+  return rec;
+}
+
+function getCartStats() {
+  load();
+  return state.cartStats;
+}
+
+function addCartEvent(productId, sid) {
+  load();
+  const pid = String(productId || '');
+  if (!pid) return null;
+  const day = localDayKey(new Date());
+  if (!state.cartStats.daily[day]) state.cartStats.daily[day] = {};
+  const d = cartRec(state.cartStats.daily[day], pid, String(sid || ''));
+  const t = cartRec(state.cartStats.total, pid, String(sid || ''));
+  // Eski günleri temizle (son 30 gün)
+  const cutoff = localDayKey(new Date(Date.now() - 30 * 86400000));
+  for (const k of Object.keys(state.cartStats.daily)) {
+    if (k < cutoff) delete state.cartStats.daily[k];
+  }
+  save();
+  return {
+    productId: pid,
+    todayCount: (Number(d.count) || 0),
+    todaySessions: (Number(d.sessionCount) || 0),
+    totalCount: (Number(t.count) || 0),
+    totalSessions: (Number(t.sessionCount) || 0)
+  };
+}
+
 module.exports = {
   load,
   save,
@@ -709,5 +761,7 @@ module.exports = {
   setShopSettings,
   incrementShopProductSold,
   recordShopVisit,
-  getShopStats
+  getShopStats,
+  getCartStats,
+  addCartEvent
 };

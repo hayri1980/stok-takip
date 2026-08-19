@@ -219,6 +219,32 @@ function addToCart(id, qty) {
   else cart.push({ id, qty: Math.min(n, p.stock || 99) });
   saveCart(cart);
   showView('cart');
+  reportCartAdd(id);
+}
+
+// Sepete ekleme istatistiği: her eklemede sunucuya haber verilir (Telegram bildirimi + kişi sayısı).
+// Ziyaretçiyi ayırt etmek için tarayıcıda kalıcı bir oturum kimliği tutulur.
+function cartSid() {
+  try {
+    let s = localStorage.getItem('capariSid');
+    if (!s) {
+      s = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem('capariSid', s);
+    }
+    return s;
+  } catch (e) {
+    return '';
+  }
+}
+
+function reportCartAdd(id) {
+  try {
+    fetch('/api/shop/cart-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: id, sid: cartSid() })
+    }).catch(() => {});
+  } catch (e) {}
 }
 
 // ---------- Sepet ----------
