@@ -80,6 +80,17 @@ const COMMON = new Set(['istavrit','caparisi','capari','igneli','igne','numara',
 function matchProduct(itemTitle, urunler) {
   const itemToks = toks(itemTitle);
   if (!itemToks.length) return null;
+  // Marka/satıcı etiketi: kart metninde "Çaparici/Caparici" geçiyorsa BİZİM ürün
+  // (rakipler "Aldos Çapari", "Barracuda..." - "aparici" yalnız bize özgü).
+  if (/aparici/i.test(itemTitle)) {
+    let best = null, bestScore = 0;
+    for (const u of urunler) {
+      const s = score(toks(u.name), itemTitle);
+      if (s > bestScore) { bestScore = s; best = u; }
+    }
+    if (best) return { barcode: best.barcode, name: best.name, skor: Math.max(70, Math.round(bestScore * 100)) };
+    return { barcode: 'CAPARICI', name: 'Çaparici (ürün adı eşleşmedi)', skor: 100 };
+  }
   let best = null, bestScore = 0;
   for (const u of urunler) {
     const nt = toks(u.name);
@@ -89,7 +100,7 @@ function matchProduct(itemTitle, urunler) {
   }
   if (!best) return null;
   // IDEAL: çok benzer. minimum: 0.55 (ad olarak en az yarıdan fazlası örtüşüyor)
-  if (bestScore < 0.55) return null;
+  if (bestScore < 0.6) return null;
   return { barcode: best.barcode, name: best.name, skor: bestScore };
 }
 
