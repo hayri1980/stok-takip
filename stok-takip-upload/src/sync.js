@@ -464,6 +464,36 @@ function toIsoDate(d) {
 let lastOrderCheckTs = 0;
 let lastWindowClosedLogTs = 0;
 
+// Onaylanan SİPARİŞ NOTU şablonu (Epson Email Print basımı için).
+function buildOrderNote(f, o) {
+  const market = f.market || 'Pazaryeri';
+  const lines = ['SIPARIS NOTU', 'Pazaryeri: ' + market, 'Siparis No: ' + f.id, ''];
+  lines.push('URUNLER');
+  const items = o.lines || o.items || o.orderLines || o.lineItems || [];
+  if (items.length) {
+    for (const li of items.slice(0, 8)) {
+      const nm = li.productName || li.name || li.merchantSku || li.barcode || '-';
+      const q = Number(li.quantity || li.quantityPurchased || 1);
+      lines.push('- ' + nm + ' x' + q);
+    }
+  } else if (o.productName || o.merchantSku) {
+    lines.push('- ' + (o.productName || o.merchantSku) + (o.quantity ? ' x' + o.quantity : ''));
+  }
+  const total = o.totalPrice || o.amount || o.packageTotalPrice || o.totalAmount || 0;
+  if (total) lines.push('');
+  lines.push('Tutar: ' + total + ' TL');
+  const tracking = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
+  if (tracking) lines.push('Takip No: ' + tracking);
+  const cargo = o.cargoProviderName || o.cargoProvider || '';
+  if (cargo) lines.push('Kargocu: ' + cargo);
+  const cust = o.customer || {};
+  const custName = cust.name || cust.fullName || cust.firstName || '';
+  if (custName) lines.push('Musteri: ' + custName);
+  const addr = [cust.city, cust.district, cust.address].filter(Boolean).join(', ');
+  if (addr) lines.push('Adres: ' + addr);
+  return lines.join('\n');
+}
+
 // WhatsApp kargo barkodu GÖNDERİM PENCERESİ (kargocuya teslim zamanına göre)
 // Hafta içi (Pzt-Cum): 09:00-17:30  | Cumartesi: 09:00-15:00 | Pazar: kapalı (birikir)
 function isWhatsAppSendWindow() {
@@ -692,7 +722,7 @@ async function checkOrders() {
       const pid = f.market + ':' + f.id;
       if (!printer.printedIds().includes(pid)) {
         try {
-          const pr = await printer.printNote(lines.join('\n'), 'Siparis Notu ' + f.id);
+          const pr = await printer.printNote(buildOrderNote(f, o), 'Siparis Notu ' + f.id);
           if (pr.sent) printer.markPrinted(pid);
         } catch (e) {
           db.addLog('Yazici siparis notu hatasi: ' + e.message);
