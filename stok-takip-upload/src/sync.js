@@ -519,8 +519,12 @@ async function checkOrders() {
           if (!id) continue;
           // kargo takip no: barcode (paketin barkodu) öncelik; yoksa trackingInfoCode
           const cargoTrack = o.barcode || o.trackingInfoCode || o.packageNumber || '';
+          // HB paket API'si tutarı bazen nesne ({amount:..}) döndürür → sayıya çevir, yoksa ürünlerden hesapla
+          const hbTotal = Number(o.totalPrice && o.totalPrice.amount) ||
+            Number(o.totalPrice) ||
+            (Array.isArray(o.items) ? o.items.reduce((s, li) => s + Number(li.quantity || 1) * (Number(li.unitPrice || li.price || li.lineUnitPrice || 0) || 0), 0) : 0);
           // order için paketi olduğu gibi taşı (id = paket no; market öneki notified'da var)
-          const order = { ...o, orderNumber: String(o.orderNumber || o.packageNumber || id), cargoTrackingNumber: cargoTrack, cargoProviderName: o.cargoCompany || 'Hepsiburada', desi: o.totalDeci || o.deci || 1, lines: Array.isArray(o.items) ? o.items : [] };
+          const order = { ...o, orderNumber: String(o.orderNumber || o.packageNumber || id), totalPrice: hbTotal, cargoTrackingNumber: cargoTrack, cargoProviderName: o.cargoCompany || 'Hepsiburada', desi: o.totalDeci || o.deci || 1, lines: Array.isArray(o.items) ? o.items : [] };
           const fid = String(o.orderNumber || o.packageNumber || id);
           if (isCancelledStatus(o.status)) {
             cancelledIds.add('Hepsiburada:' + fid);
