@@ -6,6 +6,7 @@ const idefix = require('./idefix');
 const n11 = require('./n11');
 const ciceksepeti = require('./ciceksepeti');
 const notifier = require('./notifier');
+const printer = require('./printer');
 
 const MARKETS = ['trendyol', 'hepsiburada', 'pttavm', 'idefix', 'n11', 'ciceksepeti'];
 
@@ -684,6 +685,19 @@ async function checkOrders() {
       if (r && r.telegram && r.telegram.sent) sent++;
     } catch (e) {
       db.addLog('Sipariş bildirimi gönderilemedi: ' + e.message);
+    }
+
+    // Sipariş notu yazıcıya (Epson Email Print) — printer.enabled ise otomatik basılır.
+    if ((db.getSettings().printer || {}).enabled) {
+      const pid = f.market + ':' + f.id;
+      if (!printer.printedIds().includes(pid)) {
+        try {
+          const pr = await printer.printNote(lines.join('\n'), 'Siparis Notu ' + f.id);
+          if (pr.sent) printer.markPrinted(pid);
+        } catch (e) {
+          db.addLog('Yazici siparis notu hatasi: ' + e.message);
+        }
+      }
     }
   }
   if (fresh.length) db.addLog(fresh.length + ' yeni sipariş bulundu, ' + sent + ' bildirim gönderildi');
