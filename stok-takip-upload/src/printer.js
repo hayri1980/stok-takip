@@ -87,8 +87,8 @@ const NOTE_BODY =
 
 const MARKET_LABEL = { trendyol: 'Trendyol', hepsiburada: 'Hepsiburada', idefix: 'idefix', pttavm: 'PTT AVM', n11: 'N11' };
 
-// Bir sipariş için onaylı notu EL YAZISI olarak bastırır (yarım A4).
-// params: { market, name, kargo, orderNo }
+// Bir sipariş için onaylı notu EL YAZISI olarak bastırır (tam dikey A4, not üst yarıda).
+// params: { market, name, kargo, orderNo, region }
 async function printOrderNote(params) {
   const p = params || {};
   const c = cfg();
@@ -105,7 +105,7 @@ async function printOrderNote(params) {
 
   let png;
   try {
-    png = await noteRender.renderNote(text, { half: true, corner: { name, kargo: String(p.kargo || '') } });
+    png = await noteRender.renderNote(text, { region: p.region === 'bottom' ? 'bottom' : 'top', corner: { name, kargo: String(p.kargo || '') } });
   } catch (e) {
     db.addLog('Yazici not render hatasi: ' + e.message);
     return { sent: false, reason: 'render: ' + e.message };
@@ -117,7 +117,7 @@ async function printOrderNote(params) {
       from: 'Stok Takip <' + from + '>',
       to: c.emailPrint,
       subject: 'Siparis Notu ' + (p.orderNo || ''),
-      text: 'Siparis notu ektedir.',
+      text: ' ',
       attachments: [{ filename: 'siparis-notu.png', content: png, contentType: 'image/png' }]
     });
     db.addLog('Yaziciya siparis notu (el yazisi) gonderildi: ' + String(p.orderNo || '').slice(0, 40));

@@ -1,10 +1,13 @@
-// Sipariş notunu EL YAZISI (handwriting) görüntüsüne çevirir — Epson Email Print'e
-// PNG ek olarak gider; böylece yazıcı el yazısı gibi basar (düz font değil).
-// Font: Caveat (Google Fonts, Türkçe destekli) — /opt/stok-takip/el_yazisi.ttf
+// Sipariş notunu EL YAZISI (handwriting) görüntüsüne çevirir.
+// TAM DİKEY A4 boyutunda (1240x1754) PNG üretir; not metni seçilen YARI'ya
+// (top/bottom) yerleştirilir. Böylece Epson tam sayfa basar, kesilince alt yarı
+// boş kalır ve 2. nota tekrar kullanılabilir. Alt köşede müşteri+kargo kutusu.
 
 const siralama = require('./siralama');
 
 const FONT = '/opt/stok-takip/el_yazisi.ttf';
+const W = 1240;
+const HALF_H = 877;
 
 function esc(s) {
   return String(s || '')
@@ -13,37 +16,38 @@ function esc(s) {
     .replace(/>/g, '&gt;');
 }
 
-// Metni A4 yarım sayfa görüntüsüne çevirir (baskıda 2 not = 1 A4). PNG buffer döner.
+// text: not metni | opts: { region: 'top'|'bottom', corner: {name,kargo} }
 async function renderNote(text, opts) {
   const puppeteer = require('puppeteer-core');
   const chrome = siralama.findChrome();
   if (!chrome) throw new Error('Chromium bulunamadı');
-  const body = esc(opts && opts.raw ? text : (text + (opts && opts.footer ? ('\n' + opts.footer) : '')));
-  const half = !opts || opts.half !== false; // varsayılan: yarım A4
-  const W = 1240;
-  const H = half ? 877 : 1754; // yarım A4 yükseklik
-  const pad = half ? 46 : 70;
-  const fs = half ? 27 : 36; // yazı büyütüldü (yarım sayfa rahat okunsun)
-  const bottomGap = half ? 150 : 70; // metin ile köşe kutusu arası boşluk (kesim metni bozmasın)
 
-  // Alt köşe: müşteri ad-soyad + kargo no (kesilip pakete yapıştırılır) — metinden AYRI
-  let cornerBox = '';
-  if (opts && opts.corner && (opts.corner.name || opts.corner.kargo)) {
-    cornerBox =
+  const o = opts || {};
+  const region = o.region === 'bottom' ? 'bottom' : 'top';
+  const body = esc(String(text || ''));
+
+  let corner = '';
+  if (o.corner && (o.corner.name || o.corner.kargo)) {
+    corner =
       '<div style="position:absolute;right:46px;bottom:30px;border:2px solid #000;padding:14px 20px;' +
       'font-family:Elyaz,cursive;font-size:24px;line-height:1.55;background:#fff;">' +
-      (opts.corner.name ? 'Müşteri: ' + esc(opts.corner.name) + '<br>' : '') +
-      (opts.corner.kargo ? 'Kargo No: ' + esc(opts.corner.kargo) : '') +
+      (o.corner.name ? 'Müşteri: ' + esc(o.corner.name) + '<br>' : '') +
+      (o.corner.kargo ? 'Kargo No: ' + esc(o.corner.kargo) : '') +
       '</div>';
   }
+
+  const wrapper =
+    '<div id="w" style="position:absolute;left:0;right:0;' + (region === 'bottom' ? 'bottom:0;' : 'top:0;') +
+    'height:' + HALF_H + 'px;padding:46px 60px 150px;box-sizing:border-box;' +
+    'white-space:pre-line;font-family:Elyaz,cursive;font-size:27px;line-height:1.62;overflow:hidden;">' +
+    body + corner + '</div>';
 
   const html =
     '<!doctype html><html><head><meta charset="utf-8"><style>' +
     "@font-face{font-family:'Elyaz';src:url('file://" + FONT + "') format('truetype');}" +
     '*{margin:0;padding:0;box-sizing:border-box;position:relative;}' +
-    'body{font-family:Elyaz,cursive;color:#000;background:#fff;min-height:100%;' +
-    'padding:' + pad + 'px 60px ' + bottomGap + 'px;white-space:pre-line;font-size:' + fs + 'px;line-height:1.62;}' +
-    '</style></head><body>' + body + cornerBox + '</body></html>';
+    'body{width:' + W + 'px;height:1754px;background:#fff;}' +
+    '</style></head><body>' + wrapper + '</body></html>';
 
   const browser = await puppeteer.launch({
     executablePath: chrome,
@@ -52,18 +56,15 @@ async function renderNote(text, opts) {
   });
   try {
     const page = await browser.newPage();
-    await page.setViewport({ width: W, height: H, deviceScaleFactor: 1 });
+    await page.setViewport({ width: W, height: 1754, deviceScaleFactor: 1 });
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
-    // OTOMATİK SIĞDIRMA: içerik yarım A4'e taşarsa yazıyı (eşit oranda) küçült.
-    const m = await page.evaluate(() => ({
-      scrollH: document.body.scrollHeight,
-      clientH: document.documentElement.clientHeight
-    }));
-    if (m.scrollH > m.clientH) {
-      const scale = Math.max(0.55, (m.clientH - 6) / m.scrollH);
+    // Otomatik sığdırma: metin yarının içine taşarsa yazıyı küçült.
+    const m = await page.evaluate(() => { const w = document.getElementById('w'); return { sh: w.scrollHeight, H: 877 }; });
+    if (m.sh > m.H) {
+      const scale = Math.max(0.5, (m.H - 6) / m.sh);
       await page.evaluate((s) => {
-        const el = document.body;
+        const el = document.getElementById('w');
         const fs = parseFloat(getComputedStyle(el).fontSize);
         const lh = parseFloat(getComputedStyle(el).lineHeight);
         el.style.fontSize = (fs * s).toFixed(1) + 'px';
