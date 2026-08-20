@@ -54,6 +54,24 @@ async function renderNote(text, opts) {
     const page = await browser.newPage();
     await page.setViewport({ width: W, height: H, deviceScaleFactor: 1 });
     await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    // OTOMATİK SIĞDIRMA: içerik yarım A4'e taşarsa yazıyı (eşit oranda) küçült.
+    const m = await page.evaluate(() => ({
+      scrollH: document.body.scrollHeight,
+      clientH: document.documentElement.clientHeight
+    }));
+    if (m.scrollH > m.clientH) {
+      const scale = Math.max(0.55, (m.clientH - 6) / m.scrollH);
+      await page.evaluate((s) => {
+        const el = document.body;
+        const fs = parseFloat(getComputedStyle(el).fontSize);
+        const lh = parseFloat(getComputedStyle(el).lineHeight);
+        el.style.fontSize = (fs * s).toFixed(1) + 'px';
+        el.style.lineHeight = (lh * s).toFixed(1) + 'px';
+      }, scale);
+      await new Promise(r => setTimeout(r, 60));
+    }
+
     const shot = await page.screenshot({ encoding: 'binary' });
     return Buffer.isBuffer(shot) ? shot : Buffer.from(shot);
   } finally {
