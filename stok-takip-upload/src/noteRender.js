@@ -23,14 +23,15 @@ async function renderNote(text, opts) {
   const W = 1240;
   const H = half ? 877 : 1754; // yarım A4 yükseklik
   const pad = half ? 46 : 70;
-  const fs = half ? 23 : 36;
+  const fs = half ? 27 : 36; // yazı büyütüldü (yarım sayfa rahat okunsun)
+  const bottomGap = half ? 150 : 70; // metin ile köşe kutusu arası boşluk (kesim metni bozmasın)
 
-  // Alt köşe: müşteri ad-soyad + kargo no (kesilip pakete yapıştırılır)
+  // Alt köşe: müşteri ad-soyad + kargo no (kesilip pakete yapıştırılır) — metinden AYRI
   let cornerBox = '';
   if (opts && opts.corner && (opts.corner.name || opts.corner.kargo)) {
     cornerBox =
-      '<div style="position:absolute;right:46px;bottom:38px;border:2px solid #000;padding:12px 18px;' +
-      'font-family:Elyaz,cursive;font-size:22px;line-height:1.5;background:#fff;">' +
+      '<div style="position:absolute;right:46px;bottom:30px;border:2px solid #000;padding:14px 20px;' +
+      'font-family:Elyaz,cursive;font-size:24px;line-height:1.55;background:#fff;">' +
       (opts.corner.name ? 'Müşteri: ' + esc(opts.corner.name) + '<br>' : '') +
       (opts.corner.kargo ? 'Kargo No: ' + esc(opts.corner.kargo) : '') +
       '</div>';
@@ -41,7 +42,7 @@ async function renderNote(text, opts) {
     "@font-face{font-family:'Elyaz';src:url('file://" + FONT + "') format('truetype');}" +
     '*{margin:0;padding:0;box-sizing:border-box;position:relative;}' +
     'body{font-family:Elyaz,cursive;color:#000;background:#fff;min-height:100%;' +
-    'padding:' + pad + 'px 60px;white-space:pre-line;font-size:' + fs + 'px;line-height:1.62;}' +
+    'padding:' + pad + 'px 60px ' + bottomGap + 'px;white-space:pre-line;font-size:' + fs + 'px;line-height:1.62;}' +
     '</style></head><body>' + body + cornerBox + '</body></html>';
 
   const browser = await puppeteer.launch({
