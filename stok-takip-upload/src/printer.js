@@ -117,7 +117,7 @@ async function printOrderNote(params) {
       from: 'Stok Takip <' + from + '>',
       to: c.emailPrint,
       subject: 'Siparis Notu ' + (p.orderNo || ''),
-      text: ' ',
+      text: '',
       attachments: [{ filename: 'siparis-notu.png', content: png, contentType: 'image/png' }]
     });
     db.addLog('Yaziciya siparis notu (el yazisi) gonderildi: ' + String(p.orderNo || '').slice(0, 40));
