@@ -15,6 +15,7 @@ const barcode = require('./src/barcode');
 const whatsapp = require('./src/whatsapp');
 const siralama = require('./src/siralama');
 const cron = require('node-cron');
+const noteRender = require('./src/noteRender');
 
 process.on('uncaughtException', (e) => {
   db.addLog('Beklenmeyen hata (uncaughtException): ' + (e && e.stack ? e.stack : String(e)));
@@ -371,6 +372,41 @@ app.post('/api/whatsapp/use-invite', async (req, res) => {
     } else {
       res.status(500).json({ error: s.slice(0, 300) });
     }
+  }
+});
+
+// El yazısı not önizlemesi: örnek metni görüntüye çevirir ve Telegram'a fotoğraf olarak gönderir.
+// (Yazıcıya baskı YOK — sadece stili görüp onaylamak için.)
+app.post('/api/printer/preview', async (req, res) => {
+  try {
+    const sample =
+      'Sayın ÖRNEK MÜŞTERİ\n\n' +
+      'Siparişinizi güzel günlerde kullanmanızı dileriz.\n\n' +
+      'KULLANIM ÖNCESİ: Kullanmaya başlamadan önce çaparınızı suya sokup çıkarırsanız, düğümlerin yanmasını ve patlamasını engellemiş olursunuz.\n\n' +
+      'KULLANIM SONRASI: Tatlı suyla durularsanız denizin tuzlu suyundan arınmış olur ve bir dahaki kullanımınızda sanki ilk kullanmış gibi olur.\n\n' +
+      'Siparişiniz elinize ulaştığında bize kısa bir değerlendirme bırakabilir misiniz?\n' +
+      '- Kargo süreci nasıldı?\n- Ürün görseldeki ile aynı mı, farklı mı?\n- Ürünün kalitesi ve kullanımı nasıl?\n\n' +
+      'Ürünü kullandıktan sonra fikriniz değişirse, yorumunuzu güncelleyerek deneyiminizi paylaşmanız bizi çok mutlu eder.\n\n' +
+      'Bir sonraki alışverişinizde kullanabileceğiniz indirim kuponunuz da bizden küçük bir teşekkür olsun.\n\n' +
+      'Şimdiden teşekkür eder, rastgele!';
+    const png = await noteRender.renderNote(sample);
+    require('fs').writeFileSync(require('path').join(__dirname, 'data', 'not-onizleme.png'), png);
+    const tg = db.getSettings().telegram;
+    if (tg && tg.botToken && tg.chatId) {
+      try {
+        const fd = new FormData();
+        fd.append('chat_id', String(tg.chatId));
+        fd.append('photo', new Blob([png], { type: 'image/png' }), 'not-onizleme.png');
+        await fetch('https://api.telegram.org/bot' + tg.botToken + '/sendPhoto', { method: 'POST', body: fd });
+      } catch (e) {
+        db.addLog('Note önizleme telegram hatası: ' + e.message);
+      }
+    }
+    db.addLog('El yazısı not önizlemesi oluşturuldu ve gönderildi');
+    res.json({ ok: true });
+  } catch (e) {
+    db.addLog('El yazısı önizleme hatası: ' + e.message);
+    res.status(500).json({ error: e.message });
   }
 });
 

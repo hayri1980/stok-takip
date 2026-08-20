@@ -486,11 +486,6 @@ function buildOrderNote(f, o) {
   if (tracking) lines.push('Takip No: ' + tracking);
   const cargo = o.cargoProviderName || o.cargoProvider || '';
   if (cargo) lines.push('Kargocu: ' + cargo);
-  const cust = o.customer || {};
-  const custName = cust.name || cust.fullName || cust.firstName || '';
-  if (custName) lines.push('Musteri: ' + custName);
-  const addr = [cust.city, cust.district, cust.address].filter(Boolean).join(', ');
-  if (addr) lines.push('Adres: ' + addr);
   return lines.join('\n');
 }
 
