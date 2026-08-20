@@ -389,7 +389,7 @@ app.post('/api/printer/preview', async (req, res) => {
       'Ürünü kullandıktan sonra fikriniz değişirse, yorumunuzu güncelleyerek deneyiminizi paylaşmanız bizi çok mutlu eder.\n\n' +
       'Bir sonraki alışverişinizde kullanabileceğiniz indirim kuponunuz da bizden küçük bir teşekkür olsun.\n\n' +
       'Şimdiden teşekkür eder, rastgele!';
-    const png = await noteRender.renderNote(sample);
+    const png = await noteRender.renderNote(sample, { half: true, corner: { name: 'ÖRNEK MÜŞTERİ', kargo: '7270036129526530' } });
     require('fs').writeFileSync(require('path').join(__dirname, 'data', 'not-onizleme.png'), png);
     const tg = db.getSettings().telegram;
     if (tg && tg.botToken && tg.chatId) {

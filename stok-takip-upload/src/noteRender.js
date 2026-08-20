@@ -25,14 +25,24 @@ async function renderNote(text, opts) {
   const pad = half ? 46 : 70;
   const fs = half ? 23 : 36;
 
+  // Alt köşe: müşteri ad-soyad + kargo no (kesilip pakete yapıştırılır)
+  let cornerBox = '';
+  if (opts && opts.corner && (opts.corner.name || opts.corner.kargo)) {
+    cornerBox =
+      '<div style="position:absolute;right:46px;bottom:38px;border:2px solid #000;padding:12px 18px;' +
+      'font-family:Elyaz,cursive;font-size:22px;line-height:1.5;background:#fff;">' +
+      (opts.corner.name ? 'Müşteri: ' + esc(opts.corner.name) + '<br>' : '') +
+      (opts.corner.kargo ? 'Kargo No: ' + esc(opts.corner.kargo) : '') +
+      '</div>';
+  }
+
   const html =
     '<!doctype html><html><head><meta charset="utf-8"><style>' +
     "@font-face{font-family:'Elyaz';src:url('file://" + FONT + "') format('truetype');}" +
-    '*{margin:0;padding:0;box-sizing:border-box;}' +
-    'body{font-family:Elyaz,cursive;color:#000;background:#fff;' +
+    '*{margin:0;padding:0;box-sizing:border-box;position:relative;}' +
+    'body{font-family:Elyaz,cursive;color:#000;background:#fff;min-height:100%;' +
     'padding:' + pad + 'px 60px;white-space:pre-line;font-size:' + fs + 'px;line-height:1.62;}' +
-    '@page{size:' + W + 'px ' + H + 'px;margin:0;}' +
-    '</style></head><body>' + body + '</body></html>';
+    '</style></head><body>' + body + cornerBox + '</body></html>';
 
   const browser = await puppeteer.launch({
     executablePath: chrome,
