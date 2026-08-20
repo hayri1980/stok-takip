@@ -380,7 +380,7 @@ app.post('/api/whatsapp/use-invite', async (req, res) => {
 app.post('/api/printer/preview', async (req, res) => {
   try {
     const sample =
-      'Sayın ÖRNEK MÜŞTERİ\n\n' +
+      'Sayın ÖRNEK MÜŞTERİ Trendyol müşterisi\n\n' +
       'Siparişinizi güzel günlerde kullanmanızı dileriz.\n\n' +
       'KULLANIM ÖNCESİ: Kullanmaya başlamadan önce çaparınızı suya sokup çıkarırsanız, düğümlerin yanmasını ve patlamasını engellemiş olursunuz.\n\n' +
       'KULLANIM SONRASI: Tatlı suyla durularsanız denizin tuzlu suyundan arınmış olur ve bir dahaki kullanımınızda sanki ilk kullanmış gibi olur.\n\n' +
