@@ -716,6 +716,15 @@ async function checkOrders() {
       return waRes.sent;
     }
 
+    // Kalıcı "görülen kargo" kümesi: takip no ilk görüldüğünde işlenen siparişler.
+    // Takip no geç dolan Trendyol/HB siparişleri "sadece yeni sipariş" kuralıyla kaçmasın.
+    let seenCargo = new Set(Array.isArray(wcfgAll.seenCargo) ? wcfgAll.seenCargo : []);
+    if (!Array.isArray(wcfgAll.seenCargo)) {
+      // İlk kurulum: daha önce gönderilmiş / kuyruğa alınmışları "görülmüş" say (deploy patlaması olmasın)
+      for (const n of (wcfgAll.notifiedOrderIds || [])) seenCargo.add(String(n));
+      for (const p of pending) if (p && p.nid) seenCargo.add(String(p.nid));
+    }
+
     // 1) Bekleyen kuyruktaki siparişleri gönder (telefon açılmış/bağlanmış olabilir)
     //    Sıra: önce Trendyol, sonra Hepsiburada, sonra idefix (kullanıcı isteği)
     //    GÖNDERMEDEN ÖNCE: canlı sipariş durumuna göre iptal edilenler kuyruktan silinir.
@@ -750,7 +759,7 @@ async function checkOrders() {
     //    Sıra: önce Trendyol, sonra Hepsiburada, sonra idefix (kullanıcı isteği)
     const orderedAll = sortByMarketPriority(allOrders, f => f.market);
     for (const f of orderedAll) {
-      if (f.market !== 'idefix' && notified.has(f.id)) continue;
+      if (seenCargo.has(f.market + ':' + f.id)) continue;
       const o = f.order || {};
       const trackingNo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
       if (!trackingNo) continue;
@@ -763,23 +772,27 @@ async function checkOrders() {
           if (ok) {
             waNotified.add(nid);
             waSent++;
+            seenCargo.add(nid);
             db.addLog('WhatsApp kargo barkodu gönderildi: ' + trackingNo + ' (' + f.market + ')');
           } else {
             pending.push({ nid, trackingNo, market: f.market || 'Pazaryeri' });
+            seenCargo.add(nid);
           }
         } catch (waErr) {
           db.addLog('WhatsApp kargo gönderimi hatası: ' + waErr.message);
           pending.push({ nid, trackingNo, market: f.market || 'Pazaryeri' });
+          seenCargo.add(nid);
         }
       } else {
         pending.push({ nid, trackingNo, market: f.market || 'Pazaryeri' });
+        seenCargo.add(nid);
       }
     }
 
     // 3) Sonsuz büyümesin, güncelliği koru
     pending = pending.filter(p => !waNotified.has(p.nid)).slice(-300);
     if (win || pending.length > 0) {
-      db.setSettings({ whatsapp: { ...wcfgAll, notifiedOrderIds: Array.from(waNotified).slice(-500), pendingOrderIds: pending } });
+      db.setSettings({ whatsapp: { ...wcfgAll, notifiedOrderIds: Array.from(waNotified).slice(-500), pendingOrderIds: pending, seenCargo: Array.from(seenCargo).slice(-3000) } });
     }
 
     if (waSent > 0) {

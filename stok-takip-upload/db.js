@@ -24,7 +24,8 @@ function defaultData() {
       report: { enabled: true },
       notifications: { sales: true, health: true, audit: true },
       sepet: { enabled: true },
-      siralama: { enabled: true, everyHours: 2, keyword: 'istavrit çaparisi', markets: ['idefix'] },
+      siralama: { enabled: true, everyHours: 2, keyword: 'istavrit çaparisi', markets: ['hepsiburada', 'idefix'] },
+      printer: { enabled: false, emailPrint: '', from: '', password: '', smtpHost: 'smtp-mail.outlook.com', smtpPort: 587, printedOrderIds: [] },
       ignoreBarcodes: [],
       productPush: {
         enabled: false,
@@ -266,6 +267,7 @@ function mergeSettings(base, partial) {
     whatsapp: { ...(base.whatsapp || {}), ...(partial.whatsapp || {}) },
     sepet: { ...(base.sepet || {}), ...(partial.sepet || {}) },
     siralama: { ...(base.siralama || {}), ...(partial.siralama || {}) },
+    printer: { ...(base.printer || {}), ...(partial.printer || {}) },
     ignoreBarcodes: Array.isArray(partial.ignoreBarcodes) ? partial.ignoreBarcodes : (Array.isArray(base.ignoreBarcodes) ? base.ignoreBarcodes : []),
     cost: { ...(base.cost || {}), ...(partial.cost || {}) },
     productPush: mergeProductPush(base.productPush || {}, partial.productPush || {})
