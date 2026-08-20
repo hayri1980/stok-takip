@@ -101,7 +101,10 @@ async function printOrderNote(params) {
   const greeting = name
     ? ('Sayın ' + name + ' ' + market + ' müşterisi,')
     : ('Sayın ' + market + ' Müşterimiz,');
-  const text = greeting + NOTE_BODY;
+  // Platforma özel indirim kuponu (sabit kod) varsa not altına ekle
+  const code = String(((c.coupons || {})[String(p.market || '').toLowerCase()]) || '').trim();
+  let text = greeting + NOTE_BODY;
+  if (code) text += '\n\nİndirim kupon kodunuz: ' + code;
 
   let png;
   try {

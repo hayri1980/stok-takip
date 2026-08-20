@@ -25,7 +25,7 @@ function defaultData() {
       notifications: { sales: true, health: true, audit: true },
       sepet: { enabled: true },
       siralama: { enabled: true, everyHours: 2, keyword: 'istavrit çaparisi', markets: ['hepsiburada', 'idefix'] },
-      printer: { enabled: false, emailPrint: '', from: '', password: '', smtpHost: 'smtp-mail.outlook.com', smtpPort: 587, printedOrderIds: [] },
+      printer: { enabled: false, emailPrint: '', from: '', password: '', smtpHost: 'smtp-mail.outlook.com', smtpPort: 587, printedOrderIds: [], coupons: {} },
       ignoreBarcodes: [],
       productPush: {
         enabled: false,
