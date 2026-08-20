@@ -1,13 +1,13 @@
 const db = require('../db');
-const barcode = require('./barcode');
 const nodemailer = require('nodemailer');
 
 // Epson Email Print entegrasyonu: yazıcının Epson Connect e-posta adresine
-// barkod görseli gönderilir; yazıcı PC kapalı olsa bile (internete bağlıysa) basar.
+// SİPARİŞ NOTU gönderilir; yazıcı PC kapalı olsa bile (internete bağlıysa) basar.
 //
 // Ayarlar (settings.printer):
-//   enabled, emailPrint ("yazicinin e-posta adresi"), from, password,
-//   smtpHost (varsayılan smtp-mail.outlook.com), smtpPort (587), printedOrderIds
+//   enabled, emailPrint ("yazicinin e-posta adresi"), from (gönderen SMTP),
+//   password, smtpHost (varsayılan smtp-mail.outlook.com), smtpPort (587),
+//   printedOrderIds (tekrar baskı önleyici)
 
 function cfg() {
   return db.getSettings().printer || {};
@@ -23,43 +23,40 @@ function buildTransport(c, from, pass) {
   });
 }
 
-// Barkod PNG üretip yazıcıya e-posta ile gönderir.
-// text: e-posta gövdesi (Epson, gövdeyi de basar — gönderen ayarlarla kapatılabilir)
-async function printBarcode(trackingNo, text) {
-  const c = cfg();
-  if (!c.enabled || !c.emailPrint) return { sent: false, reason: 'printer ayarlari yok' };
-  if (!trackingNo) return { sent: false, reason: 'takip no yok' };
+function senderCreds(c) {
   const from = c.from || (db.getSettings().mail || {}).from;
   const pass = c.password || (db.getSettings().mail || {}).password;
-  if (!from || !pass) return { sent: false, reason: 'gonderen (smtp) ayari yok' };
+  return { from, pass };
+}
 
-  let png;
-  try {
-    png = await barcode.makeBarcode(trackingNo);
-  } catch (e) {
-    return { sent: false, reason: 'barkod uretilemedi: ' + e.message };
-  }
+// Sipariş notunu yazıcıya e-posta (gövde metni olarak) gönder. Epson gövdeyi de basar.
+async function printNote(noteText, subject) {
+  const c = cfg();
+  if (!c.enabled || !c.emailPrint) return { sent: false, reason: 'printer ayarlari yok' };
+  const { from, pass } = senderCreds(c);
+  if (!from || !pass) return { sent: false, reason: 'gonderen (smtp) ayari yok' };
+  const text = String(noteText || '').trim();
+  if (!text) return { sent: false, reason: 'not bos' };
 
   const transport = buildTransport(c, from, pass);
   try {
     await transport.sendMail({
       from: 'Stok Takip <' + from + '>',
       to: c.emailPrint,
-      subject: 'Kargo ' + trackingNo,
-      text: text || '',
-      attachments: [{ filename: 'kargo-' + trackingNo + '.png', content: png }]
+      subject: String(subject || 'Siparis Notu'),
+      text
     });
-    db.addLog('Yaziciya barkod gonderildi: ' + trackingNo + ' (' + c.emailPrint + ')');
+    db.addLog('Yaziciya siparis notu gonderildi: ' + String(subject || '').slice(0, 60));
     return { sent: true };
   } catch (e) {
-    db.addLog('Yaziciya gonderilemedi: ' + e.message);
+    db.addLog('Yaziciya siparis notu GÖNDERİLEMEDİ: ' + e.message);
     return { sent: false, reason: e.message };
   } finally {
     transport.close();
   }
 }
 
-// Aynı takip no için tekrar baskıyı önlemek için kayıt.
+// Tekrar baskıyı önleme
 function printedIds() {
   const s = cfg();
   return Array.isArray(s.printedOrderIds) ? s.printedOrderIds : [];
@@ -73,4 +70,4 @@ function markPrinted(id) {
   return arr;
 }
 
-module.exports = { printBarcode, printedIds, markPrinted };
+module.exports = { printNote, printedIds, markPrinted, cfg };
