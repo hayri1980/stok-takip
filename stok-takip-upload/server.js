@@ -386,9 +386,10 @@ app.post('/api/printer/preview', async (req, res) => {
       'KULLANIM SONRASI: Tatlı suyla durularsanız denizin tuzlu suyundan arınmış olur ve bir dahaki kullanımınızda sanki ilk kullanmış gibi olur.\n\n' +
       'Siparişiniz elinize ulaştığında bize kısa bir değerlendirme bırakabilir misiniz?\n' +
       '- Kargo süreci nasıldı?\n- Ürün görseldeki ile aynı mı, farklı mı?\n- Ürünün kalitesi ve kullanımı nasıl?\n\n' +
-      'Ürünü kullandıktan sonra fikriniz değişirse, yorumunuzu güncelleyerek deneyiminizi paylaşmanız bizi çok mutlu eder.\n\n' +
-      'Bir sonraki alışverişinizde kullanabileceğiniz indirim kuponunuz da bizden küçük bir teşekkür olsun.\n\n' +
-      'Şimdiden teşekkür eder, rastgele!\n\nİndirim kupon kodunuz: SANAOZEL5SST';
+      'Ürünü kullandıktan sonra fikriniz değişirse, yorumunuzu güncelleyerek deneyiminizi paylaşmanız bizi çok mutlu eder. ' +
+      'Yapacağınız değerlendirme hem bize destek olur, hem diğer balıkçı arkadaşların doğru ürünü seçmesine yardımcı olur.\n\n' +
+      'Bir sonraki alışverişinizde kullanabileceğiniz indirim kodunuz:SANAOZEL5SST da bizden küçük bir teşekkür olsun.\n\n' +
+      'Şimdiden teşekkür eder, rastgele!';
     const png = await noteRender.renderNote(sample, { region: 'top', corner: { name: 'ÖRNEK MÜŞTERİ', kargo: '7270036129526530' } });
     require('fs').writeFileSync(require('path').join(__dirname, 'data', 'not-onizleme.png'), png);
     const tg = db.getSettings().telegram;
