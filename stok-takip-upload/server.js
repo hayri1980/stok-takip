@@ -16,6 +16,7 @@ const whatsapp = require('./src/whatsapp');
 const siralama = require('./src/siralama');
 const cron = require('node-cron');
 const noteRender = require('./src/noteRender');
+const printer = require('./src/printer');
 
 process.on('uncaughtException', (e) => {
   db.addLog('Beklenmeyen hata (uncaughtException): ' + (e && e.stack ? e.stack : String(e)));
@@ -407,6 +408,23 @@ app.post('/api/printer/preview', async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     db.addLog('El yazısı önizleme hatası: ' + e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Örnek müşteri notunu GERÇEKTEN yazıcıya basar (Epson Email Print).
+// Not yazıcıya gider; onay için görsel Telegram'a da gönderilir.
+app.post('/api/printer/print-sample', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const name = String(body.name || 'ÖRNEK MÜŞTERİ');
+    const kargo = String(body.kargo || '7270036129526530');
+    const market = String(body.market || 'trendyol');
+    const pr = await printer.printOrderNote({ market, name, kargo, orderNo: 'ONIZLEME-BASKI' });
+    db.addLog('Örnek sipariş notu yazıcıya gönderildi (sent:' + pr.sent + ')');
+    res.json(pr);
+  } catch (e) {
+    db.addLog('Örnek baskı hatası: ' + e.message);
     res.status(500).json({ error: e.message });
   }
 });

@@ -72,6 +72,7 @@ function markPrinted(id) {
 }
 
 // Onaylanan müşteri notu (el yazısı render + alt köşede müşteri/kargo no)
+// Kupon kodu cümle içinde sabittir (kullanıcının onayladığı metin).
 const NOTE_BODY =
   '\nSiparişinizi güzel günlerde kullanmanızı dileriz.\n\n' +
   'KULLANIM ÖNCESİ: Kullanmaya başlamadan önce çaparınızı suya sokup çıkarırsanız, düğümlerin yanmasını ve patlamasını engellemiş olursunuz.\n\n' +
@@ -82,7 +83,7 @@ const NOTE_BODY =
   '- Ürünün kalitesi ve kullanımı nasıl?\n\n' +
   'Ürünü kullandıktan sonra fikriniz değişirse, yorumunuzu güncelleyerek deneyiminizi paylaşmanız bizi çok mutlu eder. ' +
   'Yapacağınız değerlendirme hem bize destek olur, hem diğer balıkçı arkadaşların doğru ürünü seçmesine yardımcı olur.\n\n' +
-  'Bir sonraki alışverişinizde kullanabileceğiniz indirim kuponunuz da bizden küçük bir teşekkür olsun.\n\n' +
+  'Bir sonraki alışverişinizde kullanabileceğiniz indirim kodunuz:SANAOZEL5SST da bizden küçük bir teşekkür olsun.\n\n' +
   'Şimdiden teşekkür eder, rastgele!';
 
 const MARKET_LABEL = { trendyol: 'Trendyol', hepsiburada: 'Hepsiburada', idefix: 'idefix', pttavm: 'PTT AVM', n11: 'N11' };
@@ -101,10 +102,7 @@ async function printOrderNote(params) {
   const greeting = name
     ? ('Sayın ' + name + ' ' + market + ' müşterisi,')
     : ('Sayın ' + market + ' Müşterimiz,');
-  // Platforma özel indirim kuponu (sabit kod) varsa not altına ekle
-  const code = String(((c.coupons || {})[String(p.market || '').toLowerCase()]) || '').trim();
   let text = greeting + NOTE_BODY;
-  if (code) text += '\n\nİndirim kupon kodunuz: ' + code;
 
   let png;
   try {
