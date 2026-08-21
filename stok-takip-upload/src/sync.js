@@ -718,7 +718,11 @@ async function checkOrders() {
       if (!printer.printedIds().includes(pid)) {
         try {
           const cust = o.customer || {};
-          const cName = o.customerName || o.buyerName || cust.name || cust.fullName || cust.firstName || '';
+          const addr = o.shipmentAddress || {};
+          const cName = o.customerName || o.buyerName ||
+            [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim() ||
+            addr.fullName || [addr.firstName, addr.lastName].filter(Boolean).join(' ').trim() ||
+            cust.name || cust.fullName || cust.firstName || '';
           const cKargo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
           const pr = await printer.printOrderNote({ market: f.market, name: cName, kargo: cKargo, orderNo: f.id });
           if (pr.sent) printer.markPrinted(pid);
