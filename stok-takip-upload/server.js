@@ -429,6 +429,34 @@ app.post('/api/printer/print-sample', async (req, res) => {
   }
 });
 
+// Müşteri notunu SADECE görüntü olarak Telegram'a gönderir (baskı YOK).
+// body: { market, name, kargo } → pazaryerine özel kupon (printer.coupons) ile render edilir.
+app.post('/api/printer/show', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const market = String(body.market || 'trendyol');
+    const name = String(body.name || 'ÖRNEK MÜŞTERİ');
+    const kargo = String(body.kargo || '7270036129526530');
+    const png = await printer.buildNotePng({ market, name, kargo });
+    const tg = db.getSettings().telegram;
+    if (tg && tg.botToken && tg.chatId) {
+      try {
+        const fd = new FormData();
+        fd.append('chat_id', String(tg.chatId));
+        fd.append('photo', new Blob([png], { type: 'image/png' }), 'not-onizleme.png');
+        await fetch('https://api.telegram.org/bot' + tg.botToken + '/sendPhoto', { method: 'POST', body: fd });
+      } catch (e) {
+        db.addLog('Note show telegram hatası: ' + e.message);
+      }
+    }
+    db.addLog('Müşteri notu önizlemesi Telegram\'a gönderildi (' + market + ') — baskı yapılmadı');
+    res.json({ ok: true });
+  } catch (e) {
+    db.addLog('Müşteri notu önizleme hatası: ' + e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ---- Senkron ----
 app.post('/api/sync', async (req, res) => {
   const results = {};

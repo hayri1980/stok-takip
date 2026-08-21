@@ -72,7 +72,7 @@ function markPrinted(id) {
 }
 
 // Onaylanan müşteri notu (el yazısı render + alt köşede müşteri/kargo no)
-// Kupon kodu cümle içinde sabittir (kullanıcının onayladığı metin).
+// Kupon kodu cümle içinde; pazaryerine göre settings.printer.coupons.<pazar> alınır.
 const NOTE_BODY =
   '\nSiparişinizi güzel günlerde kullanmanızı dileriz.\n\n' +
   'KULLANIM ÖNCESİ: Kullanmaya başlamadan önce çaparınızı suya sokup çıkarırsanız, düğümlerin yanmasını ve patlamasını engellemiş olursunuz.\n\n' +
@@ -83,10 +83,26 @@ const NOTE_BODY =
   '- Ürünün kalitesi ve kullanımı nasıl?\n\n' +
   'Ürünü kullandıktan sonra fikriniz değişirse, yorumunuzu güncelleyerek deneyiminizi paylaşmanız bizi çok mutlu eder. ' +
   'Yapacağınız değerlendirme hem bize destek olur, hem diğer balıkçı arkadaşların doğru ürünü seçmesine yardımcı olur.\n\n' +
-  'Bir sonraki alışverişinizde kullanabileceğiniz indirim kodunuz:SANAOZEL5SST da bizden küçük bir teşekkür olsun.\n\n' +
+  'Bir sonraki alışverişinizde kullanabileceğiniz indirim kodunuz:%KUPON% da bizden küçük bir teşekkür olsun.\n\n' +
   'Şimdiden teşekkür eder, rastgele!';
 
 const MARKET_LABEL = { trendyol: 'Trendyol', hepsiburada: 'Hepsiburada', idefix: 'idefix', pttavm: 'PTT AVM', n11: 'N11' };
+
+// Bir sipariş için onaylı not EL YAZISI PNG üretir (mail atmaz). Params: { market, name, kargo, region }
+async function buildNotePng(p) {
+  const c = cfg();
+  const pn = p || {};
+  const market = MARKET_LABEL[(pn.market || '').toLowerCase()] || pn.market || 'Pazaryeri';
+  const name = String(pn.name || '').trim();
+  const greeting = name
+    ? ('Sayın ' + name + ' ' + market + ' müşterisi,')
+    : ('Sayın ' + market + ' Müşterimiz,');
+  // Pazaryerine özel kupon kodu (settings.printer.coupons.<pazar>)
+  const code = String(((c.coupons || {})[String(pn.market || '').toLowerCase()]) || '').trim();
+  let text = greeting + NOTE_BODY;
+  if (text.indexOf('%KUPON%') !== -1) text = text.replace('%KUPON%', code || 'KUPON-KODUNUZ');
+  return noteRender.renderNote(text, { region: pn.region === 'bottom' ? 'bottom' : 'top', corner: { name, kargo: String(pn.kargo || '') } });
+}
 
 // Bir sipariş için onaylı notu EL YAZISI olarak bastırır (tam dikey A4, not üst yarıda).
 // params: { market, name, kargo, orderNo, region }
@@ -97,16 +113,9 @@ async function printOrderNote(params) {
   const { from, pass } = senderCreds(c);
   if (!from || !pass) return { sent: false, reason: 'gonderen (smtp) ayari yok' };
 
-  const market = MARKET_LABEL[(p.market || '').toLowerCase()] || p.market || 'Pazaryeri';
-  const name = String(p.name || '').trim();
-  const greeting = name
-    ? ('Sayın ' + name + ' ' + market + ' müşterisi,')
-    : ('Sayın ' + market + ' Müşterimiz,');
-  let text = greeting + NOTE_BODY;
-
   let png;
   try {
-    png = await noteRender.renderNote(text, { region: p.region === 'bottom' ? 'bottom' : 'top', corner: { name, kargo: String(p.kargo || '') } });
+    png = await buildNotePng(p);
   } catch (e) {
     db.addLog('Yazici not render hatasi: ' + e.message);
     return { sent: false, reason: 'render: ' + e.message };
@@ -131,4 +140,4 @@ async function printOrderNote(params) {
   }
 }
 
-module.exports = { printNote, printOrderNote, printedIds, markPrinted, cfg };
+module.exports = { printNote, printOrderNote, buildNotePng, printedIds, markPrinted, cfg };
