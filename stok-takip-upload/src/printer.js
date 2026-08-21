@@ -100,7 +100,10 @@ async function buildNotePng(p) {
   // Pazaryerine özel kupon kodu (settings.printer.coupons.<pazar>)
   const code = String(((c.coupons || {})[String(pn.market || '').toLowerCase()]) || '').trim();
   let text = greeting + NOTE_BODY;
-  if (text.indexOf('%KUPON%') !== -1) text = text.replace('%KUPON%', code || 'KUPON-KODUNUZ');
+  if (text.indexOf('%KUPON%') !== -1) {
+    if (code) text = text.replace('%KUPON%', code);
+    else text = text.replace('Bir sonraki alışverişinizde kullanabileceğiniz indirim kodunuz:%KUPON% da bizden küçük bir teşekkür olsun.\n\n', '');
+  }
   return noteRender.renderNote(text, { region: pn.region === 'bottom' ? 'bottom' : 'top', corner: { name, kargo: String(pn.kargo || '') } });
 }
 
