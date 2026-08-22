@@ -149,6 +149,14 @@ async function scanMarket(browser, market, keyword, urunler, maxPages) {
   try {
     await preparePage(page);
 
+    // Isınma: ana sayfaya girip dogal cerez olustur (bot korumasi icin).
+    if (market === 'idefix') {
+      try {
+        await page.goto('https://www.idefix.com/', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await sleep(4000);
+      } catch (e) {}
+    }
+
     const PAGE_SIZE = market === 'hepsiburada' ? 36 : 24;
     let globalRank = 0;
     let status = 0;
@@ -169,7 +177,7 @@ async function scanMarket(browser, market, keyword, urunler, maxPages) {
       const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
       if (pageNo === 1) status = resp ? resp.status() : 0;
       if (status && status !== 200) return { status, total: 0, ours: [], blocked: true };
-      await sleep(6500);
+      await sleep(5500 + Math.floor(Math.random() * 2500));
 
       let items = [];
       if (market === 'idefix') {
