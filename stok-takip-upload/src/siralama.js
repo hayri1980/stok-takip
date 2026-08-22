@@ -167,7 +167,7 @@ async function scanMarket(browser, market, keyword, urunler, maxPages) {
 
       const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
       if (pageNo === 1) status = resp ? resp.status() : 0;
-      if (status === 403) return { status, total: 0, ours: [], blocked: true };
+      if (status && status !== 200) return { status, total: 0, ours: [], blocked: true };
       await sleep(6500);
 
       let items = [];
@@ -253,7 +253,7 @@ function buildReport(results) {
       lines.push('  Arama: "' + results.marketKeywords[m] + '"');
     }
     if (mm.error) { lines.push('  Hata: ' + mm.error); continue; }
-    if (mm.blocked) { lines.push('  Sayfa engellendi (403)'); continue; }
+    if (mm.blocked) { lines.push('  Sayfa engellendi (kod ' + (mm.status || '?') + ') - bot korumasi'); continue; }
     lines.push('  Taranan: ' + mm.total + ' urun (sayfa ' + (mm.pages || 1) + ')');
     if (mm.ours && mm.ours.length) {
       for (const o of mm.ours) {
