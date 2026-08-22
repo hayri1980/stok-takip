@@ -215,16 +215,20 @@ async function scanAll(rootCfg) {
   const cfg = Object.assign({}, rootCfg || db.getSettings().siralama || {});
   const markets = Array.isArray(cfg.markets) && cfg.markets.length ? cfg.markets : ['hepsiburada'];
   const keyword = String(cfg.keyword || 'istavrit çaparisi').trim() || 'istavrit çaparisi';
+  const kwMap = cfg.keywords && typeof cfg.keywords === 'object' ? cfg.keywords : {};
+  const marketKeyword = m => String(kwMap[m] || '').trim() || keyword;
   const maxPages = Math.max(1, Math.min(20, Number(cfg.maxPages) || 5));
 
   const urunler = await refreshProducts();
-  const results = { keyword, ts: new Date().toISOString(), urunler: urunler.map(u => u.barcode), markets: {} };
+  const results = { keyword, ts: new Date().toISOString(), urunler: urunler.map(u => u.barcode), markets: {}, marketKeywords: {} };
 
   const browser = await launchBrowser();
   try {
     for (const m of markets) {
       try {
-        results.markets[m] = await scanMarket(browser, m, keyword, urunler, maxPages);
+        const kw = marketKeyword(m);
+        results.marketKeywords[m] = kw;
+        results.markets[m] = await scanMarket(browser, m, kw, urunler, maxPages);
       } catch (e) {
         results.markets[m] = { error: e.message };
       }
@@ -245,6 +249,9 @@ function buildReport(results) {
     const mm = results.markets[m];
     const label = m === 'hepsiburada' ? 'Hepsiburada' : (m === 'idefix' ? 'idefix' : m);
     lines.push('『 ' + label.toUpperCase() + ' 』');
+    if (results.marketKeywords && results.marketKeywords[m] && results.marketKeywords[m] !== results.keyword) {
+      lines.push('  Arama: "' + results.marketKeywords[m] + '"');
+    }
     if (mm.error) { lines.push('  Hata: ' + mm.error); continue; }
     if (mm.blocked) { lines.push('  Sayfa engellendi (403)'); continue; }
     lines.push('  Taranan: ' + mm.total + ' urun (sayfa ' + (mm.pages || 1) + ')');
