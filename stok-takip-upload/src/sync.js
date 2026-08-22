@@ -1448,6 +1448,32 @@ function mappingReady(kind, mapping) {
   return false;
 }
 
+// Urun adindan kategori tespiti: mappings.<pazar>.keywords = { "misina": "1307788", ... }
+// Urun adi icinde kelime gecuyorsa o kategori kullanilir; hicbiri tutmazsa varsayilan kategori.
+function normTr(s) {
+  return String(s || '')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g, 'i').replace(/İ/g, 'i').replace(/ş/g, 's').replace(/Ş/g, 's')
+    .replace(/ç/g, 'c').replace(/Ç/g, 'c').replace(/ğ/g, 'g').replace(/Ğ/g, 'g')
+    .replace(/ü/g, 'u').replace(/Ü/g, 'u').replace(/ö/g, 'o').replace(/Ö/g, 'o');
+}
+function detectCategoryByTitle(kind, title, mapping) {
+  const kwMap = mapping.keywords && typeof mapping.keywords === 'object' ? mapping.keywords : {};
+  const keys = Object.keys(kwMap);
+  if (!keys.length) return null;
+  const normTitle = normTr(title);
+  let best = null;
+  let bestLen = 0;
+  for (const kw of keys) {
+    const nk = normTr(kw);
+    if (nk && normTitle.indexOf(nk) !== -1 && nk.length > bestLen) {
+      best = String(kwMap[kw]);
+      bestLen = nk.length;
+    }
+  }
+  return best;
+}
+
 function decodeEntities(s) {
   return String(s || '')
     .replace(/&amp;/g, '&')
@@ -1504,6 +1530,8 @@ async function pushNewProducts() {
       if (pushed[kind]) continue;
       const mapping = pushMapping(kind);
       const catOverride = (mapping.barcodes && mapping.barcodes[barcode]) || {};
+      // Kategori sirasi: barkod ozel esleme > urun adindan kelime tespiti > varsayilan kategori
+      const kwCategory = catOverride.categoryId ? null : detectCategoryByTitle(kind, item.name, mapping);
 
       const price = Number(item.price) || 0;
       const p = {
@@ -1517,7 +1545,7 @@ async function pushNewProducts() {
         vatRate: Number(item.vatRate) || Number(mapping.vatRate) || 20,
         brand: item.brand || mapping.brand || '',
         desi: kind === 'pttavm' ? (Number(mapping.desi) || 1) : undefined,
-        mapping: { ...mapping, categoryId: catOverride.categoryId || mapping.categoryId }
+        mapping: { ...mapping, categoryId: catOverride.categoryId || kwCategory || mapping.categoryId }
       };
       let ixBarcode = null;
       if (kind === 'idefix' && barcode.length < 6) {
