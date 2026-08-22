@@ -246,6 +246,20 @@ async function syncMarketplace(kind) {
         // Pencere içinde okunan fark satış sayılmaz; DB yazılan değerde tutulur.
         db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
       } else {
+        // SAHTE SATIS KORUMASI (22.08): Trendyol disi pazardaki dusus, o pazarin siparis
+        // API'sinde ayni barkodlu siparis VARSA gercek satis sayilir. Siparis yoksa bu
+        // pazaryerinin eski/yanlis okumasidir → satis kaydi YOK, bildirim YOK, DB eski
+        // degere kalir; ortak senkron da hedefi dusurmez (suspectStale isareti).
+        if (kind !== 'trendyol' && diff > 0) {
+          const confirmed = await marketOrderConfirmsSale(kind, barcode);
+          if (confirmed === false) {
+            markSuspectStale(kind, barcode);
+            db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
+            logSuspectStale(kind, barcode, diff, Number(oldQty));
+            continue;
+          }
+          if (confirmed === true) clearSuspectStale(kind, barcode);
+        }
         // 0'a düşen GERÇEK satış (diğer pazarda): DB'yi hemen 0 yapma — ortak senkron
         // "eski stok > 0" bilgisini görüp 0'ı herkese yaysın. Aksi halde 0 koruması sahte sayar.
         if (kind !== 'trendyol' && diff > 0 && qty === 0) {
@@ -1115,6 +1129,107 @@ function markStockAdjustment(kind, barcode) {
   persistStockWrites();
 }
 
+// ---- SAHTE SATIS KORUMASI: siparis dogrulamasi (22.08) ----
+// PTT AVM gibi pazaryerleri stok okumasinda ara sira ESKI/yanlis deger donduruyor (orn. arama
+// onbellegi gecikiyor). Yazim penceresi disina dusen bu yanlis okuma "gercek satis" sanilip
+// TUM pazaryerleri dusuruluyordu (ornek: 10fx5 4->3, PTT'de hic siparis yokken). Artik
+// Trendyol disi dusus, ONCE o pazarin SIPARIS API'sinde dogrulaniyor: ayni barkodlu siparis
+// yoksa satis sayilmaz, "supheli" isaretlenir ve ortak senkron hedefi dusurmez.
+const SUSPECT_STALE_TTL_MS = 2 * 60 * 60 * 1000;
+const suspectStale = new Map(); // 'kind:barcode' -> ts
+function suspectKey(kind, barcode) {
+  return (kind || '') + ':' + normalizeBarcodeKey(barcode);
+}
+function markSuspectStale(kind, barcode) {
+  suspectStale.set(suspectKey(kind, barcode), Date.now());
+}
+function clearSuspectStale(kind, barcode) {
+  suspectStale.delete(suspectKey(kind, barcode));
+}
+function isSuspectStale(kind, barcode) {
+  const k = suspectKey(kind, barcode);
+  const ts = suspectStale.get(k);
+  if (!ts) return false;
+  if (Date.now() - ts > SUSPECT_STALE_TTL_MS) {
+    suspectStale.delete(k);
+    return false;
+  }
+  return true;
+}
+const suspectLogTs = new Map();
+function logSuspectStale(kind, barcode, diff, oldQty) {
+  const k = suspectKey(kind, barcode);
+  const last = suspectLogTs.get(k) || 0;
+  if (Date.now() - last < 10 * 60 * 1000) return;
+  suspectLogTs.set(k, Date.now());
+  db.addLog('SUPHELI DUSUS (' + kindLabel(kind) + '): ' + barcode + ' x' + diff +
+    ' — pazaryeri siparislerinde eslesen siparis YOK, satis sayilmadi (stok ' + oldQty + ' korunuyor)');
+}
+
+// Pazarin son 48 saatteki siparislerindeki barkodlar (duzlestirilmis liste).
+// Donus degeri: null = bu pazarda siparis dogrulamasi YOK/hata (eski davranis: satis kabul).
+const ORDER_VERIFY_WINDOW_MS = 48 * 60 * 60 * 1000;
+const ORDER_VERIFY_MIN_INTERVAL_MS = 90 * 1000;
+const orderVerifyCache = new Map(); // kind -> { ts, trusted, lines: [barcode] }
+async function getRecentMarketOrderLines(kind) {
+  const cached = orderVerifyCache.get(kind);
+  if (cached && Date.now() - cached.ts < ORDER_VERIFY_MIN_INTERVAL_MS) {
+    return cached.trusted ? cached.lines : null;
+  }
+  const cfg = marketCfg(kind);
+  let list = [];
+  let usable = false;
+  if (kind === 'pttavm' && cfg.apiKey && cfg.accessToken) {
+    list = await pttavm.fetchOrders(cfg, {
+      startDate: new Date(Date.now() - ORDER_VERIFY_WINDOW_MS),
+      endDate: new Date()
+    });
+    usable = Array.isArray(list);
+  } else if (kind === 'hepsiburada' && cfg.merchantId && cfg.password) {
+    const user = cfg.merchantId;
+    const headers = {
+      'Authorization': 'Basic ' + Buffer.from(user + ':' + cfg.password).toString('base64'),
+      'User-Agent': cfg.userAgent || 'caparici_dev',
+      'Accept': 'application/json'
+    };
+    // timespan=336 = son 14 gun; limit/Offset zorunlu (checkOrders ile ayni bicim)
+    const url = 'https://oms-external.hepsiburada.com/packages/merchantid/' + encodeURIComponent(user) +
+      '?timespan=336&limit=100&Offset=0';
+    const res = await fetch(url, { headers });
+    if (!res.ok) throw new Error('HB OMS ' + res.status);
+    const data = await res.json();
+    list = Array.isArray(data) ? data : ((data && data.items) || []);
+    usable = true;
+  } else if (kind === 'idefix' && cfg.apiKey && cfg.apiSecret && cfg.vendorId) {
+    list = await idefix.fetchOrders(cfg, {});
+    usable = Array.isArray(list);
+  } else {
+    return null;
+  }
+  const lines = [];
+  for (const o of list) {
+    for (const l of (o.lines || o.items || o.siparisUrunler || [])) {
+      const b = l.barcode || l.merchantSku || l.sku || l.urunBarkod || l.variantBarkod ||
+        l.stockCode || l.vendorStockCode || '';
+      if (b) lines.push(normalizeBarcodeKey(String(b)));
+    }
+  }
+  // Siparis listesi bos = kesin satis yok (trusted). Liste dolu ama hic barkod okunamadiysa
+  // yapiyi cozemiyoruz demektir → dogrulama yapma (null → eski davranis).
+  const trusted = list.length === 0 || lines.length > 0;
+  orderVerifyCache.set(kind, { ts: Date.now(), trusted, lines });
+  return trusted ? lines : null;
+}
+async function marketOrderConfirmsSale(kind, barcode) {
+  try {
+    const lines = await getRecentMarketOrderLines(kind);
+    if (lines === null) return null;
+    return lines.includes(normalizeBarcodeKey(barcode));
+  } catch (e) {
+    return null;
+  }
+}
+
 function lowerMapKeys(map) {
   const out = new Map();
   for (const [k, v] of map.entries()) out.set(normalizeBarcodeKey(k), v);
@@ -1243,6 +1358,8 @@ async function syncSharedStock() {
         // Yansıma ancak okunan >= yazdığımız değerken: yazılan değerin ALTI satıştır (0 dahil engellenmez).
         const writeAge = writeRec ? (Date.now() - writeRec.ts) : Number.POSITIVE_INFINITY;
         if (writeRec && writeAge < STOCK_WRITE_SETTLE_MS && q >= writeRec.qty) return false;
+        // Sahte satış koruması: siparişte doğrulanamamış şüpheli düşüş hedefi düşürmesin
+        if (isSuspectStale(e.kind, barcode)) return false;
         return true;
       });
       if (realDrops.length > 0) {
