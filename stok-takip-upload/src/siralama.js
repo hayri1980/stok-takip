@@ -24,6 +24,7 @@ async function refreshProducts() {
     const list = await ty.fetchProductCatalog(cfg.sellerId, cfg.apiKey, cfg.apiSecret);
     const urunler = list
       .filter(p => !/kur.?un/i.test(p.name || ''))
+      .filter(p => Number(p.quantity) > 0)
       .map(p => ({ barcode: String(p.barcode), name: String(p.name || '') }))
       .filter(p => p.name);
     if (urunler.length) {
