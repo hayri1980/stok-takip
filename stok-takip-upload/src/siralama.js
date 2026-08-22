@@ -257,7 +257,7 @@ function buildReport(results) {
     lines.push('  Taranan: ' + mm.total + ' urun (sayfa ' + (mm.pages || 1) + ')');
     if (mm.ours && mm.ours.length) {
       for (const o of mm.ours) {
-        lines.push('  ' + o.rank + ') ' + o.barcode + ' - ' + o.name);
+        lines.push('  ' + o.rank + ') ' + o.barcode);
       }
       const best = Math.min(...mm.ours.map(o => o.rank));
       lines.push('  En iyi sira: ' + best);
