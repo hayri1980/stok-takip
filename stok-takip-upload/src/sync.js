@@ -738,7 +738,11 @@ async function checkOrders() {
             addr.fullName || [addr.firstName, addr.lastName].filter(Boolean).join(' ').trim() ||
             cust.name || cust.fullName || cust.firstName || '';
           const cKargo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
-          const pr = await printer.printOrderNote({ market: f.market, name: cName, kargo: cKargo, orderNo: f.id });
+          const noteItems = items.map(li => ({
+            barcode: String(li.merchantSku || li.barcode || li.stockCode || ''),
+            name: String(li.productName || li.name || '')
+          }));
+          const pr = await printer.printOrderNote({ market: f.market, name: cName, kargo: cKargo, orderNo: f.id, items: noteItems });
           if (pr.sent) printer.markPrinted(pid);
         } catch (e) {
           db.addLog('Yazici siparis notu hatasi: ' + e.message);

@@ -88,6 +88,33 @@ const NOTE_BODY =
 
 const MARKET_LABEL = { trendyol: 'Trendyol', hepsiburada: 'Hepsiburada', idefix: 'idefix', pttavm: 'PTT AVM', n11: 'N11' };
 
+function normTr(s) {
+  return String(s || '')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g, 'i').replace(/İ/g, 'i').replace(/ş/g, 's').replace(/Ş/g, 's')
+    .replace(/ç/g, 'c').replace(/Ç/g, 'c').replace(/ğ/g, 'g').replace(/Ğ/g, 'g')
+    .replace(/ü/g, 'u').replace(/Ü/g, 'u').replace(/ö/g, 'o').replace(/Ö/g, 'o');
+}
+function isCapariItem(item) {
+  const t = normTr((item.barcode || '') + ' ' + (item.name || ''));
+  return t.indexOf('capari') !== -1;
+}
+// Kursun urun tespiti: barkod/ad "kursun" iceriyor veya gram kalibi tasiyor (50GRX5, 125GR-X5, 150GRX5...).
+// Capari adi gecen urunler (icinde "+30 gr kursun" yazsa bile) kursun SAYILMAZ.
+function isKursunItem(item) {
+  if (isCapariItem(item)) return false;
+  const t = normTr((item.barcode || '') + ' ' + (item.name || ''));
+  if (t.indexOf('kursun') !== -1) return true;
+  if (/(^|[^a-z])([0-9]{2,4})\s*gr([^a-z]|$)/.test(t)) return true;
+  return false;
+}
+// Not kurali (kullanici istegi): SADECE kursun iceren siparise musteri notu basilmaz.
+// Capari (tek basina veya kursunla karisik) varsa not basilir. items yoksa eski davranis (bas).
+function orderNeedsNote(items) {
+  if (!Array.isArray(items) || !items.length) return true;
+  return !items.every(isKursunItem);
+}
+
 // Bir sipariş için onaylı not EL YAZISI PNG üretir (mail atmaz). Params: { market, name, kargo, region }
 async function buildNotePng(p) {
   const c = cfg();
@@ -108,11 +135,16 @@ async function buildNotePng(p) {
 }
 
 // Bir sipariş için onaylı notu EL YAZISI olarak bastırır (tam dikey A4, not üst yarıda).
-// params: { market, name, kargo, orderNo, region }
+// params: { market, name, kargo, orderNo, region, items: [{barcode,name}] }
+// Sadece kursun iceren siparislerde not atlanir (orderNeedsNote).
 async function printOrderNote(params) {
   const p = params || {};
   const c = cfg();
   if (!c.enabled || !c.emailPrint) return { sent: false, reason: 'printer ayarlari yok' };
+  if (!orderNeedsNote(p.items)) {
+    db.addLog('Musteri notu atlandi: siparis sadece kursun iceriyor (' + (p.orderNo || '') + ')');
+    return { sent: false, reason: 'kursun siparisi - not basilmaz', skipped: true };
+  }
   const { from, pass } = senderCreds(c);
   if (!from || !pass) return { sent: false, reason: 'gonderen (smtp) ayari yok' };
 
@@ -143,4 +175,4 @@ async function printOrderNote(params) {
   }
 }
 
-module.exports = { printNote, printOrderNote, buildNotePng, printedIds, markPrinted, cfg };
+module.exports = { printNote, printOrderNote, buildNotePng, printedIds, markPrinted, cfg, orderNeedsNote };
