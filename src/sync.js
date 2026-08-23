@@ -534,7 +534,11 @@ async function checkLateDeliveries() {
     }
 
     const toNotify = lateDeliveries.map(l => l.id);
-    db.addLateDeliveryNotifiedIds(toNotify);
+    const notifiedBefore = db.getLateDeliveryNotifiedIds();
+    const newNotified = toNotify.filter(id => !notifiedBefore.includes(id));
+    if (newNotified.length > 0) {
+      db.addLateDeliveryNotifiedIds(newNotified);
+    }
 
     let sent = 0;
     for (const l of lateDeliveries) {

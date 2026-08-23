@@ -555,11 +555,12 @@ async function runCheck() {
   } catch (e) {
     db.addLog('Sipariş kontrol hatası: ' + e.message);
   }
-  try {
-    await sync.checkLateDeliveries();
-  } catch (e) {
-    db.addLog('Geç teslim kontrol hatası: ' + e.message);
-  }
+  // Geç teslim bildirimi kapalı (ayarlar ile açılacak)
+  // try {
+  //   await sync.checkLateDeliveries();
+  // } catch (e) {
+  //   db.addLog('Geç teslim kontrol hatası: ' + e.message);
+  // }
   if (syncEnabled) {
     try {
       await sync.pushNewProducts();
@@ -635,11 +636,12 @@ async function start() {
   } catch (e) {
     db.addLog('Sipariş kontrol hatası: ' + e.message);
   }
-  try {
-    await sync.checkLateDeliveries();
-  } catch (e) {
-    db.addLog('Geç teslim kontrol hatası: ' + e.message);
-  }
+  // Geç teslim bildirimi kapalı (ayarlar ile açılacak)
+  // try {
+  //   await sync.checkLateDeliveries();
+  // } catch (e) {
+  //   db.addLog('Geç teslim kontrol hatası: ' + e.message);
+  // }
   if (syncEnabled) {
     try {
       await sync.pushNewProducts();

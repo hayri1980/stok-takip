@@ -8,15 +8,16 @@ const DATA_FILE = path.join(DATA_DIR, 'store.json');
 
 let state = null;
 
-function defaultData() {
-  return {
-    products: [],
-    settings: {
-      mail: { from: '', password: '', to: '', enabled: false, notifySales: true },
-      telegram: { botToken: '', chatId: '', enabled: false },
-      trendyol: { apiKey: '', apiSecret: '', sellerId: '' },
-      hepsiburada: { username: '', password: '', merchantId: '', userAgent: '', sit: false },
-      pttavm: { apiKey: '', accessToken: '' },
+  function defaultData() {
+    return {
+      products: [],
+      lateDeliveryNotifiedIds: [],
+      settings: {
+        mail: { from: '', password: '', to: '', enabled: false, notifySales: true },
+        telegram: { botToken: '', chatId: '', enabled: false },
+        trendyol: { apiKey: '', apiSecret: '', sellerId: '' },
+        hepsiburada: { username: '', password: '', merchantId: '', userAgent: '', sit: false },
+        pttavm: { apiKey: '', accessToken: '' },
       idefix: { apiKey: '', apiSecret: '', vendorId: '' },
       n11: { appKey: '', appSecret: '' },
       ciceksepeti: { apiKey: '' },
