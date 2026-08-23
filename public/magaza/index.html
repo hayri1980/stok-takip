@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caparici | Çapari Marketi - İstavrit, Uskumru, Lüfer Çapari</title>
+  <meta name="description" content="İstavrit, uskumru, lüfer, palamut, çinekop ve kolyoz çapari modelleri. 7 li, 10 lu, 15 li çapari, çapari köstekleri ve yemli dip takımları uygun fiyata. Kıyı ve tekne çapari setleri.">
+  <meta name="keywords" content="çapari, istavrit çaparisi, uskumru çaparisi, lüfer çaparisi, palamut çaparisi, olta, balıkçılık malzemeleri">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Caparici | Çapari Marketi">
+  <meta property="og:description" content="İstavrit, uskumru, lüfer, palamut ve kolyoz çapari modelleri uygun fiyata.">
+  <meta property="og:url" content="/">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/magaza/style.css">
+  <script type="application/ld+json" id="seoJsonLd"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="#" id="logoBtn" class="logo">Çaparı Marketi</a>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Ürün ara...">
+        <button id="searchBtn" aria-label="Ara">🔍</button>
+      </div>
+      <button id="cartBtn" class="cart-btn">
+        <span class="cart-icon">🛒</span>
+        <span id="cartCount" class="cart-count hidden">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ANA SAYFA -->
+    <section id="view-home" class="view active">
+      <div class="hero">
+        <h1>Çaparıda Ustasın</h1>
+        <p>Kaliteli çaparı takımları, uygun fiyata. Sepete ekle, kapına gelsin.</p>
+      </div>
+      <div id="categories" class="chips"></div>
+      <div id="productGrid" class="product-grid"></div>
+      <p id="emptyNote" class="empty-note hidden">Ürün bulunamadı.</p>
+    </section>
+
+    <!-- ÜRÜN DETAY -->
+    <section id="view-product" class="view">
+      <div id="productDetail"></div>
+    </section>
+
+    <!-- SEPET -->
+    <section id="view-cart" class="view">
+      <div class="page-title">
+        <button class="back-btn" data-back="home">← Geri</button>
+        <h2>Sepetim</h2>
+      </div>
+      <div id="cartContent"></div>
+    </section>
+
+    <!-- ÖDEME -->
+    <section id="view-checkout" class="view">
+      <div class="page-title">
+        <button class="back-btn" data-back="cart">← Sepete dön</button>
+        <h2>Ödeme</h2>
+      </div>
+      <div class="checkout-grid">
+        <div id="checkoutForm"></div>
+        <div class="card" id="orderSummary"></div>
+      </div>
+    </section>
+
+    <!-- SİPARİŞ SONUCU -->
+    <section id="view-success" class="view">
+      <div id="successContent"></div>
+    </section>
+
+    <!-- iyzico ödeme formu -->
+    <div id="paymentOverlay" class="overlay hidden">
+      <div class="modal-box">
+        <div id="paymentFormSlot"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div id="footerInfo"></div>
+  </footer>
+
+  <script src="/magaza/app.js"></script>
+</body>
+</html>

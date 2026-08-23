@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stok Takip</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Stok Takip</h1>
+    <nav>
+      <button class="tab-btn active" data-tab="stoklar">Stoklar</button>
+      <button class="tab-btn" data-tab="magaza">Mağaza</button>
+      <button class="tab-btn" data-tab="ayarlar">Ayarlar</button>
+      <button class="tab-btn" data-tab="istatistik">İstatistik</button>
+      <button class="tab-btn" data-tab="log">Kayıtlar</button>
+    </nav>
+    <button id="syncBtn" class="btn btn-primary">Şimdi Kontrol Et</button>
+  </header>
+
+  <main>
+    <!-- STOKLAR -->
+    <section id="tab-stoklar" class="tab-content active">
+      <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="Ürün veya stok kodu ara...">
+        <button id="addBtn" class="btn btn-primary">+ Ürün Ekle</button>
+      </div>
+      <div class="summary" id="summary"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ürün</th>
+              <th>Stok Kodu</th>
+              <th>Trendyol Stok</th>
+              <th>Hepsiburada Stok</th>
+              <th>PTT AVM Stok</th>
+              <th>idefix Stok</th>
+              <th>N11 Stok</th>
+              <th>Çiçeksepeti Stok</th>
+              <th>Ortak Stok</th>
+              <th>Son Güncelleme</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="productTable"></tbody>
+        </table>
+      </div>
+      <p id="emptyNote" class="empty-note">Henüz ürün yok. "+ Ürün Ekle" ile ilk ürünü ekle.</p>
+    </section>
+
+    <!-- AYARLAR -->
+    <section id="tab-ayarlar" class="tab-content">
+      <div class="settings-grid">
+        <div class="card">
+          <h2>Telefon Bildirimi (Telegram)</h2>
+          <p class="hint">Stok kritik olduğunda ve satış olduğunda telefonuna bildirim gelir.</p>
+          <label>Bot Token (BotFather'dan al)</label>
+          <input type="password" id="tgBotToken" placeholder="123456:ABC-DEF...">
+          <label>Chat ID (kişisel hesap numaran)</label>
+          <input type="text" id="tgChatId" placeholder="ör. 123456789">
+          <label class="checkbox">
+            <input type="checkbox" id="tgEnabled"> Telegram bildirimleri açık
+          </label>
+          <button id="testTgBtn" class="btn">Test Bildirimi Gönder</button>
+          <p class="hint">Nasıl alacağını bilmiyorsan "Kullanım Rehberi"ni oku.</p>
+        </div>
+
+        <div class="card">
+          <h2>E-posta Bildirimi (Hotmail/Outlook)</h2>
+          <p class="hint">Opsiyonel. Sadece telefon bildirimi istiyorsan bunu boş bırak.</p>
+          <label>Gönderici e-posta (Hotmail adresin)</label>
+          <input type="text" id="mailFrom" placeholder="ornek@hotmail.com">
+          <label>Hotmail parola (App Şifresi önerilir)</label>
+          <input type="password" id="mailPassword" placeholder="********">
+          <label>Bildirimin gideceği e-posta</label>
+          <input type="text" id="mailTo" placeholder="ornek@hotmail.com">
+          <label class="checkbox">
+            <input type="checkbox" id="mailEnabled"> Bildirimler açık
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="mailNotifySales"> Satış olduğunda da haber ver
+          </label>
+          <button id="testMailBtn" class="btn">Test E-postası Gönder</button>
+        </div>
+
+        <div class="card">
+          <h2>Trendyol API</h2>
+          <p class="hint">Trendyol Satıcı Panelinden alınır: Hesap &gt; Ayarlar &gt; API Bilgileri</p>
+          <label>API Anahtarı</label>
+          <input type="text" id="tyApiKey" placeholder="API Key">
+          <label>API Şifresi</label>
+          <input type="password" id="tyApiSecret" placeholder="API Secret">
+          <label>Satıcı Numarası</label>
+          <input type="text" id="tySellerId" placeholder="Satıcı ID (ör. 123456789)">
+        </div>
+
+        <div class="card">
+          <h2>Hepsiburada API</h2>
+          <p class="hint">Hepsiburada Satıcı Panelinden alınır: Entegrasyon &gt; API Bilgileri</p>
+          <label>Kullanıcı Adı (Merchant ID)</label>
+          <input type="text" id="hbUsername" placeholder="Merchant ID">
+          <label>API Parolası</label>
+          <input type="password" id="hbPassword" placeholder="API Key / Parola">
+        </div>
+
+        <div class="card">
+          <h2>PTT AVM API</h2>
+          <p class="hint">developers.pttavm.com "Integrator Services" dokümanından alınır.</p>
+          <label>Api Key</label>
+          <input type="text" id="pttApiKey" placeholder="Api Key">
+          <label>Access Token</label>
+          <input type="text" id="pttAccessToken" placeholder="Access Token">
+        </div>
+
+        <div class="card">
+          <h2>idefix API</h2>
+          <p class="hint">developer.idefix.com'dan alınır.</p>
+          <label>API Anahtarı (ApiKey)</label>
+          <input type="text" id="idefixApiKey" placeholder="ApiKey">
+          <label>API Şifresi (ApiSecret)</label>
+          <input type="password" id="idefixApiSecret" placeholder="ApiSecret">
+          <label>Satıcı Numarası (Vendor ID)</label>
+          <input type="text" id="idefixVendorId" placeholder="Vendor ID">
+        </div>
+
+        <div class="card">
+          <h2>N11 API</h2>
+          <p class="hint">N11 satıcı panelinden alınır (App Key / App Secret).</p>
+          <label>App Key</label>
+          <input type="text" id="n11AppKey" placeholder="App Key">
+          <label>App Secret</label>
+          <input type="password" id="n11AppSecret" placeholder="App Secret">
+        </div>
+
+        <div class="card">
+          <h2>Çiçeksepeti API</h2>
+          <p class="hint">bayi.ciceksepeti.com panelinden alınır.</p>
+          <label>API Anahtarı (x-api-key)</label>
+          <input type="password" id="csApiKey" placeholder="API Key">
+        </div>
+
+        <div class="card">
+          <h2>Yeni Ürünleri Diğer Pazarlara Yükle</h2>
+          <p class="hint">Trendyol'a eklenen ürünler, kategori eşlemesi girilmiş pazarlara otomatik olarak yüklenir. Fiyat: Trendyol fiyatı. Aşağıdaki ID'ler her pazaryerinin kendi panelinden/dokümanından alınır.</p>
+          <label><input type="checkbox" id="ppEnabled"> Yeni ürünleri otomatik yükle (açıkken her kontrolde eksik ürünler yüklenir)</label>
+          <hr>
+          <h3>Hepsiburada Eşleme</h3>
+          <label>Kategori ID</label>
+          <input type="text" id="ppHbCategoryId" placeholder="ör. 451198">
+          <label>Marka</label>
+          <input type="text" id="ppHbBrand" placeholder="ör. Caparici">
+          <label>KDV Oranı (%)</label>
+          <input type="number" id="ppHbVatRate" value="20" min="0" max="100">
+          <hr>
+          <h3>PTT AVM Eşleme</h3>
+          <label>Kategori ID</label>
+          <input type="text" id="ppPttCategoryId" placeholder="ör. 123456">
+          <label>Marka</label>
+          <input type="text" id="ppPttBrand" placeholder="ör. Caparici">
+          <label>KDV Oranı (%)</label>
+          <input type="number" id="ppPttVatRate" value="20" min="0" max="100">
+          <hr>
+          <h3>idefix Eşleme</h3>
+          <label>Kategori ID</label>
+          <input type="text" id="ppIdefixCategoryId" placeholder="ör. 1001">
+          <label>Marka ID (idefix marka ID)</label>
+          <input type="text" id="ppIdefixBrandId" placeholder="ör. 551">
+          <label>KDV Oranı (%)</label>
+          <input type="number" id="ppIdefixVatRate" value="20" min="0" max="100">
+          <label>Kargo Firması ID (0: kullanma)</label>
+          <input type="number" id="ppIdefixCargoCompanyId" value="0" min="0">
+          <label>Gönderim Adresi ID (0: kullanma)</label>
+          <input type="number" id="ppIdefixShipmentAddressId" value="0" min="0">
+          <label>İade Adresi ID (0: kullanma)</label>
+          <input type="number" id="ppIdefixReturnAddressId" value="0" min="0">
+          <hr>
+          <h3>N11 Eşleme</h3>
+          <label>Kategori ID</label>
+          <input type="text" id="ppN11CategoryId" placeholder="ör. 3057">
+          <label>Marka</label>
+          <input type="text" id="ppN11Brand" placeholder="ör. Caparici">
+          <label>Gönderim Şablonu (Shipment Template)</label>
+          <input type="text" id="ppN11ShipmentTemplate" placeholder="ör. STANDAR">
+          <hr>
+          <h3>Çiçeksepeti Eşleme</h3>
+          <label>Kategori ID</label>
+          <input type="text" id="ppCsCategoryId" placeholder="ör. 123456">
+          <label>Teslimat Tipi</label>
+          <select id="ppCsDeliveryType">
+            <option value="1">Servisle (with_service)</option>
+            <option value="2" selected>Kargoyla (with_cargo)</option>
+            <option value="3">Her ikisi de</option>
+          </select>
+          <label>Teslimat Mesajı Tipi</label>
+          <select id="ppCsDeliveryMessageType">
+            <option value="5" selected>1-3 gün içinde kargoda</option>
+            <option value="4">Aynı gün kargoda</option>
+            <option value="1">Hızlı teslimat</option>
+            <option value="18">İçecek dışı 1-3 gün</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <h2>Kontrol Sıklığı ve Bildirim</h2>
+          <label>Kaç dakikada bir stok kontrol edilsin?</label>
+          <input type="number" id="syncInterval" min="1" value="30">
+          <label>Stok kaça düşünce e-posta gelsin?</label>
+          <input type="number" id="notifyThreshold" min="0" value="1">
+          <p class="hint">Örn: 1 yazarsan stok 1 ve 0 olunca mail atar. 0 yazarsan sadece stok bitince atar.</p>
+          <button id="saveSettingsBtn" class="btn btn-primary">Ayarları Kaydet</button>
+          <p id="saveMsg" class="save-msg"></p>
+        </div>
+
+        <div class="card">
+          <h2>e-Fatura (BirFatura)</h2>
+          <p class="hint">BirFatura'ya (destek.birfatura.com / 0 312 870 05 00) "web servis / API entegrasyonu" açtırınca sana verdikleri bilgileri buraya gir.</p>
+          <label>API / Web Servis Adresi (endpoint)</label>
+          <input type="text" id="bfEndpoint" placeholder="https://.../WebService">
+          <label>API Kullanıcı Adı</label>
+          <input type="text" id="bfUsername" placeholder="Kullanıcı adı">
+          <label>API Şifresi</label>
+          <input type="password" id="bfPassword" placeholder="********">
+          <label>Fatura Türü</label>
+          <select id="bfInvoiceType">
+            <option value="earsiv">e-Arşiv Fatura</option>
+            <option value="efatura">e-Fatura</option>
+          </select>
+          <label>KDV Oranı (%)</label>
+          <input type="number" id="bfTaxRate" min="0" max="100" value="20">
+          <label class="checkbox">
+            <input type="checkbox" id="bfEnabled"> BirFatura entegrasyonu açık
+          </label>
+          <button id="saveBfBtn" class="btn btn-primary">BirFatura Ayarlarını Kaydet</button>
+          <p id="bfMsg" class="save-msg"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOG -->
+    <section id="tab-log" class="tab-content">
+      <div class="card">
+        <h2>Kayıtlar</h2>
+        <div id="logList"></div>
+      </div>
+    </section>
+
+    <!-- MAĞAZA -->
+    <section id="tab-magaza" class="tab-content">
+      <div class="toolbar">
+        <input type="text" id="shopSearch" placeholder="Mağaza ürünü ara...">
+        <button id="addShopBtn" class="btn btn-primary">+ Ürün Ekle</button>
+        <button id="importTrendyolBtn" class="btn">Trendyol'dan İçe Aktar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ürün</th>
+              <th>Kategori</th>
+              <th>Fiyat</th>
+              <th>Stok</th>
+              <th>Satılan</th>
+              <th>Görünürlük</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="shopTable"></tbody>
+        </table>
+      </div>
+      <p id="shopEmpty" class="empty-note">Henüz mağaza ürünü yok. "+ Ürün Ekle" ile ekle ya da "Trendyol'dan İçe Aktar" ile kataloğu getir.</p>
+
+      <div class="card" style="margin-top:20px">
+        <h2>Siparişler</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sipariş</th>
+                <th>Tarih</th>
+                <th>Ürünler</th>
+                <th>Müşteri</th>
+                <th>Ödeme</th>
+                <th>Tutar</th>
+                <th>Durum</th>
+                <th>Kargo No</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="orderTable"></tbody>
+          </table>
+        </div>
+        <p id="orderEmpty" class="empty-note">Henüz sipariş yok.</p>
+      </div>
+    </section>
+
+    <!-- İSTATİSTİK -->
+    <section id="tab-istatistik" class="tab-content">
+      <div class="summary" id="statsCards"></div>
+      <div class="card">
+        <h2>Mağaza Ziyaretçileri (son 14 gün)</h2>
+        <div id="visitChart" class="visit-chart"></div>
+      </div>
+      <div class="card">
+        <h2>Ürün Satışları</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ürün</th>
+                <th>Satılan</th>
+                <th>Stok</th>
+                <th>Fiyat</th>
+                <th>Görünürlük</th>
+              </tr>
+            </thead>
+            <tbody id="sellerTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Ürün Ekle/Düzenle Modal -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="modalTitle">Ürün Ekle</h2>
+      <input type="hidden" id="pId">
+      <label>Ürün Adı</label>
+      <input type="text" id="pName" placeholder="Ürün adı">
+      <label>Stok Kodu</label>
+      <input type="text" id="pBarcode" placeholder="Stok kodunuz (örn. 10TX4)">
+      <div class="two-col">
+        <div>
+          <label>Trendyol Stok (elle)</label>
+          <input type="number" id="pTyStock" min="0" placeholder="Boş bırak: bilinmiyor">
+        </div>
+        <div>
+          <label>Hepsiburada Stok (elle)</label>
+          <input type="number" id="pHbStock" min="0" placeholder="Boş bırak: bilinmiyor">
+        </div>
+      </div>
+      <div class="two-col">
+        <div>
+          <label>PTT AVM Stok (elle)</label>
+          <input type="number" id="pPttavmStock" min="0" placeholder="Boş bırak: bilinmiyor">
+        </div>
+        <div>
+          <label>idefix Stok (elle)</label>
+          <input type="number" id="pIdefixStock" min="0" placeholder="Boş bırak: bilinmiyor">
+        </div>
+      </div>
+      <div class="two-col">
+        <div>
+          <label>N11 Stok (elle)</label>
+          <input type="number" id="pN11Stock" min="0" placeholder="Boş bırak: bilinmiyor">
+        </div>
+        <div>
+          <label>Çiçeksepeti Stok (elle)</label>
+          <input type="number" id="pCsStock" min="0" placeholder="Boş bırak: bilinmiyor">
+        </div>
+      </div>
+      <p class="hint">API bağlıysa stoklar otomatik güncellenir. Bu alanlar elle stok girmek için.</p>
+      <div class="modal-actions">
+        <button id="cancelBtn" class="btn">Vazgeç</button>
+        <button id="saveProductBtn" class="btn btn-primary">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mağaza Ürünü Ekle/Düzenle Modal -->
+  <div id="shopModal" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="shopModalTitle">Ürün Ekle</h2>
+      <input type="hidden" id="spId">
+      <label>Ürün Adı</label>
+      <input type="text" id="spName" placeholder="Ürün adı">
+      <label>Stok Kodu</label>
+      <input type="text" id="spBarcode" placeholder="Stok kodu (opsiyonel)">
+      <div class="two-col">
+        <div>
+          <label>Fiyat (TL)</label>
+          <input type="number" id="spPrice" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div>
+          <label>Stok (adet)</label>
+          <input type="number" id="spStock" min="0" placeholder="Boş bırak: sınırsız">
+        </div>
+      </div>
+      <div class="two-col">
+        <div>
+          <label>Kategori</label>
+          <input type="text" id="spCategory" placeholder="örn. Çapari">
+        </div>
+        <div>
+          <label>Görsel URL</label>
+          <input type="text" id="spImage" placeholder="https://... (veya yanından dosya seç)">
+        </div>
+      </div>
+      <label>Görsel Yükle</label>
+      <input type="file" id="spImageFile" accept="image/*">
+      <img id="spImagePreview" class="shop-preview hidden" alt="Önizleme">
+      <label>Açıklama</label>
+      <textarea id="spDescription" rows="3" placeholder="Ürün açıklaması (Google'da da görünür)"></textarea>
+      <label class="checkbox">
+        <input type="checkbox" id="spVisible" checked> Sitede görünsün
+      </label>
+      <div class="modal-actions">
+        <button id="shopCancelBtn" class="btn">Vazgeç</button>
+        <button id="saveShopBtn" class="btn btn-primary">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
