@@ -261,7 +261,10 @@ async function syncMarketplace(kind) {
         // degere kalir; ortak senkron da hedefi dusurmez (suspectStale isareti).
         if (kind !== 'trendyol' && diff > 0) {
           const confirmed = await marketOrderConfirmsSale(kind, barcode);
-          if (confirmed === false) {
+          // 25.08 FIX H: dogrulama API'si olan pazarda dogrulama YAPILAMADIYSA (null = hata/
+          // cozumlenemeyen liste) satis KABUL EDILMEZ — supheli isaretlenir. Eski davranista
+          // API hatalari sahte satis uretiyordu.
+          if (confirmed === false || (confirmed === null && marketHasOrderVerify(kind))) {
             markSuspectStale(kind, barcode);
             db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
             logSuspectStale(kind, barcode, diff, Number(oldQty));
@@ -1169,6 +1172,8 @@ function logSuspectStale(kind, barcode, diff, oldQty) {
 const ORDER_VERIFY_WINDOW_MS = 4 * 60 * 60 * 1000;
 const ORDER_VERIFY_MIN_INTERVAL_MS = 90 * 1000;
 const orderVerifyCache = new Map(); // kind -> { ts, trusted, lines: [barcode] }
+// 25.08 FIX F: pazaryeri yazim limiti (429) sonrasi bu pazara yazim arasi. kind -> cooldown bitis ts
+const marketWriteCooldown = new Map();
 async function getRecentMarketOrderLines(kind) {
   const cached = orderVerifyCache.get(kind);
   if (cached && Date.now() - cached.ts < ORDER_VERIFY_MIN_INTERVAL_MS) {
@@ -1218,6 +1223,14 @@ async function getRecentMarketOrderLines(kind) {
   const trusted = list.length === 0 || lines.length > 0;
   orderVerifyCache.set(kind, { ts: Date.now(), trusted, lines });
   return trusted ? lines : null;
+}
+// Bu pazarda siparis dogrulamasi KURULUMSUZ mumkun mu? (getRecentMarketOrderLines ile ayni sartlar)
+function marketHasOrderVerify(kind) {
+  const cfg = marketCfg(kind);
+  if (kind === 'pttavm') return !!(cfg.apiKey && cfg.accessToken);
+  if (kind === 'hepsiburada') return !!(cfg.merchantId && cfg.password);
+  if (kind === 'idefix') return !!(cfg.apiKey && cfg.apiSecret && cfg.vendorId);
+  return false;
 }
 async function marketOrderConfirmsSale(kind, barcode) {
   try {
@@ -1387,13 +1400,31 @@ async function syncSharedStock() {
     }
 
     let ok = true;
+    const nowMs = Date.now();
     for (const e of touched) {
+      const wKey = e.kind + ':' + normalizeBarcodeKey(barcode);
+      const prevRec = lastStockWrite.get(wKey);
+      // 25.08 FIX E: yazim DENEMESI sonuctan bagimsiz kayda gecer. Yazim basarisiz olsa bile
+      // pazar ESKI degerde kalir — sonraki dusuk/eski okuma satis SANILAMAZ. (429 limit reddi
+      // sonrasi kayit tutulmayinca koruma devre disi kaliyordu → sahte satis/sifirlama.)
+      const inCooldown = (marketWriteCooldown.get(e.kind) || 0) > nowMs;
+      lastStockWrite.set(wKey, { ts: nowMs, qty: Number(target), acked: false });
+      // 25.08 FIX F: pazaryeri yazim limitine takildiysak (429) bu pazara ara ver.
+      if (inCooldown) continue;
+      // 25.08 FIX G: ayni urun-pazara 1 dk'dan sik yazim istegi atma (ayni hedefse).
+      // Her 15 sn'de tekrarlayan yazimlar HB'nin upload limitini yakip 429 uretiyordu.
+      if (prevRec && nowMs - prevRec.ts < 60 * 1000 && Number(prevRec.qty) === Number(target)) continue;
       try {
         await updateMarketStock(e.kind, e.rec, target);
-        lastStockWrite.set(e.kind + ':' + normalizeBarcodeKey(barcode), { ts: Date.now(), qty: Number(target), acked: false });
+        lastStockWrite.set(wKey, { ts: Date.now(), qty: Number(target), acked: false });
       } catch (err) {
         ok = false;
         errors.push(barcode + ' [' + kindLabel(e.kind) + ']: ' + err.message);
+        // FIX F devam: 429/limit hatasinda bu pazara 10 dk stok yazimi yapma
+        if (/429|upload limit/i.test(String(err.message))) {
+          marketWriteCooldown.set(e.kind, Date.now() + 10 * 60 * 1000);
+          db.addLog(kindLabel(e.kind) + ': yazim limiti dolu (429) - 10 dakika bu pazara stok yazimi ara verilecek');
+        }
       }
     }
     persistStockWrites();
