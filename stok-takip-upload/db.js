@@ -129,7 +129,8 @@ function genId() {
 function addLog(message) {
   load();
   state.log.unshift({ time: new Date().toISOString(), message });
-  if (state.log.length > 500) state.log = state.log.slice(0, 500);
+  // 24.08: 500 satir ~8 dk tutuyordu; sorun arastirmasinda loglar silinmis oluyordu -> 5000 (~30+ saat)
+  if (state.log.length > 5000) state.log = state.log.slice(0, 5000);
   save();
   return state.log;
 }
