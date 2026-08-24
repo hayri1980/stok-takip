@@ -237,15 +237,16 @@ async function syncMarketplace(kind) {
       const writeRec = oldQtyNum !== null ? getStockWrite(kind, barcode) : null;
       // Yazım-yansıma: bizim yazdığımız değer uygulanmamış olabilir. AMA yazım ancak
       // okunan değer BİZİM YAZDIĞIMIZ DEĞERDEN AŞAĞI DEĞİLSE yansımadır.
-      // 24.08 DÜZELTMESİ: yazım laginde (pazar yeni değeri HENÜZ göstermedi, acked=false)
-      // okunan düşük değer — 0 dahil — SATIŞ DEĞİL, gecikmedir (STOCK_ACK_WAIT_MS kadar).
+      // 24.08 DÜZELTMESİ (2. adım): pazar yazdığımız değeri HİÇ görmediyse (acked=false),
+      // okumalarına güvenilmez — 0 dahil tüm düşük okumalar gecikmedir. Gerçek satışta pazar
+      // ÖNCE yazdığımız değeri gösterir (ack), SONRA düşer. Süre: yazım penceresi (48s) boyunca.
       const writeAge = writeRec ? (Date.now() - writeRec.ts) : Number.POSITIVE_INFINITY;
       let withinGrace = false;
       if (writeRec && writeAge < STOCK_WRITE_SETTLE_MS) {
         if (qty >= writeRec.qty || !Number.isFinite(writeRec.qty)) {
           withinGrace = true; // yansıma (veya bot/manuel düzeltme işareti)
         } else if (writeRec.acked === false) {
-          withinGrace = writeAge < STOCK_ACK_WAIT_MS; // yazım lagı: pazar yeni değeri henüz görmedi
+          withinGrace = true; // pazar yeni değeri hiç görmedi: okuma güvenilmez, satış değil
         }
       }
       if (withinGrace) {
@@ -259,6 +260,18 @@ async function syncMarketplace(kind) {
         // pazaryerinin eski/yanlis okumasidir → satis kaydi YOK, bildirim YOK, DB eski
         // degere kalir; ortak senkron da hedefi dusurmez (suspectStale isareti).
         if (kind !== 'trendyol' && diff > 0) {
+          // YANKI KORUMASI: ayni dusus yakinda zaten satis olarak kaydedildiyse tekrar sayma.
+          if (isNonTySaleRecentlyRecorded(kind, barcode)) {
+            markSuspectStale(kind, barcode);
+            db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
+            const ek = suspectKey(kind, barcode);
+            if (Date.now() - (suspectLogTs.get(ek) || 0) > 10 * 60 * 1000) {
+              suspectLogTs.set(ek, Date.now());
+              db.addLog('YANKI ONLENI (' + kindLabel(kind) + '): ' + barcode + ' x' + diff +
+                ' — ayni dusus yakinda satis olarak kaydedildi, tekrar sayilmadi');
+            }
+            continue;
+          }
           const confirmed = await marketOrderConfirmsSale(kind, barcode);
           if (confirmed === false) {
             markSuspectStale(kind, barcode);
@@ -303,6 +316,7 @@ async function syncMarketplace(kind) {
           } else {
             // Diğer pazaryerlerinde GERÇEK satış: kayıt + bildirim. (Zoraki yazım-yansıması
             // yukarıdaki withinGrace ile elenir; buraya sadece gerçek müşteri düşüşü gelir.)
+            markNonTySale(kind, barcode);
             db.addDailySale({
               name: existing.name,
               barcode,
@@ -1165,9 +1179,22 @@ function logSuspectStale(kind, barcode, diff, oldQty) {
     ' — pazaryeri siparislerinde eslesen siparis YOK, satis sayilmadi (stok ' + oldQty + ' korunuyor)');
 }
 
-// Pazarin son 48 saatteki siparislerindeki barkodlar (duzlestirilmis liste).
+// ---- YANKI KORUMASI (24.08): HB/PTT/idefix'te eski/stale 0 okumalari ayni dongude
+// tekrar tekrar "satis" olarak kaydedilip ciro sisiyordu. Ayni barcode+market icin son
+// satis kaydindan itibaren 6 saat icinde yeni satis kaydi acilmaz. Yazim basarili olunca
+// (syncSharedStock tarafindan yeni deger yazilinca) sifirlanir — gercek yeni satisa hazir.
+const NON_TY_SALE_DEDUP_MS = 6 * 60 * 60 * 1000;
+const nonTySaleMark = new Map();   // 'kind:barcode' -> son satis ts
+function markNonTySale(kind, barcode) { nonTySaleMark.set(suspectKey(kind, barcode), Date.now()); }
+function clearNonTySaleMark(kind, barcode) { nonTySaleMark.delete(suspectKey(kind, barcode)); }
+function isNonTySaleRecentlyRecorded(kind, barcode) {
+  const ts = nonTySaleMark.get(suspectKey(kind, barcode)) || 0;
+  return ts && (Date.now() - ts < NON_TY_SALE_DEDUP_MS);
+}
+
+// Pazarın son 4 saattaki siparişlerindeki barkodlar (düzleştirilmiş liste).
 // Donus degeri: null = bu pazarda siparis dogrulamasi YOK/hata (eski davranis: satis kabul).
-const ORDER_VERIFY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const ORDER_VERIFY_WINDOW_MS = 4 * 60 * 60 * 1000;
 const ORDER_VERIFY_MIN_INTERVAL_MS = 90 * 1000;
 const orderVerifyCache = new Map(); // kind -> { ts, trusted, lines: [barcode] }
 async function getRecentMarketOrderLines(kind) {
@@ -1191,9 +1218,10 @@ async function getRecentMarketOrderLines(kind) {
       'User-Agent': cfg.userAgent || 'caparici_dev',
       'Accept': 'application/json'
     };
-    // timespan=24 = son 24 saat (24.08: 14 gundu — ESKI siparisler sahte dususu "onayliyordu")
+    // timespan=4 = son 4 saat (24.08: 24s pencerede GÜN İÇİNDEKİ ESKİ siparişler,
+    // saatler sonra gelen stale 0 okumasını "satış" olarak onaylıyordu → yankı satislar)
     const url = 'https://oms-external.hepsiburada.com/packages/merchantid/' + encodeURIComponent(user) +
-      '?timespan=24&limit=100&Offset=0';
+      '?timespan=4&limit=100&Offset=0';
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('HB OMS ' + res.status);
     const data = await res.json();
@@ -1355,15 +1383,18 @@ async function syncSharedStock() {
         if (q === 0 && !(existing && Number(existing[stockField(e.kind)]) > 0)) return false;
         if (q >= tyQty) return false;
         const writeRec = getStockWrite(e.kind, barcode);
-        // Yansıma ancak okunan >= yazdığımız değerken: yazılan değerin ALTI satıştır (0 dahil engellenmez).
+        // Yansıma ancak okunan >= yazdığımız değerken: yazılan değerin ALTI satıştır.
         const writeAge = writeRec ? (Date.now() - writeRec.ts) : Number.POSITIVE_INFINITY;
         if (writeRec && Number.isFinite(writeRec.qty)) {
           if (q >= writeRec.qty) return false; // yansıma
-          // 24.08: yazım laginde (pazar yeni değeri henüz görmedi) düşük okuma satış DEĞİL
-          if (writeRec.acked === false && writeAge < STOCK_ACK_WAIT_MS) return false;
+          // 24.08 (2. adım): pazar yazılanı HİÇ görmediyse (acked=false) okumalar güvenilmez —
+          // düşük okuma (0 dahil) satış DEĞİL; yazım penceresi (48s) boyunca korunur.
+          if (writeRec.acked === false && writeAge < STOCK_WRITE_SETTLE_MS) return false;
         }
         // Sahte satış koruması: siparişte doğrulanamamış şüpheli düşüş hedefi düşürmesin
         if (isSuspectStale(e.kind, barcode)) return false;
+        // Yankı koruması: bu düşüş az önce satış olarak kaydedildiyse hedef düşürmesin
+        if (isNonTySaleRecentlyRecorded(e.kind, barcode)) return false;
         return true;
       });
       if (realDrops.length > 0) {
@@ -1390,6 +1421,7 @@ async function syncSharedStock() {
       try {
         await updateMarketStock(e.kind, e.rec, target);
         lastStockWrite.set(e.kind + ':' + normalizeBarcodeKey(barcode), { ts: Date.now(), qty: Number(target), acked: false });
+        clearNonTySaleMark(e.kind, barcode); // yeni yazım → yeni satış döngüsüne hazır
       } catch (err) {
         ok = false;
         errors.push(barcode + ' [' + kindLabel(e.kind) + ']: ' + err.message);
