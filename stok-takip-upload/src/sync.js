@@ -221,6 +221,7 @@ async function syncMarketplace(kind) {
       existing = db.getProducts().find(p => normalizeBarcodeKey(p.barcode) === normalizeBarcodeKey(plain)) || null;
     }
     if (existing) {
+      noteStockRead(kind, barcode, qty);
       const oldQty = existing[stockField(kind)];
       if (oldQty !== null && oldQty !== undefined && Number(oldQty) === qty) {
         if (kind === 'trendyol') {
@@ -236,10 +237,17 @@ async function syncMarketplace(kind) {
       const writeRec = oldQtyNum !== null ? getStockWrite(kind, barcode) : null;
       // Yazım-yansıma: bizim yazdığımız değer uygulanmamış olabilir. AMA yazım ancak
       // okunan değer BİZİM YAZDIĞIMIZ DEĞERDEN AŞAĞI DEĞİLSE yansımadır.
-      // Okunan değer yazdığımız değerin ALTINDA ise (örn. 1 yazdık, pazar 0 gösteriyor)
-      // bu bizim yazımımız OLAMAZ → GERÇEK SATIŞ (son adet) demektir, 0'a çekilir.
+      // 24.08 DÜZELTMESİ: yazım laginde (pazar yeni değeri HENÜZ göstermedi, acked=false)
+      // okunan düşük değer — 0 dahil — SATIŞ DEĞİL, gecikmedir (STOCK_ACK_WAIT_MS kadar).
       const writeAge = writeRec ? (Date.now() - writeRec.ts) : Number.POSITIVE_INFINITY;
-      const withinGrace = !!writeRec && writeAge < STOCK_WRITE_SETTLE_MS && qty >= writeRec.qty;
+      let withinGrace = false;
+      if (writeRec && writeAge < STOCK_WRITE_SETTLE_MS) {
+        if (qty >= writeRec.qty || !Number.isFinite(writeRec.qty)) {
+          withinGrace = true; // yansıma (veya bot/manuel düzeltme işareti)
+        } else if (writeRec.acked === false) {
+          withinGrace = writeAge < STOCK_ACK_WAIT_MS; // yazım lagı: pazar yeni değeri henüz görmedi
+        }
+      }
       if (withinGrace) {
         // Yazım penceresi: bu pazaryerine yakın zamanda stok yazıldı; okunan değer henüz
         // yansımamış eski/geçici olabilir (özellikle idefix asenkron batch gecikmesi).
@@ -1063,6 +1071,10 @@ const STOCK_WRITE_GRACE_MS = 60 * 60 * 1000;
 // Asenkron pazaryeri yazımının en geç bu sürede uygulanacağı kabul edilir (idefix batch gecikmesi).
 // Bu pencere içinde okunan değer bizim yazdığımız değerin altında değilse yansıma sayılır (satış değil).
 const STOCK_WRITE_SETTLE_MS = 48 * 60 * 60 * 1000;
+// YAZIM LAGI (24.08): pazaryerine stok yazdiktan SONRA pazarin ESKI (dusuk/0) degerini gostermesi
+// "satis" DEGILDIR — pazar yazilan degeri henuz listelememisken oradan satıs olamaz. Pazar yazilan
+// degeri bir kere okuyunca (acked) altindaki dususler gercek satıs adayı olur.
+const STOCK_ACK_WAIT_MS = 30 * 60 * 1000;
 let lastSharedLogTs = 0;
 
 // Yazım kayıtlarını kalıcı tut (restart'ta kaybolup "satış" sanılmasın). En fazla 60 sn'de bir yaz.
@@ -1097,6 +1109,16 @@ function getStockWrite(kind, barcode) {
 function isWithinStockWriteGrace(kind, barcode) {
   const rec = getStockWrite(kind, barcode);
   return !!rec && Date.now() - rec.ts < STOCK_WRITE_GRACE_MS;
+}
+
+// Pazaryerinden okunan deger, yazdigimiz dege eristiyse yazımı "acked" isaretle
+// (bundan sonraki alti okumalar gercek dusus adayidir).
+function noteStockRead(kind, barcode, qty) {
+  const rec = getStockWrite(kind, barcode);
+  if (rec && rec.acked === false && Number.isFinite(rec.qty) && Number(qty) >= rec.qty) {
+    rec.acked = true;
+    persistStockWrites();
+  }
 }
 
 // Telegram uzaktan stok düzeltmesi: kullanıcı botla stok ekler/çıkarırsa bu işaret sayesinde
@@ -1145,7 +1167,7 @@ function logSuspectStale(kind, barcode, diff, oldQty) {
 
 // Pazarin son 48 saatteki siparislerindeki barkodlar (duzlestirilmis liste).
 // Donus degeri: null = bu pazarda siparis dogrulamasi YOK/hata (eski davranis: satis kabul).
-const ORDER_VERIFY_WINDOW_MS = 48 * 60 * 60 * 1000;
+const ORDER_VERIFY_WINDOW_MS = 24 * 60 * 60 * 1000;
 const ORDER_VERIFY_MIN_INTERVAL_MS = 90 * 1000;
 const orderVerifyCache = new Map(); // kind -> { ts, trusted, lines: [barcode] }
 async function getRecentMarketOrderLines(kind) {
@@ -1169,9 +1191,9 @@ async function getRecentMarketOrderLines(kind) {
       'User-Agent': cfg.userAgent || 'caparici_dev',
       'Accept': 'application/json'
     };
-    // timespan=336 = son 14 gun; limit/Offset zorunlu (checkOrders ile ayni bicim)
+    // timespan=24 = son 24 saat (24.08: 14 gundu — ESKI siparisler sahte dususu "onayliyordu")
     const url = 'https://oms-external.hepsiburada.com/packages/merchantid/' + encodeURIComponent(user) +
-      '?timespan=336&limit=100&Offset=0';
+      '?timespan=24&limit=100&Offset=0';
     const res = await fetch(url, { headers });
     if (!res.ok) throw new Error('HB OMS ' + res.status);
     const data = await res.json();
@@ -1294,6 +1316,7 @@ async function syncSharedStock() {
       }
       if (rec && rec.qty !== null && rec.qty !== undefined) {
         entries.push({ kind, rec, qty: Number(rec.qty) });
+        noteStockRead(kind, barcode, Number(rec.qty));
       }
     }
     if (entries.length < 2) {
@@ -1334,7 +1357,11 @@ async function syncSharedStock() {
         const writeRec = getStockWrite(e.kind, barcode);
         // Yansıma ancak okunan >= yazdığımız değerken: yazılan değerin ALTI satıştır (0 dahil engellenmez).
         const writeAge = writeRec ? (Date.now() - writeRec.ts) : Number.POSITIVE_INFINITY;
-        if (writeRec && writeAge < STOCK_WRITE_SETTLE_MS && q >= writeRec.qty) return false;
+        if (writeRec && Number.isFinite(writeRec.qty)) {
+          if (q >= writeRec.qty) return false; // yansıma
+          // 24.08: yazım laginde (pazar yeni değeri henüz görmedi) düşük okuma satış DEĞİL
+          if (writeRec.acked === false && writeAge < STOCK_ACK_WAIT_MS) return false;
+        }
         // Sahte satış koruması: siparişte doğrulanamamış şüpheli düşüş hedefi düşürmesin
         if (isSuspectStale(e.kind, barcode)) return false;
         return true;
@@ -1362,7 +1389,7 @@ async function syncSharedStock() {
     for (const e of touched) {
       try {
         await updateMarketStock(e.kind, e.rec, target);
-        lastStockWrite.set(e.kind + ':' + normalizeBarcodeKey(barcode), { ts: Date.now(), qty: Number(target) });
+        lastStockWrite.set(e.kind + ':' + normalizeBarcodeKey(barcode), { ts: Date.now(), qty: Number(target), acked: false });
       } catch (err) {
         ok = false;
         errors.push(barcode + ' [' + kindLabel(e.kind) + ']: ' + err.message);
