@@ -1051,13 +1051,6 @@ async function trackShipment({ market, orderNo, trackingNo, status, statusDescri
     deliveredAt: delivered ? now : (old && old.deliveredAt) || null,
     notifiedMissed: !!(old && old.notifiedMissed)
   };
-  const changed =
-    !old ||
-    old.status !== rec.status ||
-    old.trackingNo !== rec.trackingNo ||
-    old.delivered !== rec.delivered ||
-    old.notifiedMissed !== rec.notifiedMissed;
-
   if (delivered) {
     rec.notifiedMissed = true; // teslim edildi, artık 5 gün uyarısı gerekmez
   } else if (!rec.notifiedMissed && now - rec.shippedAt >= MISSED_DELIVERY_DAYS * 24 * 60 * 60 * 1000) {
@@ -1080,9 +1073,7 @@ async function trackShipment({ market, orderNo, trackingNo, status, statusDescri
     }
   }
 
-  if (changed) {
-    db.upsertShipment(rec);
-  }
+  db.upsertShipment(rec);
 }
 
 const lastStockWrite = new Map();
