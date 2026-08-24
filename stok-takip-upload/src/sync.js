@@ -1052,25 +1052,7 @@ async function trackShipment({ market, orderNo, trackingNo, status, statusDescri
     notifiedMissed: !!(old && old.notifiedMissed)
   };
   if (delivered) {
-    rec.notifiedMissed = true; // teslim edildi, artık 5 gün uyarısı gerekmez
-  } else if (!rec.notifiedMissed && now - rec.shippedAt >= MISSED_DELIVERY_DAYS * 24 * 60 * 60 * 1000) {
     rec.notifiedMissed = true;
-    const ageDays = Math.floor((now - rec.shippedAt) / (24 * 60 * 60 * 1000));
-    try {
-      const subject = 'KARGO TESLİM EDİLMEDİ (' + ageDays + ' GÜN): ' + orderNo;
-      const text = 'KARGO TESLIM EDILMEDI (' + ageDays + ' gun)\n' +
-        'Siparis: ' + orderNo + ' (' + market + ')\n' +
-        'Takip no: ' + trackingNo +
-        (provider ? '\nKargo: ' + provider : '') +
-        '\n\nMusteri kargoyu teslim almadi. Siparisi/takibi kontrol et.';
-      const html = '<h3>Kargo ' + ageDays + ' gündür teslim edilmedi</h3>' +
-        '<p><b>Sipariş:</b> ' + orderNo + ' (' + market + ')</p>' +
-        '<p><b>Takip no:</b> ' + trackingNo + '</p>' +
-        (provider ? '<p><b>Kargo:</b> ' + provider + '</p>' : '');
-      await notifier.notify(subject, html, text);
-    } catch (e) {
-      db.addLog('Teslim uyarısı gönderilemedi: ' + e.message);
-    }
   }
 
   db.upsertShipment(rec);
