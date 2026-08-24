@@ -27,10 +27,11 @@ async function renderNote(text, opts) {
   const body = esc(String(text || ''));
 
   let corner = '';
-  if (o.corner && (o.corner.name || o.corner.kargo)) {
+  if (o.corner && (o.corner.name || o.corner.kargo || o.corner.market)) {
     corner =
       '<div style="position:absolute;right:46px;bottom:30px;border:2px solid #000;padding:14px 20px;' +
       'font-family:Elyaz,cursive;font-size:24px;line-height:1.55;background:#fff;">' +
+      (o.corner.market ? esc(o.corner.market) + '<br>' : '') +
       (o.corner.name ? 'Müşteri: ' + esc(o.corner.name) + '<br>' : '') +
       (o.corner.kargo ? 'Kargo No: ' + esc(o.corner.kargo) : '') +
       '</div>';

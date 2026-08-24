@@ -71,6 +71,25 @@ function markPrinted(id) {
   return arr;
 }
 
+// İsim bekleyen siparişler (KVKK maskesi: Trendyol ilk geldiğinde isim boş, sonra doluyor)
+function pendingNames() {
+  const s = cfg();
+  return Array.isArray(s.pendingNoteIds) ? s.pendingNoteIds : [];
+}
+function addPendingName(entry) {
+  const s = cfg();
+  const list = pendingNames();
+  if (!list.find(x => x.pid === entry.pid)) {
+    list.push({ pid: entry.pid, market: entry.market, id: entry.id, ts: Date.now() });
+    db.setSettings({ printer: { ...s, pendingNoteIds: list } });
+  }
+}
+function removePendingName(pid) {
+  const s = cfg();
+  const list = pendingNames().filter(x => x.pid !== pid);
+  db.setSettings({ printer: { ...s, pendingNoteIds: list } });
+}
+
 // Onaylanan müşteri notu (el yazısı render + alt köşede müşteri/kargo no)
 // Kupon kodu cümle içinde; pazaryerine göre settings.printer.coupons.<pazar> alınır.
 const NOTE_BODY =
@@ -131,7 +150,7 @@ async function buildNotePng(p) {
     if (code) text = text.replace('%KUPON%', code);
     else text = text.replace('Bir sonraki alışverişinizde kullanabileceğiniz indirim kodunuz:%KUPON% da bizden küçük bir teşekkür olsun.\n\n', '');
   }
-  return noteRender.renderNote(text, { region: pn.region === 'bottom' ? 'bottom' : 'top', corner: { name, kargo: String(pn.kargo || '') } });
+  return noteRender.renderNote(text, { region: pn.region === 'bottom' ? 'bottom' : 'top', corner: { market, name, kargo: String(pn.kargo || '') } });
 }
 
 // Bir sipariş için onaylı notu EL YAZISI olarak bastırır (tam dikey A4, not üst yarıda).
