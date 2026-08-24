@@ -260,18 +260,6 @@ async function syncMarketplace(kind) {
         // pazaryerinin eski/yanlis okumasidir → satis kaydi YOK, bildirim YOK, DB eski
         // degere kalir; ortak senkron da hedefi dusurmez (suspectStale isareti).
         if (kind !== 'trendyol' && diff > 0) {
-          // YANKI KORUMASI: ayni dusus yakinda zaten satis olarak kaydedildiyse tekrar sayma.
-          if (isNonTySaleRecentlyRecorded(kind, barcode)) {
-            markSuspectStale(kind, barcode);
-            db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
-            const ek = suspectKey(kind, barcode);
-            if (Date.now() - (suspectLogTs.get(ek) || 0) > 10 * 60 * 1000) {
-              suspectLogTs.set(ek, Date.now());
-              db.addLog('YANKI ONLENI (' + kindLabel(kind) + '): ' + barcode + ' x' + diff +
-                ' — ayni dusus yakinda satis olarak kaydedildi, tekrar sayilmadi');
-            }
-            continue;
-          }
           const confirmed = await marketOrderConfirmsSale(kind, barcode);
           if (confirmed === false) {
             markSuspectStale(kind, barcode);
@@ -281,13 +269,10 @@ async function syncMarketplace(kind) {
           }
           if (confirmed === true) clearSuspectStale(kind, barcode);
         }
-        // 0'a düşen GERÇEK satış (diğer pazarda): DB'yi hemen 0 yapma — ortak senkron
-        // "eski stok > 0" bilgisini görüp 0'ı herkese yaysın. Aksi halde 0 koruması sahte sayar.
-        if (kind !== 'trendyol' && diff > 0 && qty === 0) {
-          db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
-        } else {
-          db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
-        }
+        // Satış onaylandı: DB'yi okunan değere güncelle (0 dahil).
+        // Önceki qty===0 özel durumu kaldırıldı (24.08): DB.güncellenmeyince her döngüde
+        // ayni diff tekrar tespit edilip tekrar "satış" kaydediliyordu (yankı sorunu).
+        db.updateProduct(existing.id, { [stockField(kind)]: qty, lastSync: now, lastSeenAt: now });
         // Satış: yazım penceresi DIŞINDA düşüş → gerçek satış.
         // - Trendyol: KENDİ stoğu kendiliğinden düştüyse (müşteri satışı) kayıt+bildirim.
         //   (Başka pazardaki satış yüzünden ortak senkron Trendyol'u DÜŞÜRÜRSE bu düşüş
@@ -316,7 +301,6 @@ async function syncMarketplace(kind) {
           } else {
             // Diğer pazaryerlerinde GERÇEK satış: kayıt + bildirim. (Zoraki yazım-yansıması
             // yukarıdaki withinGrace ile elenir; buraya sadece gerçek müşteri düşüşü gelir.)
-            markNonTySale(kind, barcode);
             db.addDailySale({
               name: existing.name,
               barcode,
@@ -1179,20 +1163,8 @@ function logSuspectStale(kind, barcode, diff, oldQty) {
     ' — pazaryeri siparislerinde eslesen siparis YOK, satis sayilmadi (stok ' + oldQty + ' korunuyor)');
 }
 
-// ---- YANKI KORUMASI (24.08): HB/PTT/idefix'te eski/stale 0 okumalari ayni dongude
-// tekrar tekrar "satis" olarak kaydedilip ciro sisiyordu. Ayni barcode+market icin son
-// satis kaydindan itibaren 6 saat icinde yeni satis kaydi acilmaz. Yazim basarili olunca
-// (syncSharedStock tarafindan yeni deger yazilinca) sifirlanir — gercek yeni satisa hazir.
-const NON_TY_SALE_DEDUP_MS = 6 * 60 * 60 * 1000;
-const nonTySaleMark = new Map();   // 'kind:barcode' -> son satis ts
-function markNonTySale(kind, barcode) { nonTySaleMark.set(suspectKey(kind, barcode), Date.now()); }
-function clearNonTySaleMark(kind, barcode) { nonTySaleMark.delete(suspectKey(kind, barcode)); }
-function isNonTySaleRecentlyRecorded(kind, barcode) {
-  const ts = nonTySaleMark.get(suspectKey(kind, barcode)) || 0;
-  return ts && (Date.now() - ts < NON_TY_SALE_DEDUP_MS);
-}
-
-// Pazarın son 4 saattaki siparişlerindeki barkodlar (düzleştirilmiş liste).
+// Pazarin
+// Pazarin son 4 saattaki siparislerindeki barkodlar (duzlestirilmis liste).
 // Donus degeri: null = bu pazarda siparis dogrulamasi YOK/hata (eski davranis: satis kabul).
 const ORDER_VERIFY_WINDOW_MS = 4 * 60 * 60 * 1000;
 const ORDER_VERIFY_MIN_INTERVAL_MS = 90 * 1000;
@@ -1393,8 +1365,6 @@ async function syncSharedStock() {
         }
         // Sahte satış koruması: siparişte doğrulanamamış şüpheli düşüş hedefi düşürmesin
         if (isSuspectStale(e.kind, barcode)) return false;
-        // Yankı koruması: bu düşüş az önce satış olarak kaydedildiyse hedef düşürmesin
-        if (isNonTySaleRecentlyRecorded(e.kind, barcode)) return false;
         return true;
       });
       if (realDrops.length > 0) {
@@ -1421,7 +1391,6 @@ async function syncSharedStock() {
       try {
         await updateMarketStock(e.kind, e.rec, target);
         lastStockWrite.set(e.kind + ':' + normalizeBarcodeKey(barcode), { ts: Date.now(), qty: Number(target), acked: false });
-        clearNonTySaleMark(e.kind, barcode); // yeni yazım → yeni satış döngüsüne hazır
       } catch (err) {
         ok = false;
         errors.push(barcode + ' [' + kindLabel(e.kind) + ']: ' + err.message);
