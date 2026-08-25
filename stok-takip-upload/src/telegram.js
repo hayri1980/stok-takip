@@ -505,7 +505,7 @@ async function handleMessage(msg) {
   }
 }
 
-// WhatsApp kargo barkod kuyruğu: 17:30 sonrası / pencere dışı bekleyen etiketleri göster.
+  // WhatsApp kargo barkod kuyruğu: 16:00 sonrası / pencere dışı bekleyen etiketleri göster.
 async function handlePendingBarcode(chatId) {
   const wcfg = db.getSettings().whatsapp || {};
   const pending = Array.isArray(wcfg.pendingOrderIds) ? wcfg.pendingOrderIds : [];
@@ -520,7 +520,7 @@ async function handlePendingBarcode(chatId) {
     return (i + 1) + ') ' + market + ' — ' + (p.trackingNo || nid) + (p.trackingNo ? ' | siparis ' + orderPart : '');
   });
   await sendTelegramTo(chatId, 'KARGO KUYRUGU (' + pending.length + ' barkod)\n\n' + lines.join('\n') +
-    '\n\n(Gönderim penceresi: Hafta ici 09:00-17:30 | Cumartesi 09:00-15:00 | Pazar kapali)');
+      '\n\n(Gönderim penceresi: Hafta ici 09:00-16:00 | Cumartesi 09:00-15:00 | Pazar kapali)');
 }
 
 // Web mağazada (caparici.com) bugün ve toplamda sepete eklenen ürün/kişi istatistiği.
