@@ -57,7 +57,8 @@ function flattenProducts(products) {
 async function getProductList(cfg) {
   const all = [];
   let page = 1;
-  const pageSize = 100;
+  // 25.08: pageSize 100 iken N11 bos yanit donduruyor (SOAP yantimi kiriliyor) -> kucuk sayfa
+  const pageSize = 20;
   while (page < 100) {
     const res = await call(PRODUCT_WSDL, 'GetProductList', {
       pagingData: { currentPage: page, pageSize }
