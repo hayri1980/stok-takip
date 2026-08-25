@@ -137,4 +137,36 @@ async function updateStock(cfg, sku, quantity) {
   return true;
 }
 
+async function createProduct(cfg, p) {
+  const mapping = p.mapping || {};
+  const images = Array.isArray(p.images) ? p.images.slice(0, 8) : [];
+  const payload = {
+    product: {
+      title: p.title,
+      description: p.description || '',
+      brand: { name: mapping.brand || '' },
+      category: { id: Number(mapping.categoryId) },
+      productSellerCode: p.barcode,
+      price: String(Number(p.price) || 0),
+      currencyType: mapping.currencyType || 'TRY',
+      stockItems: {
+        stockItem: [{
+          sellerStockCode: p.barcode,
+          quantity: String(Math.max(0, Number(p.quantity) || 0)),
+          gtin: p.barcode
+        }]
+      },
+      attributes: { attribute: [] },
+      images: { image: images },
+      shipmentTemplate: mapping.shipmentTemplate || '',
+      preparingDay: 1
+    }
+  };
+  const res = await call(PRODUCT_WSDL, 'SaveProduct', payload, cfg);
+  if (res && res.result && res.result.status && res.result.status !== 'success') {
+    throw new Error('N11 ürün oluşturma hatası: ' + (res.result.errorMessage || res.result.status));
+  }
+  return true;
+}
+
 module.exports = { fetchStock, fetchProducts, updateStock, createProduct };
