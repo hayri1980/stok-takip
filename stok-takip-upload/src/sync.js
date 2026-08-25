@@ -1368,6 +1368,9 @@ async function syncSharedStock() {
       const stockEntry = shared !== null && shared !== undefined && tyQty > Number(shared);
       const realDrops = stockEntry ? [] : entries.filter(e => {
         if (e.kind === 'trendyol') return false;
+        // N11 korumasi (25.08): N11 urunleri hala InCatalogApproval durumundadir,
+        // N11 sto guvenilir degildir. N11 hicbir zaman "gercek dusus" kaynagi olarak kullanilmaz.
+        if (e.kind === 'n11') return false;
         const q = Number(e.qty);
         if (q < 0) return false;
         // YENI PAZAR KORUMASI (25.08): o pazaryeri bu urun icin DB'de hic gorulmediyse ve biz

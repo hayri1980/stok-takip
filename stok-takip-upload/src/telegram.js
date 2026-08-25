@@ -235,9 +235,10 @@ function healthStatus() {
     issues.push('Hicbir pazaryeri API ayari yok');
   }
   if (db.getProducts().length === 0) issues.push('Urun listesi bos');
+  const syncEnabled = (settings.sync || {}).enabled !== false;
   const age = lastSyncAgeMin();
   let syncAge = null;
-  if (age !== null && age > 30) {
+  if (syncEnabled && age !== null && age > 30) {
     syncAge = age;
     issues.push('Son senkron ' + age + ' dk once (cok eski)');
   } else {
