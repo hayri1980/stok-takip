@@ -1211,7 +1211,10 @@ async function getRecentMarketOrderLines(kind) {
     return null;
   }
   const lines = [];
+  const CUTOFF = Date.now() - 3 * 60 * 60 * 1000; // 25.08: sadece son 3 saatlik siparisler dogrular
   for (const o of list) {
+    const od = Date.parse(o.orderDate || o.createdAt || '');
+    if (!isNaN(od) && od < CUTOFF) continue; // eski siparis: bu dususu dogrulayamaz
     for (const l of (o.lines || o.items || o.siparisUrunler || [])) {
       const b = l.barcode || l.merchantSku || l.sku || l.urunBarkod || l.variantBarkod ||
         l.stockCode || l.vendorStockCode || '';
