@@ -1,8 +1,10 @@
 const soap = require('soap');
 
-const PRODUCT_WSDL = 'https://api.n11.com/ws/ProductService.wsdl';
-// 25.08: ProductStockService.wsdl N11 tarafindan KALDIRILDI (405 donuyor).
-// Stok guncelleme artik ProductService/UpdateProductBasic ile yapiliyor.
+const PRODUCT_WSDL = 'https://api.n11.com/ws/ProductService.wsdl'; // sadece SaveProduct icin (SOAP)
+const REST_BASE = 'https://api.n11.com';
+// 25.08: N11 SOAP fiyat/stok guncelleme servislerini KAPATTI ("RestAPI update servislerine gecin").
+// Okuma+stok yazma artik RestAPI uzerinden: /ms/product-query ve /ms/product/tasks/price-stock-update
+const INTEGRATOR = 'caparici';
 
 const clientCache = {};
 
@@ -24,76 +26,48 @@ async function call(wsdl, method, payload, cfg) {
   return res;
 }
 
-function flattenProducts(products) {
+function restHeaders(cfg) {
+  return { 'appkey': cfg.appKey, 'appsecret': cfg.appSecret };
+}
+
+// Katalog onbellegi: her senkron turunda istek atmasın diye 3 dk taze tutulur.
+const CATALOG_TTL_MS = 3 * 60 * 1000;
+let catalogCacheTs = 0;
+let catalogCacheItems = null;
+
+async function getCatalogCached(cfg) {
+  if (catalogCacheItems && Date.now() - catalogCacheTs < CATALOG_TTL_MS) return catalogCacheItems;
+  const res = await fetch(REST_BASE + '/ms/product-query?page=0&size=250', { headers: restHeaders(cfg) });
+  if (!res.ok) throw new Error('N11 REST ürün listesi hatası: HTTP ' + res.status);
+  const j = await res.json();
+  catalogCacheItems = j.content || j.items || [];
+  catalogCacheTs = Date.now();
+  return catalogCacheItems;
+}
+
+function toRecs(items) {
   const list = [];
-  for (const p of products || []) {
-    const si = p.stockItems && p.stockItems.stockItem;
-    const stockItems = Array.isArray(si) ? si : (si ? [si] : []);
-    for (const s of stockItems) {
-      const qty = parseInt(s.quantity, 10);
-      list.push({
-        barcode: s.gtin || s.sellerStockCode || p.productSellerCode,
-        sku: s.sellerStockCode || p.productSellerCode,
-        productSellerCode: p.productSellerCode,
-        productId: p.id,
-        qty: isNaN(qty) ? null : qty,
-        price: Number(p.price) || null,
-        title: p.title
-      });
-    }
-    if (stockItems.length === 0) {
-      list.push({
-        barcode: p.productSellerCode,
-        sku: p.productSellerCode,
-        productSellerCode: p.productSellerCode,
-        productId: p.id,
-        qty: null,
-        price: Number(p.price) || null,
-        title: p.title
-      });
-    }
+  for (const it of items || []) {
+    const code = String(it.stockCode || '').trim();
+    if (!code) continue;
+    list.push({
+      barcode: code,
+      sku: code,
+      productSellerCode: code,
+      productId: it.n11ProductId,
+      qty: (it.quantity === undefined || it.quantity === null) ? null : Number(it.quantity),
+      price: Number(it.salePrice) || null,
+      title: it.title
+    });
   }
   return list;
 }
 
-// 25.08: N11 liste uçları büyük yanıtlarda ürünleri KIRIYOR (pageSize 20+ bos/eksik gelir,
-// ~3 üründen sonrası kesiliyor). Sayfayı 3'te tutup sayfa sayfa topluyoruz.
-// Her senkron turunda 5+ istek atmasın diye katalog 3 dk önbellekte tutulur.
-const PAGE_SIZE = 3;
-const CATALOG_TTL_MS = 3 * 60 * 1000;
-let catalogCacheTs = 0;
-let catalogCache = null;
-
-async function getProductList(cfg) {
-  const all = [];
-  let page = 1;
-  while (page < 200) {
-    const res = await call(PRODUCT_WSDL, 'GetProductList', {
-      pagingData: { currentPage: page, pageSize: PAGE_SIZE }
-    }, cfg);
-    const products = (res && res.products && res.products.product) || [];
-    all.push(...(Array.isArray(products) ? products : [products]));
-    const paging = (res && res.pagingData) || {};
-    const pageCount = Number(paging.pageCount) || 0;
-    if (!products.length || page >= pageCount) break;
-    page++;
-  }
-  return all;
-}
-
-async function getCatalogCached(cfg) {
-  if (catalogCache && Date.now() - catalogCacheTs < CATALOG_TTL_MS) return catalogCache;
-  catalogCache = await getProductList(cfg);
-  catalogCacheTs = Date.now();
-  return catalogCache;
-}
-
 async function fetchStock(cfg) {
-  const list = flattenProducts(await getCatalogCached(cfg));
   const stockByBarcode = new Map();
-  for (const rec of list) {
+  for (const rec of toRecs(await getCatalogCached(cfg))) {
     if (!rec.barcode || rec.qty === null) continue;
-    stockByBarcode.set(String(rec.barcode).trim(), rec.qty);
+    stockByBarcode.set(rec.barcode, rec.qty);
   }
   return stockByBarcode;
 }
@@ -101,43 +75,34 @@ async function fetchStock(cfg) {
 async function fetchProducts(cfg) {
   const byBarcode = new Map();
   const bySku = new Map();
-  const list = flattenProducts(await getCatalogCached(cfg));
-  for (const rec of list) {
-    const barcode = String(rec.barcode || '').trim();
-    const sku = String(rec.sku || '').trim();
-    if (barcode) byBarcode.set(barcode, rec);
-    if (sku) bySku.set(sku, rec);
+  for (const rec of toRecs(await getCatalogCached(cfg))) {
+    byBarcode.set(rec.barcode, rec);
+    bySku.set(rec.sku, rec);
   }
   return { byBarcode, bySku };
 }
 
 async function updateStock(cfg, sku, quantity) {
-  // Once urunun mevcut kaydini cek (productId + stok kalemi id gerekli)
-  const det = await call(PRODUCT_WSDL, 'GetProductBySellerCode', { sellerCode: String(sku) }, cfg);
-  const p = det && det.product;
-  if (!p) throw new Error('N11 ürün bulunamadı: ' + sku);
-  const siRaw = p.stockItems && p.stockItems.stockItem;
-  const sis = Array.isArray(siRaw) ? siRaw : (siRaw ? [siRaw] : []);
-  const item = sis.find(s => String(s.sellerStockCode) === String(sku)) || sis[0];
-  if (!item) throw new Error('N11 stok kalemi yok: ' + sku);
-  await call(PRODUCT_WSDL, 'UpdateProductBasic', {
-    productId: Number(p.id),
-    productSellerCode: String(sku),
-    productDiscount: {},
-    stockItems: {
-      stockItem: [{
-        id: Number(item.id),
-        sellerStockCode: String(item.sellerStockCode || sku),
-        quantity: Math.max(0, Number(quantity) || 0)
-      }]
-    },
-    description: p.description || ''
-  }, cfg);
-  catalogCacheTs = 0; // sonraki okumada taze katalog cekilsin
+  const body = {
+    payload: {
+      integrator: INTEGRATOR,
+      skus: [{ stockCode: String(sku), quantity: Math.max(0, Number(quantity) || 0) }]
+    }
+  };
+  const res = await fetch(REST_BASE + '/ms/product/tasks/price-stock-update', {
+    method: 'POST',
+    headers: Object.assign(restHeaders(cfg), { 'Content-Type': 'application/json' }),
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('N11 fiyat-stok güncelleme hatası: HTTP ' + res.status);
+  const j = await res.json().catch(() => ({}));
+  if (j.status === 'REJECT') throw new Error('N11 fiyat-stok güncelleme reddedildi: ' + JSON.stringify(j.reasons || '').slice(0, 150));
+  catalogCacheTs = 0; // sonraki okumada taze katalog
   return true;
 }
 
 async function createProduct(cfg, p) {
+  // Urun acma da REST ile denenebilir; su an urunler panel/Excel'den yuklendigi icin SOAP yolu birakildi.
   const mapping = p.mapping || {};
   const images = Array.isArray(p.images) ? p.images.slice(0, 8) : [];
   const payload = {
