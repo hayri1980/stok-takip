@@ -1234,6 +1234,10 @@ function marketHasOrderVerify(kind) {
 }
 async function marketOrderConfirmsSale(kind, barcode) {
   try {
+    // 25.08: N11 siparis servisi REST'e tasindi, dogrulama su an yapilamiyor.
+    // Dogrulanamayan N11 dususleri SAHTE satıs uretiyordu (stok yazımı gecikmesi) ->
+    // satis sayilmaz, suspectStale ile stok korunur.
+    if (kind === 'n11') return false;
     const lines = await getRecentMarketOrderLines(kind);
     if (lines === null) return null;
     return lines.includes(normalizeBarcodeKey(barcode));
