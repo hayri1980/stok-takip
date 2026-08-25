@@ -1363,6 +1363,11 @@ async function syncSharedStock() {
         if (e.kind === 'trendyol') return false;
         const q = Number(e.qty);
         if (q < 0) return false;
+        // YENI PAZAR KORUMASI (25.08): o pazaryeri bu urun icin DB'de hic gorulmediyse ve biz
+        // hic yazim yapmadiysak, pazarin ilk okunan (eski/baslangic) degeri SATIS sayilmaz;
+        // aksi halde yeni baglanan pazarin bayat degeri HERKESI dusurur (N11 olayi).
+        const dbVal = existing ? existing[stockField(e.kind)] : null;
+        if ((dbVal === null || dbVal === undefined) && !getStockWrite(e.kind, barcode)) return false;
         // 0 görünümü sadece KİMSE daha önce o pazarda stok GÖRMEDİYSE pasif/onay-bekleyen sayılır.
         // O pazarda daha önce stok (DB > 0) vardı ve şimdi 0 → GERÇEK SATIŞ (son adet) → 0'a inilir.
         if (q === 0 && !(existing && Number(existing[stockField(e.kind)]) > 0)) return false;
