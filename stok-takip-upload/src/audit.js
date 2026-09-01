@@ -112,27 +112,10 @@ function fixDataIntegrity() {
 }
 
 async function checkMarketSync(kind) {
-  const syncCfg = db.getSettings().sync || {};
-  if (syncCfg.enabled === false) {
-    return { name: sync.kindLabel(kind), ok: true, status: 'KAPALI', detail: 'senkron kapalı' };
-  }
-  if (!marketReady(kind)) {
-    return { name: sync.kindLabel(kind), ok: true, status: 'KAPALI', detail: 'ayarlanmadı' };
-  }
-  const last = lastSyncDate(kind);
-  let fixed = false;
-  if (last === null || (Date.now() - last) > SYNC_MAX_AGE_MIN * 60000) {
-    try {
-      const r = await sync.syncMarketplace(kind);
-      if (r && r.error) {
-        return { name: sync.kindLabel(kind), ok: false, status: 'HATA', detail: r.error };
-      }
-      fixed = true;
-    } catch (e) {
-      return { name: sync.kindLabel(kind), ok: false, status: 'HATA', detail: e.message };
-    }
-  }
-  return { name: sync.kindLabel(kind), ok: true, status: fixed ? 'TAMIR' : 'OK', detail: fixed ? 'senkron yenilendi' : 'güncel' };
+  // 01.09.2026: bu fonksiyon kalici olarak devre disi birakildi.
+  // Neden: sync.enabled=false iken bile syncMarketplace cagirarak sistemi bozuyordu.
+  // sync acilsa bile denetim senkron cagirmaz; senkron kendi basina calisir.
+  return { name: sync.kindLabel(kind), ok: true, status: 'KAPALI', detail: 'denetim senkron cagirmaz' };
 }
 
 function checkDisappearedProducts() {
