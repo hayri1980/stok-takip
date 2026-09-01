@@ -11,6 +11,7 @@
     <h1>Stok Takip</h1>
     <nav>
       <button class="tab-btn active" data-tab="stoklar">Stoklar</button>
+      <button class="tab-btn" data-tab="kargo">Kargo</button>
       <button class="tab-btn" data-tab="magaza">Mağaza</button>
       <button class="tab-btn" data-tab="ayarlar">Ayarlar</button>
       <button class="tab-btn" data-tab="istatistik">İstatistik</button>
@@ -48,6 +49,31 @@
         </table>
       </div>
       <p id="emptyNote" class="empty-note">Henüz ürün yok. "+ Ürün Ekle" ile ilk ürünü ekle.</p>
+    </section>
+
+    <!-- KARGO -->
+    <section id="tab-kargo" class="tab-content">
+      <div class="toolbar">
+        <input type="text" id="shipSearch" placeholder="Takip no, sipariş no veya pazar ara...">
+        <button id="shipRefreshBtn" class="btn">Yenile</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pazaryeri</th>
+              <th>Sipariş No</th>
+              <th>Takip No</th>
+              <th>Durum</th>
+              <th>Kargo</th>
+              <th>Gönderim</th>
+              <th>Teslim</th>
+            </tr>
+          </thead>
+          <tbody id="shipTable"></tbody>
+        </table>
+      </div>
+      <p id="shipEmpty" class="empty-note">Henüz kargo hareketi yok.</p>
     </section>
 
     <!-- AYARLAR -->

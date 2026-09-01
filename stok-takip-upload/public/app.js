@@ -9,7 +9,8 @@ const API = {
   shopStats: '/api/shop/admin/stats',
   shopProducts: '/api/shop/admin/products',
   shopOrders: '/api/shop/admin/orders',
-  importTrendyol: '/api/shop/admin/import-trendyol'
+  importTrendyol: '/api/shop/admin/import-trendyol',
+  shipments: '/api/shipments'
 };
 
 let products = [];
@@ -37,8 +38,57 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'log') loadLog();
     if (btn.dataset.tab === 'istatistik') loadStats();
     if (btn.dataset.tab === 'magaza') loadShop();
+    if (btn.dataset.tab === 'kargo') loadShipments();
   });
 });
+
+// ---------- Kargo ----------
+let shipments = [];
+async function loadShipments() {
+  try {
+    shipments = await request(API.shipments);
+    renderShipments();
+  } catch (e) {
+    document.getElementById('shipTable').innerHTML = '<tr><td colspan="7">Yuklenemedi: ' + e.message + '</td></tr>';
+  }
+}
+
+function shipStatus(s) {
+  const st = String(s && s.status ? s.status : '').toLowerCase();
+  if (s && s.delivered) return { label: 'Teslim', cls: 'ok' };
+  if (st.indexOf('deliver') !== -1 || (s && s.statusDescription && String(s.statusDescription).toLowerCase().indexOf('teslim') !== -1)) return { label: 'Teslim', cls: 'ok' };
+  if (s && s.shippedAt) return { label: 'Kargoda', cls: 'warn' };
+  return { label: '—', cls: 'na' };
+}
+
+function renderShipments() {
+  const q = document.getElementById('shipSearch').value.trim().toLowerCase();
+  const body = document.getElementById('shipTable');
+  const filtered = shipments.filter(s =>
+    !q || String(s.orderNo || '').toLowerCase().includes(q) ||
+    String(s.trackingNo || '').toLowerCase().includes(q) ||
+    String(s.market || '').toLowerCase().includes(q)
+  );
+  body.innerHTML = filtered.map(s => {
+    const st = shipStatus(s);
+    const track = s.trackingNo ? '<a class="mono" href="' + encodeURI('https://gonderitakip.suratkargo.com.tr/Sorgu/' + s.trackingNo) + '" target="_blank">' + escapeHtml(s.trackingNo) + '</a>' : '—';
+    const desc = s.statusDescription ? '<div class="muted" style="font-size:12px">' + escapeHtml(s.statusDescription) + '</div>' : '';
+    return '<tr>' +
+      '<td>' + escapeHtml(s.market || '') + '</td>' +
+      '<td class="mono">' + escapeHtml(s.orderNo) + '</td>' +
+      '<td>' + track + '</td>' +
+      '<td><span class="badge ' + st.cls + '">' + st.label + '</span>' + desc + '</td>' +
+      '<td>' + escapeHtml(s.provider || '—') + '</td>' +
+      '<td class="muted">' + (s.shippedAt ? fmtTime(new Date(s.shippedAt).toISOString()) : '—') + '</td>' +
+      '<td class="muted">' + (s.deliveredAt ? fmtTime(new Date(s.deliveredAt).toISOString()) : '—') + '</td>' +
+      '</tr>';
+  }).join('');
+  document.getElementById('shipEmpty').style.display = filtered.length ? 'none' : 'block';
+  document.getElementById('shipTable').style.display = filtered.length ? '' : 'none';
+}
+
+document.getElementById('shipSearch').addEventListener('input', renderShipments);
+document.getElementById('shipRefreshBtn').addEventListener('click', loadShipments);
 
 // ---------- Stoklar ----------
 function status(qty) {

@@ -150,6 +150,11 @@ app.delete('/api/products/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Kargo hareketleri (gonderilen siparislerin takibi)
+app.get('/api/shipments', (req, res) => {
+  res.json(db.getShipments());
+});
+
 // Ortak stok girisi: DB'ye yaz + Trendyol'a gonder (senkronu actirmadan).
 // Panelde ortak stok hucesine tiklayip deger girince bu cagirilir.
 app.post('/api/products/:id/set-stock', async (req, res) => {

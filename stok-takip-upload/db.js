@@ -418,6 +418,11 @@ function getShipment(market, orderNo) {
   return (state.orderShipments || []).find(s => s && s.market === market && String(s.orderNo) === String(orderNo)) || null;
 }
 
+function getShipments() {
+  load();
+  return (state.orderShipments || []).slice().reverse();
+}
+
 function upsertShipment(rec) {
   load();
   if (!Array.isArray(state.orderShipments)) state.orderShipments = [];
@@ -788,6 +793,7 @@ module.exports = {
   getOrderNotifiedIds,
   addOrderNotifiedIds,
   getShipment,
+  getShipments,
   upsertShipment,
   getPersistedStockWrites,
   setPersistedStockWrites,
