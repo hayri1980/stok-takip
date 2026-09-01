@@ -37,19 +37,19 @@ let audioCtx = null;
 function playNotifySound() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // 3 kez bip sesi
-    [0, 0.25, 0.5].forEach(delay => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = 880;
-      gain.gain.value = 0.3;
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.15);
-      osc.start(audioCtx.currentTime + delay);
-      osc.stop(audioCtx.currentTime + delay + 0.15);
-    });
+    // Tek kisa bip
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.value = 0.3;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.15);
+    // Kisa sure sonra kapat
+    setTimeout(() => { try { audioCtx.close(); audioCtx = null; } catch(e){} }, 300);
   } catch (e) {}
 }
 
