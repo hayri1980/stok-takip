@@ -155,6 +155,16 @@ app.get('/api/shipments', (req, res) => {
   res.json(db.getShipments());
 });
 
+// Tekrar satin alma flag (buton yanipti sonmesi icin)
+app.get('/api/repeat-purchase-flag', (req, res) => {
+  res.json({ pending: db.getRepeatPurchasePending() });
+});
+
+app.post('/api/repeat-purchase-flag/clear', (req, res) => {
+  db.clearRepeatPurchasePending();
+  res.json({ ok: true });
+});
+
 // Ortak stok girisi: DB'ye yaz + Trendyol'a gonder (senkronu actirmadan).
 // Panelde ortak stok hucesine tiklayip deger girince bu cagirilir.
 app.post('/api/products/:id/set-stock', async (req, res) => {

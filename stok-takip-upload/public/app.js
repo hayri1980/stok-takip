@@ -10,7 +10,9 @@ const API = {
   shopProducts: '/api/shop/admin/products',
   shopOrders: '/api/shop/admin/orders',
   importTrendyol: '/api/shop/admin/import-trendyol',
-  shipments: '/api/shipments'
+  shipments: '/api/shipments',
+  repeatFlag: '/api/repeat-purchase-flag',
+  repeatFlagClear: '/api/repeat-purchase-flag/clear'
 };
 
 let products = [];
@@ -28,9 +30,57 @@ async function request(url, method = 'GET', body) {
   return data;
 }
 
-// ---------- Sekmeler ----------
+// ---------- Tekrar satin alma bildirim sesi ----------
+let lastFlagCheck = false;
+let audioCtx = null;
+
+function playNotifySound() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // 3 kez bip sesi
+    [0, 0.25, 0.5].forEach(delay => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.3;
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.15);
+      osc.start(audioCtx.currentTime + delay);
+      osc.stop(audioCtx.currentTime + delay + 0.15);
+    });
+  } catch (e) {}
+}
+
+async function checkRepeatFlag() {
+  try {
+    const r = await request(API.repeatFlag);
+    const logBtn = document.getElementById('logTabBtn');
+    if (!logBtn) return;
+    if (r.pending && !lastFlagCheck) {
+      // Yeni tekrar satin alma var
+      logBtn.classList.add('log-btn-pulse');
+      playNotifySound();
+    } else if (!r.pending) {
+      logBtn.classList.remove('log-btn-pulse');
+    }
+    lastFlagCheck = !!r.pending;
+  } catch (e) {}
+}
+
+// Sayfa acilinda ve her 10 sn'de kontrol et
+checkRepeatFlag();
+setInterval(checkRepeatFlag, 10000);
+
+// Kayitlar sekmesine tiklaninca flag temizle
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'log') {
+      request(API.repeatFlagClear, 'POST').catch(() => {});
+      document.getElementById('logTabBtn').classList.remove('log-btn-pulse');
+      lastFlagCheck = false;
+    }
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));

@@ -793,6 +793,7 @@ async function checkOrders() {
             try {
               await notifier.notify('🔄 TEKRAR SATIN ALMA: ' + custLabel, html, txt);
               db.addLog('Tekrar satin alma: ' + custLabel + ' - ' + prodName + ' (ilk: ' + (prev.orderNo || '?') + ', ' + daysAgo + ' gun once)');
+              db.setRepeatPurchasePending();
             } catch (e) {
               db.addLog('Tekrar satin alma bildirimi gonderilemedi: ' + e.message);
             }

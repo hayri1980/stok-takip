@@ -255,6 +255,19 @@ tr:hover td { background: #f8fafc; }
 .visit-bar-fill b { font-size: 11px; color: #2563eb; padding-top: 2px; }
 .visit-bar small { font-size: 10px; color: #94a3b8; }
 
+/* Tekrar satin alma - yanip sonen buton */
+@keyframes pulse-notify {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); }
+  50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+}
+.log-btn-pulse {
+  animation: pulse-notify 1s infinite;
+  background: #ef4444 !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+.log-btn-pulse:hover { background: #dc2626 !important; }
+
 @media (max-width: 700px) {
   .settings-grid { grid-template-columns: 1fr; }
   header { gap: 10px; }

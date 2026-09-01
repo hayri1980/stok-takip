@@ -512,6 +512,24 @@ function getOrderHistory() {
   return (state.orderHistory || []).slice().reverse().slice(0, 500);
 }
 
+// Tekrar satin alma flag (buton yanipti sonmesi icin)
+function getRepeatPurchasePending() {
+  load();
+  return !!(state.repeatPurchasePending);
+}
+
+function setRepeatPurchasePending() {
+  load();
+  state.repeatPurchasePending = true;
+  save();
+}
+
+function clearRepeatPurchasePending() {
+  load();
+  state.repeatPurchasePending = false;
+  save();
+}
+
 // ---- Mağaza ----
 function mergeShopSettings(base, partial) {
   return {
@@ -852,6 +870,9 @@ module.exports = {
   findPreviousOrder,
   buildCustomerKey,
   getOrderHistory,
+  getRepeatPurchasePending,
+  setRepeatPurchasePending,
+  clearRepeatPurchasePending,
   getShipment,
   getShipments,
   upsertShipment,
