@@ -530,6 +530,54 @@ function clearRepeatPurchasePending() {
   save();
 }
 
+// Soru bildirim flag
+function getQuestionPending() {
+  load();
+  return !!(state.questionPending);
+}
+
+function setQuestionPending() {
+  load();
+  state.questionPending = true;
+  save();
+}
+
+function clearQuestionPending() {
+  load();
+  state.questionPending = false;
+  save();
+}
+
+// Sorular (icerik ile birlikte saklanir, son 90 gun)
+function addQuestion(rec) {
+  load();
+  if (!Array.isArray(state.questions)) state.questions = [];
+  // Ayni ID'yi tekrar ekleme
+  const exists = state.questions.find(q => String(q.id) === String(rec.id));
+  if (exists) return state.questions;
+  state.questions.push(rec);
+  const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+  state.questions = state.questions.filter(q => (q.ts || 0) > cutoff);
+  save();
+  return state.questions;
+}
+
+function getQuestions() {
+  load();
+  return (state.questions || []).slice().reverse();
+}
+
+function updateQuestion(id, data) {
+  load();
+  if (!Array.isArray(state.questions)) state.questions = [];
+  const q = state.questions.find(x => String(x.id) === String(id));
+  if (q) {
+    Object.assign(q, data);
+    save();
+  }
+  return q || null;
+}
+
 // ---- Mağaza ----
 function mergeShopSettings(base, partial) {
   return {
@@ -873,6 +921,12 @@ module.exports = {
   getRepeatPurchasePending,
   setRepeatPurchasePending,
   clearRepeatPurchasePending,
+  getQuestionPending,
+  setQuestionPending,
+  clearQuestionPending,
+  addQuestion,
+  getQuestions,
+  updateQuestion,
   getShipment,
   getShipments,
   upsertShipment,

@@ -12,7 +12,11 @@ const API = {
   importTrendyol: '/api/shop/admin/import-trendyol',
   shipments: '/api/shipments',
   repeatFlag: '/api/repeat-purchase-flag',
-  repeatFlagClear: '/api/repeat-purchase-flag/clear'
+  repeatFlagClear: '/api/repeat-purchase-flag/clear',
+  questions: '/api/questions',
+  questionsAnswer: '/api/questions/answer',
+  questionFlag: '/api/question-flag',
+  questionFlagClear: '/api/question-flag/clear'
 };
 
 let products = [];
@@ -73,13 +77,40 @@ async function checkRepeatFlag() {
 checkRepeatFlag();
 setInterval(checkRepeatFlag, 10000);
 
-// Kayitlar sekmesine tiklaninca flag temizle
+// ---------- Soru bildirim flag ----------
+let lastQuestionFlag = false;
+
+async function checkQuestionFlag() {
+  try {
+    const r = await request(API.questionFlag);
+    const btn = document.getElementById('soruTabBtn');
+    if (!btn) return;
+    if (r.pending && !lastQuestionFlag) {
+      btn.classList.add('log-btn-pulse');
+      playNotifySound();
+    } else if (!r.pending) {
+      btn.classList.remove('log-btn-pulse');
+    }
+    lastQuestionFlag = !!r.pending;
+  } catch (e) {}
+}
+
+checkQuestionFlag();
+setInterval(checkQuestionFlag, 10000);
+
+// Kayitlar ve Sorular sekmesine tiklaninca flag temizle
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.dataset.tab === 'log') {
       request(API.repeatFlagClear, 'POST').catch(() => {});
       document.getElementById('logTabBtn').classList.remove('log-btn-pulse');
       lastFlagCheck = false;
+    }
+    if (btn.dataset.tab === 'sorular') {
+      request(API.questionFlagClear, 'POST').catch(() => {});
+      document.getElementById('soruTabBtn').classList.remove('log-btn-pulse');
+      lastQuestionFlag = false;
+      loadQuestions();
     }
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -863,6 +894,60 @@ async function loadLog() {
   list.innerHTML = items.map(i =>
     '<div class="log-item"><span class="muted">' + fmtTime(i.time) + '</span> ' + escapeHtml(i.message) + '</div>'
   ).join('');
+}
+
+// ---------- Sorular ----------
+let questions = [];
+async function loadQuestions() {
+  try {
+    questions = await request(API.questions);
+    renderQuestions();
+  } catch (e) {
+    document.getElementById('questionList').innerHTML = '<p>Yüklenemedi: ' + e.message + '</p>';
+  }
+}
+
+function renderQuestions() {
+  const el = document.getElementById('questionList');
+  if (!questions.length) {
+    el.innerHTML = '<p class="empty-note">Henüz soru yok.</p>';
+    return;
+  }
+  el.innerHTML = questions.map(q => {
+    const marketLabel = q.market || 'Pazaryeri';
+    const qText = escapeHtml(q.question || q.text || q.content || '');
+    const aText = escapeHtml(q.answer || '');
+    const pName = escapeHtml(q.productName || q.productNameText || '');
+    const date = q.date || q.createdAt || '';
+    const dateStr = date ? new Date(date).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    return '<div class="question-card" style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px;background:#fafafa">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<span class="badge" style="background:#dbeafe;color:#1e40af">' + escapeHtml(marketLabel) + '</span>' +
+        '<span class="muted" style="font-size:12px">' + dateStr + '</span>' +
+      '</div>' +
+      (pName ? '<div style="font-size:13px;margin-bottom:4px"><b>Ürün:</b> ' + pName + '</div>' : '') +
+      '<div style="margin-bottom:8px"><b>Soru:</b> ' + qText + '</div>' +
+      (aText ? '<div style="background:#dcfce7;padding:8px;border-radius:6px;margin-bottom:8px"><b>Cevap:</b> ' + aText + '</div>' :
+        '<div style="margin-bottom:8px">' +
+          '<textarea id="ans-' + (q.id || q.questionId || '') + '" placeholder="Cevabını yaz..." style="width:100%;min-height:50px;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px"></textarea>' +
+          '<button class="btn btn-primary" style="margin-top:6px;font-size:12px" onclick="answerQuestion(\'' + escapeHtml(q.id || q.questionId || '') + '\', \'' + escapeHtml(q.market || '') + '\')">Cevap Gönder</button>' +
+        '</div>') +
+      '</div>';
+  }).join('');
+}
+
+async function answerQuestion(qid, market) {
+  const ta = document.getElementById('ans-' + qid);
+  if (!ta) return;
+  const answer = ta.value.trim();
+  if (!answer) return alert('Cevap boş olamaz.');
+  try {
+    await request(API.questionsAnswer, 'POST', { questionId: qid, market, answer });
+    alert('Cevap gönderildi.');
+    loadQuestions();
+  } catch (e) {
+    alert('Hata: ' + e.message);
+  }
 }
 
 // ---------- Başlangıç ----------

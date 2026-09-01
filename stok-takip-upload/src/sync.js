@@ -980,6 +980,16 @@ async function processQuestions(questions, marketLabel) {
       'Lutfen ' + marketLabel + ' panelinden cevaplayin.';
     const result = await notifier.notify(subject, html, text);
     if ((result.email && result.email.sent) || (result.telegram && result.telegram.sent)) sent++;
+    // Soruyu DB'ye kaydet (panelde gosterilsin)
+    db.addQuestion({
+      id: q.id,
+      market: marketLabel,
+      productName: q.productName || '',
+      question: q.question || '',
+      answer: q.answer || '',
+      date: q.createdDate || '',
+      ts: Date.now()
+    });
   }
 
   if (fresh.length > 0) {
@@ -1023,7 +1033,10 @@ async function checkQuestions() {
   }
 
   if (!any) return { skipped: true, reason: 'Soru API ayarları yok (Trendyol veya idefix)' };
-  if (results.fresh > 0) db.addLog(results.fresh + ' yeni soru bulundu, ' + results.sent + ' bildirim gönderildi');
+  if (results.fresh > 0) {
+    db.addLog(results.fresh + ' yeni soru bulundu, ' + results.sent + ' bildirim gönderildi');
+    db.setQuestionPending();
+  }
   return results;
 }
 

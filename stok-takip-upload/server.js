@@ -165,6 +165,31 @@ app.post('/api/repeat-purchase-flag/clear', (req, res) => {
   res.json({ ok: true });
 });
 
+// Soru bildirim flag
+app.get('/api/question-flag', (req, res) => {
+  res.json({ pending: db.getQuestionPending() });
+});
+
+app.post('/api/question-flag/clear', (req, res) => {
+  db.clearQuestionPending();
+  res.json({ ok: true });
+});
+
+// Sorulari listele
+app.get('/api/questions', (req, res) => {
+  res.json(db.getQuestions());
+});
+
+// Soruya cevap kaydet (DB'ye; pazaryerine gonderim icin ayri API gerekir)
+app.post('/api/questions/answer', (req, res) => {
+  const { questionId, market, answer } = req.body || {};
+  if (!questionId || !answer) return res.status(400).json({ error: 'questionId ve answer zorunludur' });
+  const q = db.updateQuestion(questionId, { answer, answeredAt: new Date().toISOString() });
+  if (!q) return res.status(404).json({ error: 'Soru bulunamadi' });
+  db.addLog('Soru cevabi kaydedildi: ' + questionId + ' (' + market + ') — ' + answer.slice(0, 50));
+  res.json({ ok: true, question: q });
+});
+
 // Ortak stok girisi: DB'ye yaz + Trendyol'a gonder (senkronu actirmadan).
 // Panelde ortak stok hucesine tiklayip deger girince bu cagirilir.
 app.post('/api/products/:id/set-stock', async (req, res) => {
