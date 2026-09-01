@@ -1007,16 +1007,17 @@ async function loadDeposits() {
   }
 }
 
-function renderPending() {
-  request(API.finPending).then(list => {
-    finPending = list;
-    renderMoney();
-  }).catch(() => { renderMoney(); });
+async function loadPending() {
+  try {
+    finPending = await request(API.finPending);
+  } catch (e) {
+    finPending = [];
+  }
 }
 
 async function delPending(id) {
   await request(API.finPending + '/' + id, 'DELETE');
-  renderPending();
+  loadPending();
 }
 
 // Yatan + bekleyen paralari tek akordeon listede goster
@@ -1027,7 +1028,6 @@ function renderMoney() {
   const el = document.getElementById('moneyList');
   if (!el) return;
   // Bekleyenler (ileride yatacak) — altta yatanlar — gruplu liste
-  // Her satir: baslik (pazar + tutar) + tiklayinca acilan detay
   let html = '';
   // BOLUM 1: Il KAPAT
   html += '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-bottom:12px">' +
@@ -1035,16 +1035,16 @@ function renderMoney() {
   if (!finPending.length) {
     html += '<div class="muted" style="padding:6px 0">Bekleyen para yok</div>';
   } else {
-    html += finPending.map(p => moneyRow(p, 'pending', '≤', 'sar')).join('');
+    html += finPending.map(p => moneyRow(p, 'pending')).join('');
   }
   html += '</div>';
   // BOLUM 2: YATANLAR
-  html += '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px">' +
+  html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px">' +
     '<div style="font-weight:700;margin-bottom:6px">YATAN PARALAR (' + finDeposits.length + ')</div>';
   if (!finDeposits.length) {
     html += '<div class="muted" style="padding:6px 0">Henüz yatış kaydı yok</div>';
   } else {
-    html += finDeposits.map(d => moneyRow(d, 'deposit', '✅', 'mavi')).join('');
+    html += finDeposits.map(d => moneyRow(d, 'deposit')).join('');
   }
   html += '</div>';
   el.innerHTML = html;
