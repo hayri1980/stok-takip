@@ -46,6 +46,7 @@ function defaultData() {
     financeNotifiedIds: [],
     financeRecords: [],
     orderShipments: [],
+    orderHistory: [],
     stockWrites: [],
     dailySales: [],
     cartStats: { daily: {}, total: {} },
@@ -456,6 +457,61 @@ function addOrderNotifiedIds(ids) {
   return state.orderNotifiedIds;
 }
 
+// ---- Tekrar satin alma tespiti ----
+// Her sipariş kaydı: { ts, market, orderNo, customerKey, customerName, barcodes: [{barcode, qty, name}] }
+// Son 90 gun tutulur.
+const ORDER_HISTORY_DAYS = 90;
+
+function addOrderRecord(rec) {
+  load();
+  if (!Array.isArray(state.orderHistory)) state.orderHistory = [];
+  state.orderHistory.push(rec);
+  // Eski kayitlari temizle (90 gun)
+  const cutoff = Date.now() - ORDER_HISTORY_DAYS * 24 * 60 * 60 * 1000;
+  state.orderHistory = state.orderHistory.filter(r => r.ts > cutoff);
+  save();
+  return state.orderHistory;
+}
+
+// Ayni musteri ayni urunu daha once aldi mi? (customerKey + barcode)
+// İlk sipariş kaydını döndürür, yoksa null.
+function findPreviousOrder(customerKey, barcode) {
+  load();
+  if (!customerKey || !barcode) return null;
+  const kb = String(barcode).toLowerCase().trim();
+  const ck = String(customerKey).toLowerCase().trim();
+  return (state.orderHistory || []).find(r =>
+    r.customerKey && String(r.customerKey).toLowerCase().trim() === ck &&
+    r.barcodes && r.barcodes.some(b => String(b.barcode).toLowerCase().trim() === kb)
+  ) || null;
+}
+
+// Müşteri anahtarı türet: fatura/isim + telefon bilgisinden
+function buildCustomerKey(o) {
+  // İsim: customerName, buyerName, firstName+lastName, shipmentAddress.fullName, customer.name
+  const addr = o.shipmentAddress || o.shippingAddress || o.adres || {};
+  const billing = o.billingAddress || o.faturaAdresi || {};
+  const cust = o.customer || {};
+  const rawName = o.customerName || o.buyerName ||
+    [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim() ||
+    addr.fullName || [addr.firstName, addr.lastName].filter(Boolean).join(' ').trim() ||
+    billing.fullName || [billing.firstName, billing.lastName].filter(Boolean).join(' ').trim() ||
+    cust.name || cust.fullName || [cust.firstName, cust.lastName].filter(Boolean).join(' ').trim() ||
+    o.musteriAdi || '';
+  // Telefon: phone, gsm, cepTelefonu
+  const rawPhone = o.customerPhone || o.buyerPhone || o.gsm || o.telefon ||
+    o.cepTelefonu || addr.phone || billing.phone || cust.phone || '';
+  const name = String(rawName).toLowerCase().replace(/\s+/g, ' ').trim();
+  const phone = String(rawPhone).replace(/[^0-9]/g, '').slice(-10); // son 10 hane
+  if (!name && !phone) return null;
+  return name + '|' + phone;
+}
+
+function getOrderHistory() {
+  load();
+  return (state.orderHistory || []).slice().reverse().slice(0, 500);
+}
+
 // ---- Mağaza ----
 function mergeShopSettings(base, partial) {
   return {
@@ -792,6 +848,10 @@ module.exports = {
   addFinanceRecord,
   getOrderNotifiedIds,
   addOrderNotifiedIds,
+  addOrderRecord,
+  findPreviousOrder,
+  buildCustomerKey,
+  getOrderHistory,
   getShipment,
   getShipments,
   upsertShipment,

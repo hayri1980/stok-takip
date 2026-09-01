@@ -695,7 +695,30 @@ async function checkOrders() {
     }
   }
 
-  if (fresh.length) db.addOrderNotifiedIds(fresh.map(f => f.id));
+  // Her yeni siparişi geçmişe kaydet (tekrar satın alma tespiti için)
+  if (fresh.length) {
+    for (const f of fresh) {
+      const o = f.order || {};
+      const items = o.lines || o.items || o.orderLines || o.lineItems || [];
+      const barcodes = items.map(li => ({
+        barcode: String(li.merchantSku || li.barcode || li.stockCode || ''),
+        qty: Number(li.quantity || li.quantityPurchased || 1),
+        name: String(li.productName || li.name || '')
+      })).filter(b => b.barcode);
+      const customerKey = db.buildCustomerKey(o);
+      db.addOrderRecord({
+        ts: Date.now(),
+        market: f.market,
+        orderNo: f.id,
+        customerKey: customerKey || '',
+        customerName: o.customerName || o.buyerName ||
+          [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim() ||
+          (o.shipmentAddress || {}).fullName || (o.customer || {}).name || '',
+        barcodes
+      });
+    }
+    db.addOrderNotifiedIds(fresh.map(f => f.id));
+  }
 
   if (firstRun) {
     // İlk çalıştırma: mevcut siparişleri bildirmeden kaydet (spam olmasın)
@@ -737,6 +760,47 @@ async function checkOrders() {
       if (r && r.telegram && r.telegram.sent) sent++;
     } catch (e) {
       db.addLog('Sipariş bildirimi gönderilemedi: ' + e.message);
+    }
+
+    // ---- TEKRAR SATIN ALMA TESPITI ----
+    // Kargo/teslimat adresinden musteri bilgisi (isim) ile daha once ayni urunu
+    // alip almadigini kontrol et. Varsa Telegram'a ozel bildirim gonder.
+    try {
+      const custAddr = o.shipmentAddress || o.shippingAddress || o.adres || {};
+      const custKeyRaw = db.buildCustomerKey(o);
+      if (custKeyRaw && items.length) {
+        for (const li of items) {
+          const bc = String(li.merchantSku || li.barcode || li.stockCode || '');
+          if (!bc) continue;
+          const prev = db.findPreviousOrder(custKeyRaw, bc);
+          // prev'in kendi siparis no'su esit olmayacak (zaten onceki kayit)
+          if (prev && String(prev.orderNo) !== String(f.id)) {
+            const daysAgo = prev.ts ? Math.round((Date.now() - prev.ts) / (24 * 60 * 60 * 1000)) : '?';
+            const custLabel = o.customerName || o.buyerName ||
+              [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim() ||
+              custAddr.fullName || [custAddr.firstName, custAddr.lastName].filter(Boolean).join(' ').trim() ||
+              (o.customer || {}).name || 'Müşteri';
+            const prodName = li.productName || li.name || bc;
+            const txt = '🔄 TEKRAR SATIN ALMA (' + f.market + '): ' + custLabel +
+              '\nÜrün: ' + prodName + ' (' + bc + ')' +
+              '\nİlk sipariş: ' + (prev.orderNo || '?') + ' (' + daysAgo + ' gün önce)' +
+              '\nŞimdi: ' + f.id;
+            const html = '<h3>🔄 Tekrar Satın Alma</h3>' +
+              '<p><b>Müşteri:</b> ' + custLabel + '</p>' +
+              '<p><b>Ürün:</b> ' + prodName + ' (' + bc + ')</p>' +
+              '<p><b>İlk sipariş:</b> ' + (prev.orderNo || '?') + ' (' + daysAgo + ' gün önce)</p>' +
+              '<p><b>Şimdi:</b> ' + f.id + ' (' + f.market + ')</p>';
+            try {
+              await notifier.notify('🔄 TEKRAR SATIN ALMA: ' + custLabel, html, txt);
+              db.addLog('Tekrar satin alma: ' + custLabel + ' - ' + prodName + ' (ilk: ' + (prev.orderNo || '?') + ', ' + daysAgo + ' gun once)');
+            } catch (e) {
+              db.addLog('Tekrar satin alma bildirimi gonderilemedi: ' + e.message);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      db.addLog('Tekrar satin alma kontrol hatasi: ' + e.message);
     }
 
     // Sipariş notu yazıcıya (Epson Email Print, EL YAZISI) — printer.enabled ise otomatik basılır.
