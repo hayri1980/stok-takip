@@ -112,6 +112,10 @@ function fixDataIntegrity() {
 }
 
 async function checkMarketSync(kind) {
+  const syncCfg = db.getSettings().sync || {};
+  if (syncCfg.enabled === false) {
+    return { name: sync.kindLabel(kind), ok: true, status: 'KAPALI', detail: 'senkron kapalı' };
+  }
   if (!marketReady(kind)) {
     return { name: sync.kindLabel(kind), ok: true, status: 'KAPALI', detail: 'ayarlanmadı' };
   }
