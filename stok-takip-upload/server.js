@@ -150,79 +150,39 @@ app.delete('/api/products/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-// Panelden girilen stoklari pazaryerlerine gonder
-app.post('/api/products/:id/push-stock', async (req, res) => {
+// Ortak stok girisi: DB'ye yaz + Trendyol'a gonder (senkronu actirmadan).
+// Panelde ortak stok hucesine tiklayip deger girince bu cagirilir.
+app.post('/api/products/:id/set-stock', async (req, res) => {
   try {
-    const product = db.getProducts().find(p => p.id === req.params.id);
+    const qty = parseInt((req.body && req.body.qty), 10);
+    if (isNaN(qty) || qty < 0) return res.status(400).json({ error: 'Gecersiz stok degeri' });
+    const product = db.updateProduct(req.params.id, {
+      sharedStock: qty,
+      trendyolStock: qty,
+      hepsiburadaStock: qty,
+      pttavmStock: qty,
+      idefixStock: qty,
+      n11Stock: qty,
+      ciceksepetiStock: qty,
+      lastSync: new Date().toISOString()
+    });
     if (!product) return res.status(404).json({ error: 'Urun bulunamadi' });
-
+    const pushResults = [];
     const settings = db.getSettings();
-    const results = [];
-
-    // Trendyol
+    // Trendyol'a yaz
     const ty = settings.trendyol || {};
-    if (ty.sellerId && ty.apiKey && ty.apiSecret && product.trendyolStock !== null && product.trendyolStock !== undefined) {
+    if (ty.sellerId && ty.apiKey && ty.apiSecret) {
       try {
         const trendyol = require('./src/trendyol');
-        await trendyol.updateStock(ty.sellerId, ty.apiKey, ty.apiSecret, product.barcode, product.trendyolStock);
-        results.push({ market: 'Trendyol', ok: true, stock: product.trendyolStock });
+        await trendyol.updateStock(ty.sellerId, ty.apiKey, ty.apiSecret, product.barcode, qty);
+        pushResults.push({ market: 'Trendyol', ok: true });
       } catch (e) {
-        results.push({ market: 'Trendyol', ok: false, error: e.message });
+        pushResults.push({ market: 'Trendyol', ok: false, error: e.message });
       }
     }
-
-    // Hepsiburada
-    const hb = settings.hepsiburada || {};
-    if (hb.merchantId && hb.password && product.hepsiburadaStock !== null && product.hepsiburadaStock !== undefined) {
-      try {
-        const hepsiburada = require('./src/hepsiburada');
-        await hepsiburada.updateStock(hb, product.sku || product.barcode, product.hepsiburadaStock, product.price);
-        results.push({ market: 'Hepsiburada', ok: true, stock: product.hepsiburadaStock });
-      } catch (e) {
-        results.push({ market: 'Hepsiburada', ok: false, error: e.message });
-      }
-    }
-
-    // PTT AVM
-    const ptt = settings.pttavm || {};
-    if (ptt.apiKey && ptt.accessToken && product.pttavmStock !== null && product.pttavmStock !== undefined) {
-      try {
-        const pttavm = require('./src/pttavm');
-        await pttavm.updateStock(ptt, product.barcode, product.pttavmStock);
-        results.push({ market: 'PTT AVM', ok: true, stock: product.pttavmStock });
-      } catch (e) {
-        results.push({ market: 'PTT AVM', ok: false, error: e.message });
-      }
-    }
-
-    // idefix
-    const idf = settings.idefix || {};
-    if (idf.apiKey && idf.apiSecret && idf.vendorId && product.idefixStock !== null && product.idefixStock !== undefined) {
-      try {
-        const idefix = require('./src/idefix');
-        await idefix.updateStock(idf, product.barcode, product.idefixStock, product.price, product);
-        results.push({ market: 'idefix', ok: true, stock: product.idefixStock });
-      } catch (e) {
-        results.push({ market: 'idefix', ok: false, error: e.message });
-      }
-    }
-
-    // N11
-    const n11 = settings.n11 || {};
-    if (n11.appKey && n11.appSecret && product.n11Stock !== null && product.n11Stock !== undefined) {
-      try {
-        const n11mod = require('./src/n11');
-        await n11mod.updateStock(n11, product.sku || product.barcode, product.n11Stock);
-        results.push({ market: 'N11', ok: true, stock: product.n11Stock });
-      } catch (e) {
-        results.push({ market: 'N11', ok: false, error: e.message });
-      }
-    }
-
-    const sent = results.filter(r => r.ok).length;
-    const failed = results.filter(r => !r.ok).length;
-    db.addLog('Panel stok push: ' + product.barcode + ' — ' + sent + ' gonderildi, ' + failed + ' basarisiz');
-    res.json({ ok: true, results, sent, failed });
+    db.addLog('Panel ortak stok girisi: ' + product.barcode + ' = ' + qty +
+      (pushResults.length ? ' | Trendyol: ' + (pushResults[0].ok ? 'OK' : 'HATA ' + pushResults[0].error) : ''));
+    res.json({ ok: true, product, push: pushResults });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

@@ -60,6 +60,15 @@ function stockCell(qty) {
   return '<span class="stock"><b>' + val + '</b> <span class="badge ' + s.cls + '">' + s.label + '</span></span>';
 }
 
+function sharedCell(p) {
+  const s = status(p.sharedStock);
+  const val = p.sharedStock === null || p.sharedStock === undefined ? '—' : p.sharedStock;
+  // Ortak stok hucesine tiklayinca stok yazilabilir (inline)
+  return '<span class="stock shared-stock" data-id="' + p.id + '" data-qty="' +
+    (val === '—' ? '' : val) + '" title="Stok girmek icin tikla">' +
+    '<b>' + val + '</b> <span class="badge ' + s.cls + '">' + s.label + '</span></span>';
+}
+
 function renderProducts() {
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   const tbody = document.getElementById('productTable');
@@ -73,7 +82,7 @@ function renderProducts() {
     const ide = stockCell(p.idefixStock);
     const n11 = stockCell(p.n11Stock);
     const cs = stockCell(p.ciceksepetiStock);
-    const shared = stockCell(p.sharedStock);
+    const shared = sharedCell(p);
     return '<tr>' +
       '<td>' + escapeHtml(p.name) + '</td>' +
       '<td class="mono">' + escapeHtml(p.barcode) + '</td>' +
@@ -186,27 +195,6 @@ async function saveProduct() {
   await loadProducts();
 }
 
-async function pushStock() {
-  const id = document.getElementById('pId').value;
-  if (!id) return alert('Once urunu kaydedin.');
-  const btn = document.getElementById('pushStockBtn');
-  btn.disabled = true;
-  btn.textContent = 'Gonderiliyor...';
-  try {
-    const r = await request(API.products + '/' + id + '/push-stock', 'POST');
-    if (r && r.ok) {
-      const sent = r.results.filter(x => x.ok).map(x => x.market + '(' + x.stock + ')').join(', ');
-      const failed = r.results.filter(x => !x.ok).map(x => x.market + ': ' + x.error).join('; ');
-      alert('Gonderildi: ' + (sent || 'yok') + (failed ? '\nBasarisiz: ' + failed : ''));
-    } else {
-      alert('Hata: ' + (r && r.error ? r.error : 'Bilinmeyen hata'));
-    }
-  } catch (e) {
-    alert('Hata: ' + e.message);
-  }
-  btn.disabled = false;
-  btn.textContent = 'Stokları Gönder';
-}
 
 async function removeProduct(id) {
   if (!confirm('Bu ürün silinsin mi?')) return;
@@ -217,8 +205,46 @@ async function removeProduct(id) {
 document.getElementById('addBtn').addEventListener('click', openAdd);
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
 document.getElementById('saveProductBtn').addEventListener('click', saveProduct);
-document.getElementById('pushStockBtn').addEventListener('click', pushStock);
 modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+// Ortak stok hucesine tiklayinca inline stok giris inputu
+document.getElementById('productTable').addEventListener('click', async function (e) {
+  const cell = e.target.closest('.shared-stock');
+  if (!cell || cell.querySelector('input')) return;
+  const id = cell.getAttribute('data-id');
+  const cur = cell.getAttribute('data-qty');
+  cell.innerHTML = '<input type="number" min="0" value="' + cur + '" class="shared-input" style="width:60px">';
+  const inp = cell.querySelector('input');
+  inp.focus();
+  inp.select();
+  const commit = async (val) => {
+    const qty = parseInt(val, 10);
+    cell.innerHTML = cur === '' ? '<b>—</b>' : '<b>' + cur + '</b>';
+    cell.classList.add('saving');
+    try {
+      const r = await request(API.products + '/' + id + '/set-stock', 'POST', { qty: qty });
+      if (r && r.ok) {
+        // listeyi guncelle
+        const p = products.find(x => x.id === id);
+        if (p) {
+          p.sharedStock = qty; p.trendyolStock = qty; p.hepsiburadaStock = qty;
+          p.pttavmStock = qty; p.idefixStock = qty; p.n11Stock = qty; p.ciceksepetiStock = qty;
+        }
+        renderProducts();
+      } else {
+        alert('Hata: ' + (r && r.error ? r.error : 'Bilinmeyen'));
+      }
+    } catch (err) {
+      alert('Hata: ' + err.message);
+    }
+  };
+  inp.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') commit(inp.value);
+    if (ev.key === 'Escape') { cell.innerHTML = cur === '' ? '<b>—</b>' : '<b>' + cur + '</b>'; }
+  });
+  inp.addEventListener('blur', () => { /* Enter kullanilmasini bekle */ });
+});
+
 
 // ---------- Mağaza Yönetimi ----------
 let shopProducts = [];

@@ -107,6 +107,9 @@ tr:hover td { background: #f8fafc; }
 .muted { color: #94a3b8; font-size: 13px; }
 
 .stock { display: inline-flex; align-items: center; gap: 8px; }
+.shared-stock { cursor: pointer; border: 1px dashed transparent; border-radius: 6px; padding: 2px 4px; transition: background .15s, border-color .15s; }
+.shared-stock:hover { background: #f1f5f9; border-color: #cbd5e1; }
+.shared-stock.saving { opacity: .6; pointer-events: none; }
 .badge {
   font-size: 11px;
   padding: 2px 8px;
