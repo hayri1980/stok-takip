@@ -1002,35 +1002,87 @@ function renderFinSummary(r) {
 async function loadDeposits() {
   try {
     finDeposits = await request(API.finDeposits);
-    const el = document.getElementById('depositTable');
-    if (!finDeposits.length) { el.innerHTML = '<tr><td colspan="5" class="muted">Henüz yatış kaydı yok</td></tr>'; return; }
-    el.innerHTML = finDeposits.map(d =>
-      '<tr><td class="muted">' + (d.date ? new Date(d.date).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }) : '—') + '</td>' +
-      '<td>' + escapeHtml(d.market) + '</td><td>' + escapeHtml(d.type) + '</td>' +
-      '<td><b>' + fmtTL(d.amount) + '</b></td><td class="muted">' + escapeHtml(d.description || '') + '</td></tr>'
-    ).join('');
   } catch (e) {
-    document.getElementById('depositTable').innerHTML = '<tr><td colspan="5">' + e.message + '</td></tr>';
+    finDeposits = [];
   }
 }
 
 function renderPending() {
-  const el = document.getElementById('pendingTable');
-  // pending listesi servisten alinir her gosterimde
   request(API.finPending).then(list => {
-    if (!list.length) { el.innerHTML = '<tr><td colspan="5" class="muted">Bekleyen para yok</td></tr>'; return; }
-    el.innerHTML = list.map(p =>
-      '<tr><td>' + escapeHtml(p.market) + '</td><td><b>' + fmtTL(p.amount) + '</b></td>' +
-      '<td class="muted">' + (p.expectedDate ? new Date(p.expectedDate + 'T00:00:00').toLocaleDateString('tr-TR') : '—') + '</td>' +
-      '<td class="muted">' + escapeHtml(p.description || '') + '</td>' +
-      '<td><button class="btn small danger-btn" onclick="delPending(\'' + p.id + '\')">✕</button></td></tr>'
-    ).join('');
-  }).catch(() => {});
+    finPending = list;
+    renderMoney();
+  }).catch(() => { renderMoney(); });
 }
 
 async function delPending(id) {
   await request(API.finPending + '/' + id, 'DELETE');
   renderPending();
+}
+
+// Yatan + bekleyen paralari tek akordeon listede goster
+let finPending = [];
+let openedMoneyId = null;
+
+function renderMoney() {
+  const el = document.getElementById('moneyList');
+  if (!el) return;
+  // Bekleyenler (ileride yatacak) — altta yatanlar — gruplu liste
+  // Her satir: baslik (pazar + tutar) + tiklayinca acilan detay
+  let html = '';
+  // BOLUM 1: Il KAPAT
+  html += '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-bottom:12px">' +
+    '<div style="font-weight:700;margin-bottom:6px">İLERİDE YATACAK (' + finPending.length + ')</div>';
+  if (!finPending.length) {
+    html += '<div class="muted" style="padding:6px 0">Bekleyen para yok</div>';
+  } else {
+    html += finPending.map(p => moneyRow(p, 'pending', '≤', 'sar')).join('');
+  }
+  html += '</div>';
+  // BOLUM 2: YATANLAR
+  html += '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px">' +
+    '<div style="font-weight:700;margin-bottom:6px">YATAN PARALAR (' + finDeposits.length + ')</div>';
+  if (!finDeposits.length) {
+    html += '<div class="muted" style="padding:6px 0">Henüz yatış kaydı yok</div>';
+  } else {
+    html += finDeposits.map(d => moneyRow(d, 'deposit', '✅', 'mavi')).join('');
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function moneyRow(item, kind) {
+  const id = kind === 'pending' ? item.id : 'dep-' + item.id;
+  const open = openedMoneyId === id;
+  const isPending = kind === 'pending';
+  const market = escapeHtml(item.market || (isPending ? 'Pazaryeri' : 'Trendyol'));
+  const amount = '<b>' + fmtTL(item.amount) + '</b>';
+  const badge = isPending ? '<span class="badge" style="background:#fde68a;color:#92400e">Yatacak</span>'
+                          : '<span class="badge ok">Yattı</span>';
+  const mainLine = isPending
+    ? (item.description || 'Bekleyen')       // "ne zaman yatacak" notu
+    : (item.description || item.type || '');
+  const detailRows = isPending
+    ? '<div><b>Ne Zaman:</b> ' + escapeHtml(item.description || '—') + '</div>' +
+      '<div><b>Eklendi:</b> ' + new Date(item.createdAt).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }) + '</div>'
+    : '<div><b>Tarih:</b> ' + (item.date ? new Date(item.date).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }) : '—') + '</div>' +
+      '<div><b>Tip:</b> ' + escapeHtml(item.type || '—') + '</div>' +
+      '<div><b>Açıklama:</b> ' + escapeHtml(item.description || '—') + '</div>';
+  const delBtn = isPending
+    ? '<button class="btn small danger-btn" onclick="delPending(\'' + id + '\');event.stopPropagation()">✕ Sil</button>'
+    : '';
+  return '<div class="money-row" style="border:1px solid ' + (isPending ? '#fcd34d' : '#93c5fd') +
+    ';border-radius:8px;margin-bottom:6px;overflow:hidden;cursor:pointer" onclick="toggleMoney(\'' + id + '\')">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:' + (open ? '#f8fafc' : 'transparent') + '">' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + badge + '<b style="color:#475569">' + market + '</b>' + amount + '<span class="muted" style="font-size:12px">' + escapeHtml(mainLine) + '</span></div>' +
+      '<div style="display:flex;align-items:center;gap:6px">' + delBtn + '<span class="muted">' + (open ? '▾' : '▸') + '</span></div>' +
+    '</div>' +
+    (open ? '<div style="padding:10px;border-top:1px solid ' + (isPending ? '#fcd34d' : '#93c5fd') + ';font-size:13px;color:#334155">' + detailRows + '</div>' : '') +
+    '</div>';
+}
+
+function toggleMoney(id) {
+  openedMoneyId = openedMoneyId === id ? null : id;
+  renderMoney();
 }
 
 function renderCosts() {
@@ -1075,30 +1127,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('costToggle').textContent = (p.style.display === 'none' ? '▸ ' : '▾ ') + 'Ürün Maliyetleri';
     if (p.style.display === 'block') renderCosts();
   });
-  document.getElementById('pendingToggle').addEventListener('click', () => {
-    const p = document.getElementById('pendingPanel');
+  document.getElementById('moneyToggle').addEventListener('click', () => {
+    const p = document.getElementById('moneyPanel');
     p.style.display = p.style.display === 'none' ? 'block' : 'none';
-    document.getElementById('pendingToggle').textContent = (p.style.display === 'none' ? '▸ ' : '▾ ') + 'Bekleyen Paralar';
-    if (p.style.display === 'block') renderPending();
-  });
-  document.getElementById('depositToggle').addEventListener('click', () => {
-    const p = document.getElementById('depositPanel');
-    p.style.display = p.style.display === 'none' ? 'block' : 'none';
-    document.getElementById('depositToggle').textContent = (p.style.display === 'none' ? '▸ ' : '▾ ') + 'Pazar Bazlı Yatışlar';
-    if (p.style.display === 'block') loadDeposits();
+    document.getElementById('moneyToggle').textContent = (p.style.display === 'none' ? '▸ ' : '▾ ') + 'Paralar';
+    if (p.style.display === 'block') { loadDeposits().then(renderMoney); renderPending(); }
   });
   document.getElementById('ppAddBtn').addEventListener('click', async () => {
     const amount = Number(document.getElementById('ppAmount').value);
     if (!Number.isFinite(amount) || amount <= 0) return alert('Geçerli tutar girin.');
+    const note = document.getElementById('ppNote').value.trim() || 'İleride yatacak';
     try {
       await request(API.finPending, 'POST', {
         market: document.getElementById('ppMarket').value,
         amount,
-        expectedDate: document.getElementById('ppDate').value,
-        description: document.getElementById('ppDesc').value
+        description: note
       });
       document.getElementById('ppAmount').value = '';
-      document.getElementById('ppDesc').value = '';
+      document.getElementById('ppNote').value = '';
       renderPending();
     } catch (e) { alert('Hata: ' + e.message); }
   });

@@ -304,11 +304,10 @@
         <!-- Ozet kartlari -->
         <div class="summary" id="finSummary"></div>
 
-        <!-- Maliyet + Bekleyen paralar acilir kapanir -->
+        <!-- Maliyet + Paralar butonlari -->
         <div style="margin:16px 0;display:flex;gap:8px;flex-wrap:wrap">
           <button id="costToggle" class="btn">▸ Ürün Maliyetleri</button>
-          <button id="pendingToggle" class="btn">▸ Bekleyen Paralar</button>
-          <button id="depositToggle" class="btn">▸ Pazar Bazlı Yatışlar</button>
+          <button id="moneyToggle" class="btn">▸ Paralar</button>
         </div>
 
         <!-- Urun maliyetleri -->
@@ -321,37 +320,31 @@
           </table></div>
         </div>
 
-        <!-- Bekleyen paralar (ileride yatacak) -->
-        <div id="pendingPanel" class="fin-panel" style="display:none;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:12px">
-          <h3 style="margin-top:0">Bekleyen Paralar (İleride Yatacak)</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-            <select id="ppMarket">
-              <option>Trendyol</option>
-              <option>Hepsiburada</option>
-              <option>PTT AVM</option>
-              <option>idefix</option>
-              <option>N11</option>
-              <option>Çiçeksepeti</option>
-              <option>Diğer</option>
-            </select>
-            <input type="number" id="ppAmount" placeholder="Tutar (TL)" min="0" style="width:120px">
-            <input type="date" id="ppDate">
-            <input type="text" id="ppDesc" placeholder="Açıklama (opsiyonel)">
-            <button id="ppAddBtn" class="btn btn-primary">Ekle</button>
-          </div>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Pazaryeri</th><th>Tutar</th><th>Beklenen Tarih</th><th>Açıklama</th><th></th></tr></thead>
-            <tbody id="pendingTable"></tbody>
-          </table></div>
-        </div>
+        <!-- Paralar: yatan + bekleyen (stdine tiklayinca detay acilir) -->
+        <div id="moneyPanel" class="fin-panel" style="display:none;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
+          <h3 style="margin-top:0">Paralar</h3>
 
-        <!-- Pazar bazli yatis detayi -->
-        <div id="depositPanel" class="fin-panel" style="display:none;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
-          <h3 style="margin-top:0">Pazar Bazlı Yatışlar</h3>
-          <div class="table-wrap"><table>
-            <thead><tr><th>Tarih</th><th>Pazaryeri</th><th>Tip</th><th>Tutar (TL)</th><th>Açıklama</th></tr></thead>
-            <tbody id="depositTable"></tbody>
-          </table></div>
+          <!-- Bekleyen (ileride yatacak) ekleme -->
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-bottom:12px">
+            <b>İleride Yatacak Para Ekle</b>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+              <select id="ppMarket">
+                <option>Trendyol</option>
+                <option>Hepsiburada</option>
+                <option>PTT AVM</option>
+                <option>idefix</option>
+                <option>N11</option>
+                <option>Çiçeksepeti</option>
+                <option>Diğer</option>
+              </select>
+              <input type="number" id="ppAmount" placeholder="Tutar (TL)" min="0" style="width:110px">
+              <input type="text" id="ppNote" placeholder="Ne zaman yatacak (örn: C.tesi)" style="min-width:180px;flex:1">
+              <button id="ppAddBtn" class="btn btn-primary">Ekle</button>
+            </div>
+          </div>
+
+          <!-- Akordeon liste: yatan ve bekleyen paralar -->
+          <div id="moneyList"></div>
         </div>
       </div>
     </section>
