@@ -61,6 +61,29 @@ function shipStatus(s) {
   return { label: '—', cls: 'na' };
 }
 
+function isDelivered(s) {
+  const st = String(s && s.status ? s.status : '').toLowerCase();
+  if (s && s.delivered) return true;
+  if (st.indexOf('deliver') !== -1) return true;
+  if (s && s.statusDescription && String(s.statusDescription).toLowerCase().indexOf('teslim') !== -1) return true;
+  return false;
+}
+
+function shipRow(s) {
+  const st = shipStatus(s);
+  const track = s.trackingNo ? '<a class="mono" href="' + encodeURI('https://gonderitakip.suratkargo.com.tr/Sorgu/' + s.trackingNo) + '" target="_blank">' + escapeHtml(s.trackingNo) + '</a>' : '—';
+  const desc = s.statusDescription ? '<div class="muted" style="font-size:12px">' + escapeHtml(s.statusDescription) + '</div>' : '';
+  return '<tr>' +
+    '<td>' + escapeHtml(s.market || '') + '</td>' +
+    '<td class="mono">' + escapeHtml(s.orderNo) + '</td>' +
+    '<td>' + track + '</td>' +
+    '<td><span class="badge ' + st.cls + '">' + st.label + '</span>' + desc + '</td>' +
+    '<td>' + escapeHtml(s.provider || '—') + '</td>' +
+    '<td class="muted">' + (s.shippedAt ? fmtTime(new Date(s.shippedAt).toISOString()) : '—') + '</td>' +
+    '<td class="muted">' + (s.deliveredAt ? fmtTime(new Date(s.deliveredAt).toISOString()) : '—') + '</td>' +
+    '</tr>';
+}
+
 function renderShipments() {
   const q = document.getElementById('shipSearch').value.trim().toLowerCase();
   const body = document.getElementById('shipTable');
@@ -69,22 +92,25 @@ function renderShipments() {
     String(s.trackingNo || '').toLowerCase().includes(q) ||
     String(s.market || '').toLowerCase().includes(q)
   );
-  body.innerHTML = filtered.map(s => {
-    const st = shipStatus(s);
-    const track = s.trackingNo ? '<a class="mono" href="' + encodeURI('https://gonderitakip.suratkargo.com.tr/Sorgu/' + s.trackingNo) + '" target="_blank">' + escapeHtml(s.trackingNo) + '</a>' : '—';
-    const desc = s.statusDescription ? '<div class="muted" style="font-size:12px">' + escapeHtml(s.statusDescription) + '</div>' : '';
-    return '<tr>' +
-      '<td>' + escapeHtml(s.market || '') + '</td>' +
-      '<td class="mono">' + escapeHtml(s.orderNo) + '</td>' +
-      '<td>' + track + '</td>' +
-      '<td><span class="badge ' + st.cls + '">' + st.label + '</span>' + desc + '</td>' +
-      '<td>' + escapeHtml(s.provider || '—') + '</td>' +
-      '<td class="muted">' + (s.shippedAt ? fmtTime(new Date(s.shippedAt).toISOString()) : '—') + '</td>' +
-      '<td class="muted">' + (s.deliveredAt ? fmtTime(new Date(s.deliveredAt).toISOString()) : '—') + '</td>' +
-      '</tr>';
-  }).join('');
+  const active = filtered.filter(s => !isDelivered(s));
+  const done = filtered.filter(s => isDelivered(s));
+  // Kargoda olanlar ustte, teslim edilenler altta (ayirici baslik ile)
+  let html = '';
+  if (active.length) {
+    html += shipGroupHeader('KARGODA (' + active.length + ')');
+    html += active.map(shipRow).join('');
+  }
+  if (done.length) {
+    html += shipGroupHeader('TESLİM EDİLENLER (' + done.length + ')');
+    html += done.map(shipRow).join('');
+  }
+  body.innerHTML = html;
   document.getElementById('shipEmpty').style.display = filtered.length ? 'none' : 'block';
   document.getElementById('shipTable').style.display = filtered.length ? '' : 'none';
+}
+
+function shipGroupHeader(label) {
+  return '<tr><td colspan="7" style="background:#f1f5f9;font-weight:600;padding:8px 10px;color:#475569;cursor:default">' + label + '</td></tr>';
 }
 
 document.getElementById('shipSearch').addEventListener('input', renderShipments);
