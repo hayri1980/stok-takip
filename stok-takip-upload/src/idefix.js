@@ -218,4 +218,16 @@ async function answerQuestion(cfg, questionId, answer) {
   return true;
 }
 
-module.exports = { fetchStock, fetchProducts, updateStock, createProduct, fetchOrders, fetchQuestions, answerQuestion };
+// idefix finansal verileri (placeholder - gercek endpoint eklenecek)
+async function fetchFinancials(cfg, days = 14) {
+  // idefix'te finansal endpoint yoksa bos don
+  // Gercek endpoint: /finance/transactions veya benzeri
+  try {
+    // Placeholder: henuz endpoint yok
+    return [];
+  } catch (e) {
+    return [];
+  }
+}
+
+module.exports = { fetchStock, fetchProducts, updateStock, createProduct, fetchOrders, fetchQuestions, answerQuestion, fetchFinancials };

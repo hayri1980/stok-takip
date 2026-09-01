@@ -438,49 +438,67 @@ async function checkStocks() {
 let lastFinanceCheckTs = 0;
 
 async function checkFinancialTransfers() {
-  const cfg = marketCfg('trendyol');
-  if (!(cfg.apiKey && cfg.apiSecret && cfg.sellerId)) return { skipped: true };
-  if (Date.now() - lastFinanceCheckTs < 30 * 60 * 1000) return { skipped: true, reason: 'henüz zamanı değil' };
-  lastFinanceCheckTs = Date.now();
-  let transfers;
-  try {
-    transfers = await trendyol.fetchOtherFinancials(cfg.sellerId, cfg.apiKey, cfg.apiSecret, 'WireTransfer', 14);
-  } catch (e) {
-    db.addLog('Finans çekme hatası: ' + e.message);
-    return { error: e.message };
+  const results = { trendyol: { fresh: 0, sent: 0 }, other: { fresh: 0, sent: 0 } };
+  // Trendyol
+  const tcfg = marketCfg('trendyol');
+  if (tcfg.apiKey && tcfg.apiSecret && tcfg.sellerId) {
+    if (Date.now() - lastFinanceCheckTs < 30 * 60 * 1000) {
+      return { trendyol: { fresh: 0, sent: 0 }, other: { fresh: 0, sent: 0 }, skipped: true };
+    }
+    lastFinanceCheckTs = Date.now();
+    const tseen = new Set(db.getFinanceNotifiedIds());
+    let ttotal = 0, tsent = 0;
+    // Trendyol'da hem yatan hem bekleyen paraları çek (WireTransfer, OnHold, Commission, OrderPayment, vb.)
+    const tTypes = ['WireTransfer', 'OnHold', 'Commission', 'OrderPayment', 'Payout', 'Payment'];
+    for (const ttype of tTypes) {
+      try {
+        const transfers = await trendyol.fetchOtherFinancials(tcfg.sellerId, tcfg.apiKey, tcfg.apiSecret, ttype, 14);
+        const fresh = (transfers || []).filter(x => x && x.id && !tseen.has(String(x.id)));
+        ttotal += fresh.length;
+        tseen.add(...fresh.map(x => String(x.id)));
+        for (const t of fresh) {
+          const amount = Number(t.credit) || Number(t.amount) || 0;
+          const date = t.transactionDate ? new Date(Number(t.transactionDate)).toISOString() : '';
+          const desc = String(t.description || t.transactionType || ttype || '');
+          // financeRecords'e kaydet
+          db.setFinanceRecords((db.getFinanceRecords() || []).concat([{
+            id: String(t.id),
+            market: 'Trendyol',
+            type: String(t.transactionType || ttype),
+            amount,
+            description: desc,
+            date
+          }]));
+          // Bildirim (sadece yatanlar için)
+          if (ttype === 'WireTransfer') {
+            tsent++;
+            const subject = 'PARA AKTARIMI: ' + amount + ' TL';
+            const text = 'PARA AKTARIMI (banka)\nMiktar: ' + amount + ' TL\nTarih: ' +
+              (t.transactionDate ? new Date(Number(t.transactionDate)).toLocaleDateString('tr-TR') : '—') + '\n' + desc;
+            await notifier.notify(subject, subject, text);
+          }
+        }
+      } catch (e) {
+        db.addLog('Trendyol finans (tip ' + ttype + ') çekme hatası: ' + e.message);
+      }
+    }
+    results.trendyol.fresh = ttotal;
+    results.trendyol.sent = tsent;
   }
-  // Pazar yerinden yatan paraları birikimli sakla (masaüstü Excel dışa aktarımı için)
-  try {
-    const records = (transfers || [])
-      .filter(t => t && t.id)
-      .map(t => ({
-        id: String(t.id),
-        market: 'Trendyol',
-        type: String(t.transactionType || t.type || 'WireTransfer'),
-        amount: Number(t.credit || t.amount) || 0,
-        description: String(t.description || ''),
-        date: t.transactionDate ? new Date(Number(t.transactionDate)).toISOString() : ''
-      }));
-    db.setFinanceRecords(records);
-  } catch (e) {
-    db.addLog('Finans kayıt saklama hatası: ' + e.message);
+  // Diğer pazaryerler: Hepsiburada, idefix, N11, Çiçeksepeti finansal verileri kontrolü (API yoksa burada placeholder)
+  const ocfg = marketCfg('idefix');
+  if (ocfg.apiKey && ocfg.apiSecret && ocfg.vendorId) {
+    try {
+      // idefix benzer bir finansal endpoint varsa buraya eklenecek (şimdilik placeholder)
+      const ifxFin = await idefix.fetchFinancials(ocfg, 14);
+      results.other.fresh += (ifxFin || []).length;
+      results.other.sent += (ifxFin || []).length;
+    } catch (e) {
+      db.addLog('idefix finans çekme hatası: ' + e.message);
+    }
   }
-  const seen = new Set(db.getFinanceNotifiedIds());
-  const fresh = (transfers || []).filter(t => t.id && !seen.has(String(t.id)));
-  if (fresh.length === 0) return { fresh: 0 };
-  db.addFinanceNotifiedIds(fresh.map(t => t.id));
-  for (const t of fresh) {
-    const amount = Number(t.credit) || 0;
-    const date = new Date(Number(t.transactionDate)).toLocaleDateString('tr-TR');
-    const subject = 'PARA AKTARIMI: ' + amount + ' TL';
-    const text = 'PARA AKTARIMI (banka)\nMiktar: ' + amount + ' TL\nTarih: ' + date +
-      (t.description ? '\n' + t.description : '');
-    const html = '<h3>Banka para aktarımı gerçekleşti</h3><p><b>Miktar:</b> ' + amount + ' TL</p>' +
-      '<p><b>Tarih:</b> ' + date + '</p>';
-    await notifier.notify(subject, html, text);
-  }
-  db.addLog(fresh.length + ' yeni para aktarımı tespit edildi, bildirim gönderildi');
-  return { fresh: fresh.length };
+  db.addFinanceNotifiedIds([...tseen]);
+  return results;
 }
 
 function toIsoDate(d) {
