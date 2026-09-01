@@ -150,6 +150,84 @@ app.delete('/api/products/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Panelden girilen stoklari pazaryerlerine gonder
+app.post('/api/products/:id/push-stock', async (req, res) => {
+  try {
+    const product = db.getProducts().find(p => p.id === req.params.id);
+    if (!product) return res.status(404).json({ error: 'Urun bulunamadi' });
+
+    const settings = db.getSettings();
+    const results = [];
+
+    // Trendyol
+    const ty = settings.trendyol || {};
+    if (ty.sellerId && ty.apiKey && ty.apiSecret && product.trendyolStock !== null && product.trendyolStock !== undefined) {
+      try {
+        const trendyol = require('./src/trendyol');
+        await trendyol.updateStock(ty.sellerId, ty.apiKey, ty.apiSecret, product.barcode, product.trendyolStock);
+        results.push({ market: 'Trendyol', ok: true, stock: product.trendyolStock });
+      } catch (e) {
+        results.push({ market: 'Trendyol', ok: false, error: e.message });
+      }
+    }
+
+    // Hepsiburada
+    const hb = settings.hepsiburada || {};
+    if (hb.merchantId && hb.password && product.hepsiburadaStock !== null && product.hepsiburadaStock !== undefined) {
+      try {
+        const hepsiburada = require('./src/hepsiburada');
+        await hepsiburada.updateStock(hb, product.sku || product.barcode, product.hepsiburadaStock, product.price);
+        results.push({ market: 'Hepsiburada', ok: true, stock: product.hepsiburadaStock });
+      } catch (e) {
+        results.push({ market: 'Hepsiburada', ok: false, error: e.message });
+      }
+    }
+
+    // PTT AVM
+    const ptt = settings.pttavm || {};
+    if (ptt.apiKey && ptt.accessToken && product.pttavmStock !== null && product.pttavmStock !== undefined) {
+      try {
+        const pttavm = require('./src/pttavm');
+        await pttavm.updateStock(ptt, product.barcode, product.pttavmStock);
+        results.push({ market: 'PTT AVM', ok: true, stock: product.pttavmStock });
+      } catch (e) {
+        results.push({ market: 'PTT AVM', ok: false, error: e.message });
+      }
+    }
+
+    // idefix
+    const idf = settings.idefix || {};
+    if (idf.apiKey && idf.apiSecret && idf.vendorId && product.idefixStock !== null && product.idefixStock !== undefined) {
+      try {
+        const idefix = require('./src/idefix');
+        await idefix.updateStock(idf, product.barcode, product.idefixStock, product.price, product);
+        results.push({ market: 'idefix', ok: true, stock: product.idefixStock });
+      } catch (e) {
+        results.push({ market: 'idefix', ok: false, error: e.message });
+      }
+    }
+
+    // N11
+    const n11 = settings.n11 || {};
+    if (n11.appKey && n11.appSecret && product.n11Stock !== null && product.n11Stock !== undefined) {
+      try {
+        const n11mod = require('./src/n11');
+        await n11mod.updateStock(n11, product.sku || product.barcode, product.n11Stock);
+        results.push({ market: 'N11', ok: true, stock: product.n11Stock });
+      } catch (e) {
+        results.push({ market: 'N11', ok: false, error: e.message });
+      }
+    }
+
+    const sent = results.filter(r => r.ok).length;
+    const failed = results.filter(r => !r.ok).length;
+    db.addLog('Panel stok push: ' + product.barcode + ' — ' + sent + ' gonderildi, ' + failed + ' basarisiz');
+    res.json({ ok: true, results, sent, failed });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/export/csv', (req, res) => {
   const products = db.getProducts();
   const lines = [];

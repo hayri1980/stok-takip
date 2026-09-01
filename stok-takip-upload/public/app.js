@@ -186,6 +186,28 @@ async function saveProduct() {
   await loadProducts();
 }
 
+async function pushStock() {
+  const id = document.getElementById('pId').value;
+  if (!id) return alert('Once urunu kaydedin.');
+  const btn = document.getElementById('pushStockBtn');
+  btn.disabled = true;
+  btn.textContent = 'Gonderiliyor...';
+  try {
+    const r = await request(API.products + '/' + id + '/push-stock', 'POST');
+    if (r && r.ok) {
+      const sent = r.results.filter(x => x.ok).map(x => x.market + '(' + x.stock + ')').join(', ');
+      const failed = r.results.filter(x => !x.ok).map(x => x.market + ': ' + x.error).join('; ');
+      alert('Gonderildi: ' + (sent || 'yok') + (failed ? '\nBasarisiz: ' + failed : ''));
+    } else {
+      alert('Hata: ' + (r && r.error ? r.error : 'Bilinmeyen hata'));
+    }
+  } catch (e) {
+    alert('Hata: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Stokları Gönder';
+}
+
 async function removeProduct(id) {
   if (!confirm('Bu ürün silinsin mi?')) return;
   await request(API.products + '/' + id, 'DELETE');
@@ -195,6 +217,7 @@ async function removeProduct(id) {
 document.getElementById('addBtn').addEventListener('click', openAdd);
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
 document.getElementById('saveProductBtn').addEventListener('click', saveProduct);
+document.getElementById('pushStockBtn').addEventListener('click', pushStock);
 modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
 // ---------- Mağaza Yönetimi ----------
