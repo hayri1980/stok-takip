@@ -16,7 +16,11 @@ const API = {
   questions: '/api/questions',
   questionsAnswer: '/api/questions/answer',
   questionFlag: '/api/question-flag',
-  questionFlagClear: '/api/question-flag/clear'
+  questionFlagClear: '/api/question-flag/clear',
+  finSummary: '/api/finance/summary',
+  finDeposits: '/api/finance/deposits',
+  finPending: '/api/finance/pending',
+  productCost: '/api/products/cost'
 };
 
 let products = [];
@@ -112,6 +116,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       lastQuestionFlag = false;
       loadQuestions();
     }
+    if (btn.dataset.tab === 'finans') loadFinanceSummary();
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
@@ -949,6 +954,155 @@ async function answerQuestion(qid, market) {
     alert('Hata: ' + e.message);
   }
 }
+
+// ---------- Finans ----------
+let finMode = 'gunluk';
+let finDeposits = [];
+
+async function loadFinanceSummary() {
+  try {
+    let url = API.finSummary + '?mode=' + finMode;
+    if (finMode === 'ozel') {
+      const s = document.getElementById('finStart').value;
+      const e = document.getElementById('finEnd').value;
+      if (s) url += '&start=' + s;
+      if (e) url += '&end=' + e;
+    }
+    const r = await request(url);
+    renderFinSummary(r);
+  } catch (e) {
+    document.getElementById('finSummary').innerHTML = '<p class="empty-note">Yuklenemedi: ' + e.message + '</p>';
+  }
+}
+
+function fmtTL(n) {
+  const v = Number(n) || 0;
+  return v.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
+}
+
+function renderFinSummary(r) {
+  const t = r.total || {};
+  const rangeLabel = (r.start || '') + ' → ' + (r.end || '');
+  const byMarket = r.byMarket || {};
+  const marketRows = Object.keys(byMarket).map(mk => {
+    const m = byMarket[mk];
+    return '<tr><td>' + escapeHtml(mk) + '</td><td><b>' + fmtTL(m.ciro) + '</b></td><td>' + fmtTL(m.maliyet) + '</td><td><b>' + fmtTL(m.kar) + '</b></td><td>' + (m.adet || 0) + '</td></tr>';
+  }).join('');
+  document.getElementById('finSummary').innerHTML =
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">' +
+      '<div class="fin-card" style="flex:1;min-width:140px;border:1px solid #e2e8f0;border-radius:8px;padding:14px;background:#f8fafc"><div class="muted" style="font-size:12px">Ciro</div><div style="font-size:22px;font-weight:700;color:#2563eb">' + fmtTL(t.ciro) + '</div></div>' +
+      '<div class="fin-card" style="flex:1;min-width:140px;border:1px solid #e2e8f0;border-radius:8px;padding:14px;background:#f8fafc"><div class="muted" style="font-size:12px">Maliyet</div><div style="font-size:22px;font-weight:700">' + fmtTL(t.maliyet) + '</div></div>' +
+      '<div class="fin-card" style="flex:1;min-width:140px;border:1px solid #e2e8f0;border-radius:8px;padding:14px;background:#f0fdf4"><div class="muted" style="font-size:12px">Net Kar</div><div style="font-size:22px;font-weight:700;color:' + (t.kar >= 0 ? '#16a34a' : '#dc2626') + '">' + fmtTL(t.kar) + '</div></div>' +
+      '<div class="fin-card" style="flex:1;min-width:140px;border:1px solid #e2e8f0;border-radius:8px;padding:14px;background:#f8fafc"><div class="muted" style="font-size:12px">Satılan Adet</div><div style="font-size:22px;font-weight:700">' + (t.adet || 0) + '</div></div>' +
+    '</div>' +
+    '<div class="muted" style="font-size:12px;margin-bottom:10px">Dönem: ' + rangeLabel + ' (' + (r.satirtSayisi || 0) + ' satış kaydı)</div>' +
+    '<div class="table-wrap"><table><thead><tr><th>Pazaryeri</th><th>Ciro</th><th>Maliyet</th><th>Net Kar</th><th>Adet</th></tr></thead><tbody>' + (marketRows || '<tr><td colspan="5" class="muted">Bu dönemde satış yok</td></tr>') + '</tbody></table></div>';
+}
+
+async function loadDeposits() {
+  try {
+    finDeposits = await request(API.finDeposits);
+    const el = document.getElementById('depositTable');
+    if (!finDeposits.length) { el.innerHTML = '<tr><td colspan="5" class="muted">Henüz yatış kaydı yok</td></tr>'; return; }
+    el.innerHTML = finDeposits.map(d =>
+      '<tr><td class="muted">' + (d.date ? new Date(d.date).toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }) : '—') + '</td>' +
+      '<td>' + escapeHtml(d.market) + '</td><td>' + escapeHtml(d.type) + '</td>' +
+      '<td><b>' + fmtTL(d.amount) + '</b></td><td class="muted">' + escapeHtml(d.description || '') + '</td></tr>'
+    ).join('');
+  } catch (e) {
+    document.getElementById('depositTable').innerHTML = '<tr><td colspan="5">' + e.message + '</td></tr>';
+  }
+}
+
+function renderPending() {
+  const el = document.getElementById('pendingTable');
+  // pending listesi servisten alinir her gosterimde
+  request(API.finPending).then(list => {
+    if (!list.length) { el.innerHTML = '<tr><td colspan="5" class="muted">Bekleyen para yok</td></tr>'; return; }
+    el.innerHTML = list.map(p =>
+      '<tr><td>' + escapeHtml(p.market) + '</td><td><b>' + fmtTL(p.amount) + '</b></td>' +
+      '<td class="muted">' + (p.expectedDate ? new Date(p.expectedDate + 'T00:00:00').toLocaleDateString('tr-TR') : '—') + '</td>' +
+      '<td class="muted">' + escapeHtml(p.description || '') + '</td>' +
+      '<td><button class="btn small danger-btn" onclick="delPending(\'' + p.id + '\')">✕</button></td></tr>'
+    ).join('');
+  }).catch(() => {});
+}
+
+async function delPending(id) {
+  await request(API.finPending + '/' + id, 'DELETE');
+  renderPending();
+}
+
+function renderCosts() {
+  const el = document.getElementById('costTable');
+  if (!products.length) { el.innerHTML = '<tr><td colspan="3" class="muted">Ürün yok</td></tr>'; return; }
+  el.innerHTML = products.map(p =>
+    '<tr><td>' + escapeHtml(p.name) + '</td><td class="mono">' + escapeHtml(p.barcode) + '</td>' +
+    '<td><input type="number" min="0" step="0.01" value="' + (p.cost || '') + '" data-bc="' + escapeHtml(p.barcode) + '" style="width:110px" onchange="setCost(this)"></td></tr>'
+  ).join('');
+}
+
+async function setCost(inp) {
+  const bc = inp.getAttribute('data-bc');
+  const cost = Number(inp.value);
+  if (!Number.isFinite(cost) || cost < 0) return alert('Geçersiz maliyet.');
+  try {
+    await request(API.productCost, 'POST', { barcode: bc, cost });
+    const p = products.find(x => x.barcode === bc);
+    if (p) p.cost = cost;
+  } catch (e) {
+    alert('Hata: ' + e.message);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.fin-mode').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.fin-mode').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      finMode = b.dataset.mode;
+      document.getElementById('finCustom').style.display = finMode === 'ozel' ? 'flex' : 'none';
+      loadFinanceSummary();
+    });
+  });
+  document.getElementById('finApplyBtn').addEventListener('click', loadFinanceSummary);
+  document.getElementById('finStart').value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+  document.getElementById('finEnd').value = new Date().toISOString().slice(0, 10);
+
+  document.getElementById('costToggle').addEventListener('click', () => {
+    const p = document.getElementById('costPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    document.getElementById('costToggle').textContent = (p.style.display === 'none' ? '▸ ' : '▾ ') + 'Ürün Maliyetleri';
+    if (p.style.display === 'block') renderCosts();
+  });
+  document.getElementById('pendingToggle').addEventListener('click', () => {
+    const p = document.getElementById('pendingPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    document.getElementById('pendingToggle').textContent = (p.style.display === 'none' ? '▸ ' : '▾ ') + 'Bekleyen Paralar';
+    if (p.style.display === 'block') renderPending();
+  });
+  document.getElementById('depositToggle').addEventListener('click', () => {
+    const p = document.getElementById('depositPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    document.getElementById('depositToggle').textContent = (p.style.display === 'none' ? '▸ ' : '▾ ') + 'Pazar Bazlı Yatışlar';
+    if (p.style.display === 'block') loadDeposits();
+  });
+  document.getElementById('ppAddBtn').addEventListener('click', async () => {
+    const amount = Number(document.getElementById('ppAmount').value);
+    if (!Number.isFinite(amount) || amount <= 0) return alert('Geçerli tutar girin.');
+    try {
+      await request(API.finPending, 'POST', {
+        market: document.getElementById('ppMarket').value,
+        amount,
+        expectedDate: document.getElementById('ppDate').value,
+        description: document.getElementById('ppDesc').value
+      });
+      document.getElementById('ppAmount').value = '';
+      document.getElementById('ppDesc').value = '';
+      renderPending();
+    } catch (e) { alert('Hata: ' + e.message); }
+  });
+});
 
 // ---------- Başlangıç ----------
 loadProducts();

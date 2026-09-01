@@ -341,6 +341,83 @@ app.post('/api/para', (req, res) => {
   res.json({ ok: true, total: list.length });
 });
 
+// ---- Finans ozeti ----
+// mode=gunluk|haftalik|aylik|ozel ; ozel ise start & end (YYYY-MM-DD)
+app.get('/api/finance/summary', (req, res) => {
+  const mode = String(req.query.mode || 'gunluk');
+  const now = new Date();
+  let start = new Date();
+  let end = new Date();
+  if (mode === 'gunluk') {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  } else if (mode === 'haftalik') {
+    const dow = (now.getDay() + 6) % 7; // Pazartesi baslangic
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow);
+    end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  } else if (mode === 'aylik') {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  } else {
+    start = req.query.start ? new Date(String(req.query.start)) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    end = req.query.end ? new Date(String(req.query.end)) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+  const sKey = db.localDayKey(start);
+  const eKey = db.localDayKey(end);
+  const summary = db.getFinanceSummary(sKey, eKey);
+  res.json({ mode, start: sKey, end: eKey, ...summary });
+});
+
+// Pazar yeri bazinda yatmis paralar (financeRecords)
+app.get('/api/finance/deposits', (req, res) => {
+  const recs = db.getFinanceRecords().slice().reverse();
+  const fmt = r => ({
+    id: r.id,
+    market: r.market || 'Trendyol',
+    type: r.type || '',
+    amount: Number(r.amount) || 0,
+    description: r.description || '',
+    date: r.date || ''
+  });
+  res.json(recs.map(fmt));
+});
+
+// Bekleyen tahsilatlar (ileride yatacak)
+app.get('/api/finance/pending', (req, res) => {
+  res.json(db.getPendingPayments());
+});
+
+app.post('/api/finance/pending', (req, res) => {
+  const b = req.body || {};
+  const amount = Number(b.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'Gecersiz tutar' });
+  const rec = db.addPendingPayment({
+    market: String(b.market || 'Trendyol'),
+    amount,
+    expectedDate: String(b.expectedDate || ''),
+    description: String(b.description || '')
+  });
+  db.addLog('Bekleyen tahsilat eklendi: ' + (b.market || 'Trendyol') + ' ' + amount + ' TL');
+  res.json({ ok: true, list: rec });
+});
+
+app.delete('/api/finance/pending/:id', (req, res) => {
+  db.deletePendingPayment(req.params.id);
+  res.json({ ok: true });
+});
+
+// Urun maliyeti ayarla (barkod ile)
+app.post('/api/products/cost', (req, res) => {
+  const b = req.body || {};
+  if (!b.barcode) return res.status(400).json({ error: 'barcode zorunludur' });
+  const cost = Number(b.cost);
+  if (!Number.isFinite(cost) || cost < 0) return res.status(400).json({ error: 'Gecersiz maliyet' });
+  const p = db.setProductCost(b.barcode, cost);
+  if (!p) return res.status(404).json({ error: 'Urun bulunamadi (barkod: ' + b.barcode + ')' });
+  db.addLog('Maliyet guncellendi: ' + p.barcode + ' = ' + p.cost + ' TL');
+  res.json({ ok: true, product: p });
+});
+
 // ---- Ayarlar ----
 app.get('/api/settings', (req, res) => {
   res.json(db.getSettings());

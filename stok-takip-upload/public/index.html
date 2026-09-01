@@ -17,6 +17,7 @@
       <button class="tab-btn" data-tab="istatistik">İstatistik</button>
       <button class="tab-btn" data-tab="log" id="logTabBtn">Kayıtlar</button>
       <button class="tab-btn" data-tab="sorular" id="soruTabBtn">Sorular</button>
+      <button class="tab-btn" data-tab="finans">Finans</button>
     </nav>
     <button id="syncBtn" class="btn btn-primary">Şimdi Kontrol Et</button>
   </header>
@@ -279,6 +280,79 @@
         <h2>Müşteri Soruları</h2>
         <p class="hint">Trendyol ve idefix'ten gelen sorular burada listelenir. Cevabını yazıp gönderebilirsin.</p>
         <div id="questionList"></div>
+      </div>
+    </section>
+
+    <!-- FİNANS -->
+    <section id="tab-finans" class="tab-content">
+      <!-- Filtre -->
+      <div class="card">
+        <h2>Finans</h2>
+        <div class="fin-filter" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+          <button class="btn fin-mode active" data-mode="gunluk">Günlük</button>
+          <button class="btn fin-mode" data-mode="haftalik">Haftalık</button>
+          <button class="btn fin-mode" data-mode="aylik">Aylık</button>
+          <button class="btn fin-mode" data-mode="ozel">Takvim</button>
+          <span id="finCustom" style="display:none;gap:8px;align-items:center">
+            <input type="date" id="finStart">
+            <span>→</span>
+            <input type="date" id="finEnd">
+            <button id="finApplyBtn" class="btn btn-primary">Getir</button>
+          </span>
+        </div>
+
+        <!-- Ozet kartlari -->
+        <div class="summary" id="finSummary"></div>
+
+        <!-- Maliyet + Bekleyen paralar acilir kapanir -->
+        <div style="margin:16px 0;display:flex;gap:8px;flex-wrap:wrap">
+          <button id="costToggle" class="btn">▸ Ürün Maliyetleri</button>
+          <button id="pendingToggle" class="btn">▸ Bekleyen Paralar</button>
+          <button id="depositToggle" class="btn">▸ Pazar Bazlı Yatışlar</button>
+        </div>
+
+        <!-- Urun maliyetleri -->
+        <div id="costPanel" class="fin-panel" style="display:none;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:12px">
+          <h3 style="margin-top:0">Ürün Maliyetleri</h3>
+          <p class="hint">Net kar hesaplamak için ürünlerin alış maliyetini girin. Değer anında kaydedilir.</p>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Ürün</th><th>Stok Kodu</th><th>Maliyet (TL)</th></tr></thead>
+            <tbody id="costTable"></tbody>
+          </table></div>
+        </div>
+
+        <!-- Bekleyen paralar (ileride yatacak) -->
+        <div id="pendingPanel" class="fin-panel" style="display:none;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:12px">
+          <h3 style="margin-top:0">Bekleyen Paralar (İleride Yatacak)</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <select id="ppMarket">
+              <option>Trendyol</option>
+              <option>Hepsiburada</option>
+              <option>PTT AVM</option>
+              <option>idefix</option>
+              <option>N11</option>
+              <option>Çiçeksepeti</option>
+              <option>Diğer</option>
+            </select>
+            <input type="number" id="ppAmount" placeholder="Tutar (TL)" min="0" style="width:120px">
+            <input type="date" id="ppDate">
+            <input type="text" id="ppDesc" placeholder="Açıklama (opsiyonel)">
+            <button id="ppAddBtn" class="btn btn-primary">Ekle</button>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Pazaryeri</th><th>Tutar</th><th>Beklenen Tarih</th><th>Açıklama</th><th></th></tr></thead>
+            <tbody id="pendingTable"></tbody>
+          </table></div>
+        </div>
+
+        <!-- Pazar bazli yatis detayi -->
+        <div id="depositPanel" class="fin-panel" style="display:none;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
+          <h3 style="margin-top:0">Pazar Bazlı Yatışlar</h3>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Tarih</th><th>Pazaryeri</th><th>Tip</th><th>Tutar (TL)</th><th>Açıklama</th></tr></thead>
+            <tbody id="depositTable"></tbody>
+          </table></div>
+        </div>
       </div>
     </section>
 

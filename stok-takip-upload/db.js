@@ -372,6 +372,79 @@ function getFinanceRecords() {
   return state.financeRecords;
 }
 
+// Finans ozeti: belirli tarih araligindaki ciro ve net kar.
+// Aralik key'leri 'YYYY-MM-DD' biciminde (start/end dahil).
+function getFinanceSummary(startKey, endKey) {
+  load();
+  const sales = (state.dailySales || []).filter(s => {
+    if (!s.date) return false;
+    if (startKey && String(s.date) < String(startKey)) return false;
+    if (endKey && String(s.date) > String(endKey)) return false;
+    return true;
+  });
+  const pByMarket = {};
+  const pTotals = { ciro: 0, kar: 0, maliyet: 0, adet: 0 };
+  for (const s of sales) {
+    const mk = s.market || 'Diğer';
+    if (!pByMarket[mk]) pByMarket[mk] = { ciro: 0, kar: 0, maliyet: 0, adet: 0 };
+    const qty = Number(s.qty) || 0;
+    const price = Number(s.price) || 0;
+    // Maliyet: satış anındaki maliyet (s.cost) varsa onu, yoksa güncel ürün maliyetini kullan.
+    let cost = Number(s.cost);
+    if (!(cost > 0)) {
+      const prod = (state.products || []).find(p => String(p.barcode) === String(s.barcode));
+      cost = Math.max(0, Number(prod && prod.cost) || 0);
+    }
+    cost = Math.max(0, cost);
+    const ciro = qty * price;
+    const maliyet = qty * cost;
+    for (const o of [pTotals, pByMarket[mk]]) {
+      o.ciro += ciro;
+      o.maliyet += maliyet;
+      o.kar += (ciro - maliyet);
+      o.adet += qty;
+    }
+  }
+  return { total: pTotals, byMarket: pByMarket, satirtSayisi: sales.length };
+}
+
+function setProductCost(barcode, cost) {
+  load();
+  const p = (state.products || []).find(x => String(x.barcode) === String(barcode));
+  if (!p) return null;
+  p.cost = Math.max(0, Number(cost) || 0);
+  save();
+  return { barcode, cost: p.cost, name: p.name };
+}
+
+// ---- Bekleyen tahsilatlar (ileride yatacak paralar) ----
+function getPendingPayments() {
+  load();
+  return (state.pendingPayments || []).slice().reverse();
+}
+
+function addPendingPayment(rec) {
+  load();
+  if (!Array.isArray(state.pendingPayments)) state.pendingPayments = [];
+  state.pendingPayments.push({
+    id: 'pp:' + Date.now() + ':' + Math.random().toString(36).slice(2, 6),
+    market: rec.market || 'Trendyol',
+    amount: Number(rec.amount) || 0,
+    expectedDate: rec.expectedDate || '', // 'YYYY-MM-DD' beklenen yatış tarihi
+    description: String(rec.description || ''),
+    createdAt: new Date().toISOString()
+  });
+  save();
+  return state.pendingPayments;
+}
+
+function deletePendingPayment(id) {
+  load();
+  state.pendingPayments = (state.pendingPayments || []).filter(p => String(p.id) !== String(id));
+  save();
+  return state.pendingPayments;
+}
+
 function setFinanceRecords(records) {
   load();
   const seen = new Map();
@@ -912,6 +985,11 @@ module.exports = {
   getFinanceRecords,
   setFinanceRecords,
   addFinanceRecord,
+  getFinanceSummary,
+  setProductCost,
+  getPendingPayments,
+  addPendingPayment,
+  deletePendingPayment,
   getOrderNotifiedIds,
   addOrderNotifiedIds,
   addOrderRecord,
