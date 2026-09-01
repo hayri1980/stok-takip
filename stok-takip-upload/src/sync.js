@@ -264,13 +264,13 @@ async function syncMarketplace(kind) {
           // 25.08 FIX H: dogrulama API'si olan pazarda dogrulama YAPILAMADIYSA (null = hata/
           // cozumlenemeyen liste) satis KABUL EDILMEZ — supheli isaretlenir. Eski davranista
           // API hatalari sahte satis uretiyordu.
-          if (confirmed === false || (confirmed === null && marketHasOrderVerify(kind))) {
+          if (confirmed === 0 || (confirmed === null && marketHasOrderVerify(kind))) {
             markSuspectStale(kind, barcode);
             db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
             logSuspectStale(kind, barcode, diff, Number(oldQty));
             continue;
           }
-          if (confirmed === true) clearSuspectStale(kind, barcode);
+          if (confirmed > 0) clearSuspectStale(kind, barcode);
         }
         // Satış onaylandı: DB'yi okunan değere güncelle (0 dahil).
         // Önceki qty===0 özel durumu kaldırıldı (24.08): DB.güncellenmeyince her döngüde
@@ -283,12 +283,16 @@ async function syncMarketplace(kind) {
         // - Diğer pazaryerleri: sistemin kendi yazımı DEĞİLSE gerçek satıştır → kendi adıyla bildir
         //   (PTT AVM, Hepsiburada, idefix dahil).
         if (diff > 0) {
+          // Sipariş adedi kadar düşüş onaylandı (yukarıdaki confirmed kontrolü).
+          // Trendyol kendi stoğundan düşer → adet kadar; diğer pazarlarda verifiedQty kadar.
+          const confirmed = await (kind !== 'trendyol' ? marketOrderConfirmsSale(kind, barcode) : Promise.resolve(diff));
+          const saleQty = (confirmed !== null && confirmed > 0) ? Math.min(diff, confirmed) : diff;
           if (kind === 'trendyol') {
             sales.push({
               name: existing.name,
               barcode,
               market: kindLabel(kind),
-              diff,
+              diff: saleQty,
               oldQty: Number(oldQty),
               newQty: qty
             });
@@ -296,7 +300,7 @@ async function syncMarketplace(kind) {
               name: existing.name,
               barcode,
               market: kindLabel(kind),
-              qty: diff,
+              qty: saleQty,
               price: existing.price,
               cost: existing.cost,
               ts: now
@@ -308,7 +312,7 @@ async function syncMarketplace(kind) {
               name: existing.name,
               barcode,
               market: kindLabel(kind),
-              qty: diff,
+              qty: saleQty,
               price: existing.price,
               cost: existing.cost,
               ts: now
@@ -1174,10 +1178,10 @@ const ORDER_VERIFY_MIN_INTERVAL_MS = 90 * 1000;
 const orderVerifyCache = new Map(); // kind -> { ts, trusted, lines: [barcode] }
 // 25.08 FIX F: pazaryeri yazim limiti (429) sonrasi bu pazara yazim arasi. kind -> cooldown bitis ts
 const marketWriteCooldown = new Map();
-async function getRecentMarketOrderLines(kind) {
+async function getRecentMarketOrderQty(kind) {
   const cached = orderVerifyCache.get(kind);
   if (cached && Date.now() - cached.ts < ORDER_VERIFY_MIN_INTERVAL_MS) {
-    return cached.trusted ? cached.lines : null;
+    return cached.trusted ? cached.qtyMap : null;
   }
   const cfg = marketCfg(kind);
   let list = [];
@@ -1210,7 +1214,7 @@ async function getRecentMarketOrderLines(kind) {
   } else {
     return null;
   }
-  const lines = [];
+  const qtyMap = new Map();
   const CUTOFF = Date.now() - 3 * 60 * 60 * 1000; // 25.08: sadece son 3 saatlik siparisler dogrular
   for (const o of list) {
     const od = Date.parse(o.orderDate || o.createdAt || '');
@@ -1218,14 +1222,17 @@ async function getRecentMarketOrderLines(kind) {
     for (const l of (o.lines || o.items || o.siparisUrunler || [])) {
       const b = l.barcode || l.merchantSku || l.sku || l.urunBarkod || l.variantBarkod ||
         l.stockCode || l.vendorStockCode || '';
-      if (b) lines.push(normalizeBarcodeKey(String(b)));
+      if (!b) continue;
+      const kb = normalizeBarcodeKey(String(b));
+      const q = Number(l.quantity || l.quantityPurchased || l.adet || l.urunAdedi || l.buyerQuantity || l.urunMiktari || 1) || 0;
+      qtyMap.set(kb, (qtyMap.get(kb) || 0) + q);
     }
   }
   // Siparis listesi bos = kesin satis yok (trusted). Liste dolu ama hic barkod okunamadiysa
   // yapiyi cozemiyoruz demektir → dogrulama yapma (null → eski davranis).
-  const trusted = list.length === 0 || lines.length > 0;
-  orderVerifyCache.set(kind, { ts: Date.now(), trusted, lines });
-  return trusted ? lines : null;
+  const trusted = list.length === 0 || qtyMap.size > 0;
+  orderVerifyCache.set(kind, { ts: Date.now(), trusted, qtyMap });
+  return trusted ? qtyMap : null;
 }
 // Bu pazarda siparis dogrulamasi KURULUMSUZ mumkun mu? (getRecentMarketOrderLines ile ayni sartlar)
 function marketHasOrderVerify(kind) {
@@ -1239,11 +1246,11 @@ async function marketOrderConfirmsSale(kind, barcode) {
   try {
     // 25.08: N11 siparis servisi REST'e tasindi, dogrulama su an yapilamiyor.
     // Dogrulanamayan N11 dususleri SAHTE satıs uretiyordu (stok yazımı gecikmesi) ->
-    // satis sayilmaz, suspectStale ile stok korunur.
-    if (kind === 'n11') return false;
-    const lines = await getRecentMarketOrderLines(kind);
-    if (lines === null) return null;
-    return lines.includes(normalizeBarcodeKey(barcode));
+    // satis sayilmaz, suspectStale ile stok korunur (adet 0 = satis yok).
+    if (kind === 'n11') return 0;
+    const qtyMap = await getRecentMarketOrderQty(kind);
+    if (qtyMap === null) return null;
+    return qtyMap.get(normalizeBarcodeKey(barcode)) || 0;
   } catch (e) {
     return null;
   }
@@ -1350,6 +1357,29 @@ async function syncSharedStock() {
     if (existing && existing.price !== null && existing.price !== undefined) {
       for (const e of entries) {
         if (e.rec) e.rec.price = Number(existing.price);
+      }
+    }
+
+    // KULLANICI KURALI: stok dususu ancak siparis adedi kadar olur, siparis yoksa dusmez.
+    // Her pazarin qty degerini, o pazardaki siparis toplamiyla sinirla.
+    if (shared !== null && shared !== undefined) {
+      for (const e of entries) {
+        if (e.kind === 'trendyol') continue; // Trendyol kendi stogunun sahibidir
+        const drop = Number(shared) - Number(e.qty);
+        if (drop <= 0) continue; // dusus yok veya artis var
+        try {
+          const qtyMap = await getRecentMarketOrderQty(e.kind);
+          const orderQty = qtyMap ? (qtyMap.get(barcode) || 0) : 0;
+          if (orderQty <= 0) {
+            // Siparis yoksa dususu tamamen engelle (eski degerde kalsin)
+            e.qty = Number(shared);
+          } else if (drop > orderQty) {
+            // Siparis adedinden fazla dususu sinirla
+            e.qty = Number(shared) - orderQty;
+          }
+        } catch (err) {
+          // hata olursa mevcut degerde kal (sinirlama yapma)
+        }
       }
     }
 
