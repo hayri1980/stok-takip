@@ -180,13 +180,39 @@ app.get('/api/questions', (req, res) => {
   res.json(db.getQuestions());
 });
 
-// Soruya cevap kaydet (DB'ye; pazaryerine gonderim icin ayri API gerekir)
-app.post('/api/questions/answer', (req, res) => {
+// Soruya cevap: pazaryerine gonder + DB'ye kaydet
+app.post('/api/questions/answer', async (req, res) => {
   const { questionId, market, answer } = req.body || {};
   if (!questionId || !answer) return res.status(400).json({ error: 'questionId ve answer zorunludur' });
-  const q = db.updateQuestion(questionId, { answer, answeredAt: new Date().toISOString() });
-  if (!q) return res.status(404).json({ error: 'Soru bulunamadi' });
-  db.addLog('Soru cevabi kaydedildi: ' + questionId + ' (' + market + ') — ' + answer.slice(0, 50));
+  const settings = db.getSettings();
+  let remote = null;
+  try {
+    if (String(market).toLowerCase().indexOf('trendyol') !== -1) {
+      const ty = settings.trendyol || {};
+      if (ty.sellerId && ty.apiKey && ty.apiSecret) {
+        const trendyol = require('./src/trendyol');
+        await trendyol.answerQuestion(ty.sellerId, ty.apiKey, ty.apiSecret, questionId, answer);
+        remote = 'Trendyol';
+      } else {
+        return res.status(400).json({ error: 'Trendyol ayarları eksik' });
+      }
+    } else if (String(market).toLowerCase().indexOf('idefix') !== -1) {
+      const ix = settings.idefix || {};
+      if (ix.apiKey && ix.apiSecret && ix.vendorId) {
+        const idefix = require('./src/idefix');
+        await idefix.answerQuestion(ix, questionId, answer);
+        remote = 'idefix';
+      } else {
+        return res.status(400).json({ error: 'idefix ayarları eksik' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Bilinmeyen pazaryeri: ' + market });
+    }
+  } catch (e) {
+    return res.status(500).json({ error: 'Gonderme hatası: ' + e.message });
+  }
+  const q = db.updateQuestion(questionId, { answer, answeredAt: new Date().toISOString(), sentTo: remote });
+  db.addLog('Soru cevaplandı: ' + questionId + ' -> ' + remote);
   res.json({ ok: true, question: q });
 });
 

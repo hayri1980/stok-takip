@@ -201,4 +201,21 @@ async function fetchQuestions(cfg) {
   return items.map(normalizeQuestion).filter(q => q.id && q.question);
 }
 
-module.exports = { fetchStock, fetchProducts, updateStock, createProduct, fetchOrders, fetchQuestions };
+// idefix sorusuna cevap gonder
+async function answerQuestion(cfg, questionId, answer) {
+  // questionId 'idefix:123' formatinda ise suresi ayir
+  const rawId = String(questionId).replace(/^idefix:/, '');
+  const url = BASE + '/pim/vendor/' + encodeURIComponent(cfg.vendorId) +
+    '/question/' + encodeURIComponent(rawId) + '/answer';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: headers(cfg),
+    body: JSON.stringify({ answer: String(answer) })
+  });
+  if (!res.ok) {
+    throw new Error('idefix cevap hata (' + res.status + '): ' + (await res.text()).slice(0, 300));
+  }
+  return true;
+}
+
+module.exports = { fetchStock, fetchProducts, updateStock, createProduct, fetchOrders, fetchQuestions, answerQuestion };

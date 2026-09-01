@@ -82,6 +82,25 @@ async function fetchQuestions(sellerId, apiKey, apiSecret) {
   return items.map(normalizeQuestion).filter(Boolean);
 }
 
+// Trendyol sorusuna cevap gonder
+async function answerQuestion(sellerId, apiKey, apiSecret, questionId, answer) {
+  const auth = 'Basic ' + Buffer.from(apiKey + ':' + apiSecret).toString('base64');
+  const headers = {
+    'Authorization': auth,
+    'x-seller-id': String(sellerId),
+    'User-Agent': 'StokTakip-v1',
+    'Content-Type': 'application/json'
+  };
+  const url = `${BASE}/qna/sellers/${sellerId}/questions/${questionId}/answer`;
+  const body = { answer: String(answer) };
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const txt = (await res.text()).slice(0, 300);
+    throw new Error('Trendyol cevap hata (' + res.status + '): ' + txt);
+  }
+  return true;
+}
+
 async function fetchProductCatalog(sellerId, apiKey, apiSecret) {
   const auth = 'Basic ' + Buffer.from(apiKey + ':' + apiSecret).toString('base64');
   const headers = {
@@ -239,4 +258,4 @@ async function fetchOtherFinancials(sellerId, apiKey, apiSecret, transactionType
   return (data && data.content) || [];
 }
 
-module.exports = { fetchStock, fetchQuestions, fetchProductCatalog, fetchPriceMap, updateStock, fetchShipmentPackages, fetchOtherFinancials };
+module.exports = { fetchStock, fetchQuestions, answerQuestion, fetchProductCatalog, fetchPriceMap, updateStock, fetchShipmentPackages, fetchOtherFinancials };
