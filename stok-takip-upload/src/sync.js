@@ -441,21 +441,22 @@ async function checkFinancialTransfers() {
   const results = { trendyol: { fresh: 0, sent: 0 }, other: { fresh: 0, sent: 0 } };
   // Trendyol
   const tcfg = marketCfg('trendyol');
+  let tseen = new Set();
   if (tcfg.apiKey && tcfg.apiSecret && tcfg.sellerId) {
     if (Date.now() - lastFinanceCheckTs < 30 * 60 * 1000) {
       return { trendyol: { fresh: 0, sent: 0 }, other: { fresh: 0, sent: 0 }, skipped: true };
     }
     lastFinanceCheckTs = Date.now();
-    const tseen = new Set(db.getFinanceNotifiedIds());
+    tseen = new Set(db.getFinanceNotifiedIds());
     let ttotal = 0, tsent = 0;
-    // Trendyol'da hem yatan hem bekleyen paraları çek (WireTransfer, OnHold, Commission, OrderPayment, vb.)
-    const tTypes = ['WireTransfer', 'OnHold', 'Commission', 'OrderPayment', 'Payout', 'Payment'];
+    // Trendyol'un kabul ettigi finansal tipler (yatan para = WireTransfer / IncomingTransfer)
+    const tTypes = ['WireTransfer', 'IncomingTransfer', 'PaymentOrder'];
     for (const ttype of tTypes) {
       try {
         const transfers = await trendyol.fetchOtherFinancials(tcfg.sellerId, tcfg.apiKey, tcfg.apiSecret, ttype, 14);
         const fresh = (transfers || []).filter(x => x && x.id && !tseen.has(String(x.id)));
         ttotal += fresh.length;
-        tseen.add(...fresh.map(x => String(x.id)));
+        for (const t of fresh) tseen.add(String(t.id));
         for (const t of fresh) {
           const amount = Number(t.credit) || Number(t.amount) || 0;
           const date = t.transactionDate ? new Date(Number(t.transactionDate)).toISOString() : '';
@@ -470,7 +471,7 @@ async function checkFinancialTransfers() {
             date
           }]));
           // Bildirim (sadece yatanlar için)
-          if (ttype === 'WireTransfer') {
+          if (ttype === 'WireTransfer' || ttype === 'IncomingTransfer') {
             tsent++;
             const subject = 'PARA AKTARIMI: ' + amount + ' TL';
             const text = 'PARA AKTARIMI (banka)\nMiktar: ' + amount + ' TL\nTarih: ' +
@@ -497,7 +498,7 @@ async function checkFinancialTransfers() {
       db.addLog('idefix finans çekme hatası: ' + e.message);
     }
   }
-  db.addFinanceNotifiedIds([...tseen]);
+  if (tseen.size) db.addFinanceNotifiedIds([...tseen]);
   return results;
 }
 
