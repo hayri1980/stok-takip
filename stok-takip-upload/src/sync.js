@@ -255,11 +255,11 @@ async function syncMarketplace(kind) {
         // Pencere içinde okunan fark satış sayılmaz; DB yazılan değerde tutulur.
         db.updateProduct(existing.id, { lastSeenAt: now, lastSync: now });
       } else {
-        // SAHTE SATIS KORUMASI (22.08): Trendyol disi pazardaki dusus, o pazarin siparis
-        // API'sinde ayni barkodlu siparis VARSA gercek satis sayilir. Siparis yoksa bu
-        // pazaryerinin eski/yanlis okumasidir → satis kaydi YOK, bildirim YOK, DB eski
-        // degere kalir; ortak senkron da hedefi dusurmez (suspectStale isareti).
-        if (kind !== 'trendyol' && diff > 0) {
+        // SATIS TEYIDI (kullanici kurali, 05.09): HER pazardaki dusus (Trendyol DAHIL)
+        // o pazarin SIPARIS API'sinde ayni barkodlu siparis VARSA gercek satis sayilir.
+        // Siparis yoksa bu pazaryerinin eski/yanlis okumasidir → satis kaydi YOK, bildirim
+        // YOK, DB eski degere kalir; ortak senkron da hedefi dusurmez (suspectStale isareti).
+        if (diff > 0) {
           const confirmed = await marketOrderConfirmsSale(kind, barcode);
           // 25.08 FIX H: dogrulama API'si olan pazarda dogrulama YAPILAMADIYSA (null = hata/
           // cozumlenemeyen liste) satis KABUL EDILMEZ — supheli isaretlenir. Eski davranista
@@ -283,10 +283,11 @@ async function syncMarketplace(kind) {
         // - Diğer pazaryerleri: sistemin kendi yazımı DEĞİLSE gerçek satıştır → kendi adıyla bildir
         //   (PTT AVM, Hepsiburada, idefix dahil).
         if (diff > 0) {
-          // Sipariş adedi kadar düşüş onaylandı (yukarıdaki confirmed kontrolü).
-          // Trendyol kendi stoğundan düşer → adet kadar; diğer pazarlarda verifiedQty kadar.
-          const confirmed = await (kind !== 'trendyol' ? marketOrderConfirmsSale(kind, barcode) : Promise.resolve(diff));
+          // Siparis teyidi (kullanici kurali, 05.09): adet, sipariste gorunen adet kadar.
+          const confirmed = await marketOrderConfirmsSale(kind, barcode);
           const saleQty = (confirmed !== null && confirmed > 0) ? Math.min(diff, confirmed) : diff;
+          // NOT (05.09): gün sonu raporundaki satışlar ARTIK SİPARİŞ üzerinden sayılıyor
+          // (checkOrders). Çift saymamak için burada stok düşüşünden GÜN SONU KAYDI eklenmez.
           if (kind === 'trendyol') {
             sales.push({
               name: existing.name,
@@ -296,27 +297,9 @@ async function syncMarketplace(kind) {
               oldQty: Number(oldQty),
               newQty: qty
             });
-            db.addDailySale({
-              name: existing.name,
-              barcode,
-              market: kindLabel(kind),
-              qty: saleQty,
-              price: existing.price,
-              cost: existing.cost,
-              ts: now
-            });
           } else {
-            // Diğer pazaryerlerinde GERÇEK satış: kayıt + bildirim. (Zoraki yazım-yansıması
+            // Diğer pazaryerlerinde GERÇEK satış: bildirim. (Zoraki yazım-yansıması
             // yukarıdaki withinGrace ile elenir; buraya sadece gerçek müşteri düşüşü gelir.)
-            db.addDailySale({
-              name: existing.name,
-              barcode,
-              market: kindLabel(kind),
-              qty: saleQty,
-              price: existing.price,
-              cost: existing.cost,
-              ts: now
-            });
             await notifyMarketSale({
               name: existing.name,
               barcode,
@@ -458,18 +441,20 @@ async function checkFinancialTransfers() {
         ttotal += fresh.length;
         for (const t of fresh) tseen.add(String(t.id));
         for (const t of fresh) {
-          const amount = Number(t.credit) || Number(t.amount) || 0;
+          const amount = Number(t.credit) || Number(t.amount) || Number(t.grossAmount) || 0;
           const date = t.transactionDate ? new Date(Number(t.transactionDate)).toISOString() : '';
           const desc = String(t.description || t.transactionType || ttype || '');
-          // financeRecords'e kaydet
-          db.setFinanceRecords((db.getFinanceRecords() || []).concat([{
-            id: String(t.id),
-            market: 'Trendyol',
-            type: String(t.transactionType || ttype),
-            amount,
-            description: desc,
-            date
-          }]));
+          // financeRecords'e kaydet (tutarı 0 olan boş kaydı atma)
+          if (amount > 0) {
+            db.setFinanceRecords((db.getFinanceRecords() || []).concat([{
+              id: String(t.id),
+              market: 'Trendyol',
+              type: String(t.transactionType || ttype),
+              amount,
+              description: desc,
+              date
+            }]));
+          }
           // Bildirim (sadece yatanlar için)
           if (ttype === 'WireTransfer' || ttype === 'IncomingTransfer') {
             tsent++;
@@ -509,6 +494,9 @@ function toIsoDate(d) {
 
 let lastOrderCheckTs = 0;
 let lastWindowClosedLogTs = 0;
+// Pazaryeri listesinde görünmeyen bekleyen barkodların "ilk görünmeme" anı (nid -> ts)
+const waAbsentSince = new Map();
+const WA_ABSENT_GUARD_MS = 5 * 60 * 1000;
 
 // Onaylanan SİPARİŞ NOTU şablonu (Epson Email Print basımı için).
 function buildOrderNote(f, o) {
@@ -543,12 +531,12 @@ function isWhatsAppSendWindow() {
   const mins = now.getHours() * 60 + now.getMinutes();
   if (day === 0) return false;
   if (day === 6) return mins >= 9 * 60 && mins < 15 * 60;
-  return mins >= 9 * 60 && mins < 16 * 60;
+  return mins >= 9 * 60 && mins < 17 * 60;
 }
 
 // Kargo gönderim SIRASI: kullanıcı isteği → önce Trendyol, sonra Hepsiburada, sonra idefix.
 // Aynı pazaryeri içinde sıra korunur (stabil sort); diğer pazaryerleri en sona eklenir.
-const WHATSAPP_MARKET_ORDER = ['Trendyol', 'Hepsiburada', 'idefix'];
+const WHATSAPP_MARKET_ORDER = ['Trendyol', 'Hepsiburada', 'idefix', 'N11'];
 function whatsappMarketPriority(market) {
   const idx = WHATSAPP_MARKET_ORDER.indexOf(market);
   return idx === -1 ? WHATSAPP_MARKET_ORDER.length : idx;
@@ -566,8 +554,54 @@ async function checkOrders() {
   const fresh = [];
   const allOrders = [];
   const cancelledIds = new Set();
+  const marketOkRuns = new Set(); // API fetch'i bu turda BAŞARILI olan pazarlar (hata=boş liste → silme yapma)
+
+  // İptal olan siparişin SATIŞ KAYDINI cirodan kaldır (tek sefer) ve KURAL'a göre davran:
+//  - Kargoya VERİLMEDEN iptal → stok yerine geri gelir (pazaryeri kendisi geri ekler; okumayla ekranda görünür).
+//  - Kargoya verildikten SONRA iptal → SADECE bildirim, stoka dokunulmaz.
+  async function removeCancelledSale(market, id) {
+    const rows = (db.getDailySales() || []).filter(s => s.market === market && String(s.orderNo) === String(id));
+    if (!rows.length) return false;
+    const ship = db.getShipment(market, id);
+    const kargoda = !!(ship && ship.shippedAt);
+    db.removeDailySales({ market, orderNo: id });
+    const items = rows.map(s => (s.barcode || '?') + ' x' + (s.qty || 0)).join(', ');
+    db.addLog('İptal edildi: ' + market + ' ' + id + ' — satış kaydı (ciro) geri alındı' + (kargoda ? ' [kargodan sonra]' : ' [kargoya verilmeden]'));
+    try {
+      if (kargoda) {
+        await sendTelegramText('İPTAL (kargodan SONRA) — ' + market + '\nSipariş no: ' + id +
+          '\nÜrünler: ' + items +
+          '\n\nBilgilendirme amaçlı; stokta bir işlem yapılmadı.');
+      } else {
+        await sendTelegramText('İPTAL (kargoya verilmeden) — ' + market + '\nSipariş no: ' + id +
+          '\nÜrünler: ' + items +
+          '\n\nSatış stoğu geri döndü (pazaryeri kendisi ekler; ekrandaki stok 15 sn içinde güncellenir).');
+      }
+    } catch (e) {
+      db.addLog('İptal bildirimi hatası: ' + e.message);
+    }
+    return true;
+  }
   const notified = new Set(db.getOrderNotifiedIds());
   const firstRun = notified.size === 0;
+
+  // SENKRON İZLEME: ürün eşitlenmediyse bir kez Telegram'a haber + gün sonu raporu.
+  try { await checkSyncHealthIssues(); } catch (e) { db.addLog('Senkron izleme hatası: ' + e.message); }
+  try {
+    const repCfg = db.getSettings().report || {};
+    // Gün sonu senkron sorun raporu GÜNDE YALNIZCA BİR KEZ gönderilir (restart'ta tekrarlanmaz).
+    if (repCfg.lastReportDate && repCfg.syncIssueReportDate !== localDayStr()) {
+      const yes = new Date(Date.now() - 24 * 3600 * 1000);
+      const yesKey = yes.getFullYear() + '-' + String(yes.getMonth() + 1).padStart(2, '0') + '-' + String(yes.getDate()).padStart(2, '0');
+      if (repCfg.lastReportDate === yesKey) {
+        await sendDailySyncIssueReport();
+        const cur = db.getSettings().report || {};
+        db.setSettings({ report: { ...cur, syncIssueReportDate: localDayStr() } });
+      }
+    }
+  } catch (e) {
+    db.addLog('Gün sonu senkron sorun raporu hatası: ' + e.message);
+  }
 
   // Hepsiburada OMS — siparişler PAKET (package) ucundan gelir; timespan ile (begindate/enddate 0 döner!)
   const hb = db.getSettings().hepsiburada || {};
@@ -582,10 +616,12 @@ async function checkOrders() {
       // timespan=336 → son 14 gün (dokümana göre packages ucu timespan kullanır)
       const url = 'https://oms-external.hepsiburada.com/packages/merchantid/' + encodeURIComponent(user) +
         '?timespan=336&limit=100&Offset=0';
-      const res = await fetch(url, { headers });
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(20000) });
       if (res.ok) {
+        marketOkRuns.add('Hepsiburada');
         const data = await res.json();
         const list = Array.isArray(data) ? data : ((data && data.items) || []);
+        const hbSeen = new Set();
         for (const o of list) {
           const id = String(o.orderNumber || o.packageNumber || o.id || '');
           if (!id) continue;
@@ -598,8 +634,10 @@ async function checkOrders() {
           // order için paketi olduğu gibi taşı (id = paket no; market öneki notified'da var)
           const order = { ...o, orderNumber: String(o.orderNumber || o.packageNumber || id), totalPrice: hbTotal, cargoTrackingNumber: cargoTrack, cargoProviderName: o.cargoCompany || 'Hepsiburada', desi: o.totalDeci || o.deci || 1, lines: Array.isArray(o.items) ? o.items : [] };
           const fid = String(o.orderNumber || o.packageNumber || id);
+          hbSeen.add(fid);
           if (isCancelledStatus(o.status)) {
             cancelledIds.add('Hepsiburada:' + fid);
+            removeCancelledSale('Hepsiburada', fid);
             continue;
           }
           allOrders.push({ market: 'Hepsiburada', id: fid, order });
@@ -610,10 +648,12 @@ async function checkOrders() {
             trackingNo: cargoTrack,
             status: o.status || o.currentStatus || o.packageStatus || '',
             statusDescription: o.statusDescription || '',
-            provider: o.cargoCompany || 'Hepsiburada'
+            provider: o.cargoCompany || 'Hepsiburada',
+            customerName: extractCustomerName('Hepsiburada', o)
           });
           await checkInvoiceStatus({ market: 'Hepsiburada', id: fid, order });
         }
+        markGoneAsDelivered('Hepsiburada', hbSeen, 3 * 24 * 3600 * 1000, function () { return false; });
       }
     } catch (e) {
       db.addLog('HB sipariş çekme hatası: ' + e.message);
@@ -625,6 +665,7 @@ async function checkOrders() {
   if (ix.apiKey && ix.apiSecret && ix.vendorId) {
     try {
       const shipments = await idefix.fetchOrders(ix);
+      marketOkRuns.add('idefix');
       for (const o of shipments) {
         const id = String(o.id || o.orderNumber || '');
         if (!id) continue;
@@ -636,6 +677,7 @@ async function checkOrders() {
         const order = { ...o, orderNumber: String(o.orderNumber || id), cargoTrackingNumber: ipsBarcode, cargoProviderName: o.cargoCompany || 'idefix', desi: 1, lines: Array.isArray(o.items) ? o.items : [] };
         if (isCancelledStatus(o.status)) {
           cancelledIds.add('idefix:' + id);
+          removeCancelledSale('idefix', id);
           continue;
         }
         allOrders.push({ market: 'idefix', id, order });
@@ -646,12 +688,63 @@ async function checkOrders() {
           trackingNo: ipsBarcode,
           status: o.status || '',
           statusDescription: o.statusDescription || '',
-          provider: o.cargoCompany || 'idefix'
+          provider: o.cargoCompany || 'idefix',
+          customerName: extractCustomerName('idefix', o)
         });
         await checkInvoiceStatus({ market: 'idefix', id, order });
       }
     } catch (e) {
       db.addLog('idefix sipariş çekme hatası: ' + e.message);
+    }
+  }
+
+  // N11 sipariş (SOAP DetailedOrderList). NOT: N11 sipariş API'si şu an bu anahtara açık değil
+  // (401/403/503 — ürün/stok ucu açık). Kod hazır; settings.n11.orderEnabled=true olunca devreye girer.
+  const n11c = db.getSettings().n11 || {};
+  if (n11c.appKey && n11c.appSecret && n11c.orderEnabled === true) {
+    try {
+      const n11Orders = await n11.fetchOrders(n11c);
+      marketOkRuns.add('N11');
+      for (const o of n11Orders) {
+        const id = String(o.orderNumber || o.id || '');
+        if (!id) continue;
+        if (isCancelledStatus(o.status)) {
+          cancelledIds.add('N11:' + id);
+          removeCancelledSale('N11', id);
+          continue;
+        }
+        const order = {
+          ...o,
+          orderNumber: id,
+          lines: o.lines || [],
+          cargoTrackingNumber: o.cargoTrackingNumber || '',
+          cargoProviderName: o.cargoProviderName || '',
+          customerName: ''
+        };
+        // Yalnızca YENİ siparişlerde alıcı detayı çek (adı nota yazmak için) — tek tek SOAP pahalı
+        if (!notified.has(id) && o._oid) {
+          try {
+            const b = await n11.fetchBuyer(n11c, o._oid);
+            order.customerName = b.fullName;
+            order.customerGsm = b.gsm;
+          } catch (e) {
+            db.addLog('N11 alıcı detay hatası: ' + e.message);
+          }
+        }
+        allOrders.push({ market: 'N11', id, order });
+        if (!notified.has(id)) fresh.push({ market: 'N11', id, order });
+        await trackShipment({
+          market: 'N11',
+          orderNo: id,
+          trackingNo: order.cargoTrackingNumber,
+          status: o.status || '',
+          provider: order.cargoProviderName,
+          customerName: order.customerName
+        });
+        await checkInvoiceStatus({ market: 'N11', id, order });
+      }
+    } catch (e) {
+      db.addLog('N11 sipariş çekme hatası: ' + e.message);
     }
   }
 
@@ -661,11 +754,13 @@ async function checkOrders() {
   if (ptt.apiKey && ptt.accessToken) {
     try {
       const pttOrders = await pttavm.fetchOrders(ptt);
+      marketOkRuns.add('PTT AVM');
       for (const o of pttOrders) {
         const id = String(o.id || o.orderNumber || '');
         if (!id) continue;
         if (isCancelledStatus(o.status)) {
           cancelledIds.add('PTT:' + id);
+          removeCancelledSale('PTT AVM', id);
           continue;
         }
         const order = { ...o, orderNumber: id, orders: [], items: o.lines || [], lines: o.lines || [] };
@@ -685,16 +780,21 @@ async function checkOrders() {
       const auth = 'Basic ' + Buffer.from(ty.apiKey + ':' + ty.apiSecret).toString('base64');
       const qs = new URLSearchParams({ startDate: String(startDate.getTime()), endDate: String(endDate.getTime()), page: '0', size: '100' });
       const res = await fetch('https://apigw.trendyol.com/integration/order/sellers/' + ty.sellerId + '/orders?' + qs, {
-        headers: { 'Authorization': auth, 'x-seller-id': String(ty.sellerId), 'User-Agent': String(ty.sellerId) + ' - SelfIntegration' }
+        headers: { 'Authorization': auth, 'x-seller-id': String(ty.sellerId), 'User-Agent': String(ty.sellerId) + ' - SelfIntegration' },
+        signal: AbortSignal.timeout(20000)
       });
       if (res.ok) {
+        marketOkRuns.add('Trendyol');
         const data = await res.json();
+        const tySeen = new Set();
         for (const o of (data && data.content) || []) {
           const id = String(o.orderNumber || o.id || '');
           if (!id) continue;
+          tySeen.add(id);
           // İptal/red edilmiş siparişleri BİLDİRİM ve WhatsApp kuyruğundan çıkar
           if (isCancelledStatus(o.status)) {
             cancelledIds.add('Trendyol:' + id);
+            removeCancelledSale('Trendyol', id);
             continue;
           }
           allOrders.push({ market: 'Trendyol', id, order: o });
@@ -704,17 +804,24 @@ async function checkOrders() {
             orderNo: id,
             trackingNo: o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '',
             status: o.status || '',
-            provider: o.cargoProviderName || ''
+            provider: o.cargoProviderName || '',
+            customerName: extractCustomerName('Trendyol', o)
           });
           await checkInvoiceStatus({ market: 'Trendyol', id, order: o });
         }
+        // Trendyol 7 günlük pencereden düşmüş (ama teslim/iptal olmayan) eski gönderiler teslim sayılır.
+        markGoneAsDelivered('Trendyol', tySeen, 7 * 24 * 3600 * 1000, function (st, desc) {
+          return /return|cancel|iade|edilemedi|red/i.test(String(st) + ' ' + String(desc));
+        });
       }
     } catch (e) {
       db.addLog('Trendyol sipariş çekme hatası: ' + e.message);
     }
   }
 
-  // Her yeni siparişi geçmişe kaydet (tekrar satın alma tespiti için)
+  // Her yeni siparişi geçmişe kaydet (tekrar satın alma tespiti için) +
+  // GÜN SONU RAPORU: satışlar artık SİPARİŞ üzerinden sayılır (stok düşüşüne gerek yok).
+  // Kullanıcı kuralı (05.09): rapor "bugünkü siparişler" ile birebir olsun.
   if (fresh.length) {
     for (const f of fresh) {
       const o = f.order || {};
@@ -735,6 +842,31 @@ async function checkOrders() {
           (o.shipmentAddress || {}).fullName || (o.customer || {}).name || '',
         barcodes
       });
+      // İlk çalıştırma (seed) GÜN SONU RAPORUNA işlenmez — orada geçmiş siparişler var,
+      // geçmişe satış yazmak eski raporları şişirirdi.
+      if (firstRun) continue;
+      // Sipariş satırlarını o sİPARİŞİN KENDİ GÜNÜNE satış olarak işle.
+      if (items.length) {
+        const oTsRaw = (typeof o.orderDate === 'number') ? o.orderDate : Date.parse(o.orderDate || o.createdAt || '');
+        const oTs = (!isNaN(oTsRaw) && oTsRaw > 0) ? oTsRaw : Date.now();
+        const tsIso = new Date(oTs).toISOString();
+        for (const li of items) {
+          const b = String(li.merchantSku || li.barcode || li.stockCode || '');
+          if (!b) continue;
+          const q = Math.max(0, Number(li.quantity || li.quantityPurchased || li.adet || li.urunAdedi || 1)) || 0;
+          if (q <= 0) continue;
+          const unit = Math.max(0, Number(li.lineUnitPrice || li.unitPrice || li.price || li.unitPriceAfterDiscount || 0)) || null;
+          db.addDailySale({
+            name: String(li.productName || li.name || b),
+            barcode: b,
+            market: f.market,
+            qty: q,
+            price: unit,
+            ts: tsIso,
+            orderNo: f.id
+          });
+        }
+      }
     }
     db.addOrderNotifiedIds(fresh.map(f => f.id));
   }
@@ -746,6 +878,8 @@ async function checkOrders() {
   }
 
   let sent = 0;
+  // Tekrar satın alma tespit edilen bu tur siparisleri hatirla (nota isaret koymak icin).
+  const repeatOrderIds = new Set();
   for (const f of fresh) {
     const o = f.order || {};
     const lines = ['YENI SIPARIS (' + f.market + ')', 'Siparis no: ' + f.id];
@@ -787,7 +921,9 @@ async function checkOrders() {
     try {
       const custAddr = o.shipmentAddress || o.shippingAddress || o.adres || {};
       const custKeyRaw = db.buildCustomerKey(o);
-      if (custKeyRaw && items.length) {
+      // Maskeli isimlerle (KVKK) tekrar satın alma tespiti YAPILMAZ — aynı key farklı müşterileri eşleştirir
+      const isMaskedKey = custKeyRaw && /^\*+/.test(custKeyRaw.replace(/\|/g, ''));
+      if (custKeyRaw && !isMaskedKey && items.length) {
         for (const li of items) {
           const bc = String(li.merchantSku || li.barcode || li.stockCode || '');
           if (!bc) continue;
@@ -813,6 +949,7 @@ async function checkOrders() {
               await notifier.notify('🔄 TEKRAR SATIN ALMA: ' + custLabel, html, txt);
               db.addLog('Tekrar satin alma: ' + custLabel + ' - ' + prodName + ' (ilk: ' + (prev.orderNo || '?') + ', ' + daysAgo + ' gun once)');
               db.setRepeatPurchasePending();
+              repeatOrderIds.add(f.id);
             } catch (e) {
               db.addLog('Tekrar satin alma bildirimi gonderilemedi: ' + e.message);
             }
@@ -824,6 +961,9 @@ async function checkOrders() {
     }
 
     // Sipariş notu yazıcıya (Epson Email Print, EL YAZISI) — printer.enabled ise otomatik basılır.
+    // KVKK maskesi: Trendyol yeni siparişte ismi BOŞ döndürür, sonra doldurur.
+    // KURAL (kullanıcı): isim yoksa baskı ERTELENİR (pend'ye eklenir); isim gelince otomatik basılır,
+    // 48 saatte isim gelmezse isimsiz tek kez basılıp kapanır.
     if ((db.getSettings().printer || {}).enabled) {
       const pid = f.market + ':' + f.id;
       if (!printer.printedIds().includes(pid)) {
@@ -834,20 +974,87 @@ async function checkOrders() {
             [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim() ||
             addr.fullName || [addr.firstName, addr.lastName].filter(Boolean).join(' ').trim() ||
             cust.name || cust.fullName || cust.firstName || '';
-          const cKargo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
-          const noteItems = items.map(li => ({
-            barcode: String(li.merchantSku || li.barcode || li.stockCode || ''),
-            name: String(li.productName || li.name || '')
-          }));
-          const pr = await printer.printOrderNote({ market: f.market, name: cName, kargo: cKargo, orderNo: f.id, items: noteItems });
-          if (pr.sent) printer.markPrinted(pid);
+          // Trendyol KVKK maskesi: isimde '*' olan her hali (örn. "E*** N***" yarım maske) "boş" say —
+          // yalnızca TAMAMI '*' olanı değil, İÇİNDE '*' geçen herhangi bir ismi gerçek isim kabul etme.
+          // (gerçek isim sonra gelir, gelince otomatik basılır)
+          const isMasked = cName && cName.indexOf('*') !== -1;
+          if (!cName || isMasked) {
+            printer.addPendingName({ pid, market: f.market, id: f.id, ts: Date.now(), repeat: repeatOrderIds.has(f.id) });
+            db.addLog('Baski ertelendi (isim bekleniyor): ' + pid);
+          } else {
+            const cKargo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
+            const noteItems = items.map(li => ({
+              barcode: String(li.merchantSku || li.barcode || li.stockCode || ''),
+              name: String(li.productName || li.name || '')
+            }));
+            const pr = await printer.printOrderNote({ market: f.market, name: cName, kargo: cKargo, orderNo: f.id, items: noteItems, repeat: repeatOrderIds.has(f.id) });
+            if (pr.sent || pr.skipped) printer.markPrinted(pid);
+          }
         } catch (e) {
           db.addLog('Yazici siparis notu hatasi: ' + e.message);
         }
       }
     }
   }
+
+  // İsmi sonradan dolan siparişler: bekleyenleri tara — isim geldiyse bas, 48s geçtiyse isimsiz bir kez bas.
+  if ((db.getSettings().printer || {}).enabled) {
+    for (const pend of printer.pendingNames()) {
+      if (!pend || !pend.pid || printer.printedIds().includes(pend.pid)) continue;
+      const fo = allOrders.find(x => String(x.market) + ':' + String(x.id) === pend.pid && x.order);
+      let name = '';
+      let kargo = '';
+      let pendItems = [];
+      if (fo && fo.order) {
+        name = extractCustomerName(fo.market, fo.order);
+        kargo = fo.order.cargoTrackingNumber || fo.order.trackingNumber || fo.order.shipmentId || '';
+        pendItems = (fo.order.lines || fo.order.items || []).map(li => ({
+          barcode: String(li.merchantSku || li.barcode || li.stockCode || ''),
+          name: String(li.productName || li.name || '')
+        }));
+      }
+      const cokBekledi = Date.now() - (Number(pend.ts) || 0) >= 48 * 3600 * 1000;
+      // Maskeli isim (KVKK) gerçek isim değildir — İÇİNDE '*' geçen (yarım maske dahil) beklet;
+      // sadece 48s dolduysa isimsiz bas
+      const isMaskedName = name && name.indexOf('*') !== -1;
+      if ((!name || isMaskedName) && !cokBekledi) continue;
+      try {
+        const pr = await printer.printOrderNote({ market: pend.market, name, kargo, orderNo: pend.id, items: pendItems, repeat: !!pend.repeat });
+        if (pr.sent || pr.skipped) {
+          printer.markPrinted(pend.pid);
+          printer.removePendingName(pend.pid);
+          db.addLog(name ? 'Musteri adi geldi, not basildi: ' + pend.pid : 'Baski (isim 48s bulunamadi) isimsiz basildi: ' + pend.pid);
+        }
+      } catch (e) {
+        db.addLog('Yazici bekleyen not hatasi: ' + e.message);
+      }
+    }
+  }
   if (fresh.length) db.addLog(fresh.length + ' yeni sipariş bulundu, ' + sent + ' bildirim gönderildi');
+
+  // BARKOD YAZICI: takip numarası ilk görüldüğünde etiketi BASAR.
+  // Zaman penceresine bağlı değil (WhatsApp'tan bağımsız); yazıcı her an basabilir.
+  // Ayar: settings.barkodYazici = { enabled, host, port } (host = yazıcıya açılan adres)
+  {
+    const byz = require('./barkodYazici');
+    if (byz.isConfigured()) {
+      const printed = byz.printedSet();
+      let byzChanged = false;
+      const sortedByz = sortByMarketPriority(allOrders, f => f.market);
+      for (const f of sortedByz) {
+        const o = f.order || {};
+        const trackingNo = o.cargoTrackingNumber || o.trackingNumber || o.shipmentId || '';
+        if (!trackingNo) continue;
+        if (printed.has(trackingNo)) continue;
+        const res = await byz.printCargoLabel({ trackingNo, market: f.market || 'Pazaryeri', desi: o.desi || o.totalDeci || 1 });
+        if (res.sent) {
+          printed.add(trackingNo);
+          byzChanged = true;
+        }
+      }
+      if (byzChanged) byz.savePrinted(Array.from(printed));
+    }
+  }
 
   // WhatsApp barkod gönderimi — ZAMAN PENCERELİ + KUYRUKLU.
   // Kural (kargocu anlaşması, kullanıcı isteği):
@@ -886,6 +1093,57 @@ async function checkOrders() {
       for (const p of pending) if (p && p.nid) seenCargo.add(String(p.nid));
     }
 
+    let waChanged = false;
+    // 05.09 (kullanıcı isteği): İPTAL edilen siparişler kuyrukta tutulmasın —
+    // pencere açık/kapalı fark etmeksizin HEMEN silinir (gönderim öncesi koruma).
+    {
+      const once = pending.length;
+      pending = pending.filter(p => !(p && cancelledIds.has(p.nid)));
+      if (pending.length < once) {
+        waChanged = true;
+        db.addLog('İptal edilen ' + (once - pending.length) + ' barkod WhatsApp kuyruğundan silindi');
+      }
+    }
+
+    // 05.09 (kullanıcı isteği): Bazı pazaryerleri (Hepsiburada) iptal paketini listeden TAMAMEN çeker,
+    // "iptal" durumu hiç görünmez → bekleyen barkod şoföre gitmesin. Bu yüzden pazaryeri listesinde
+    // uzun süredir görünmeyen (iptal/teslim olmuş) bekleyen barkodlar kuyruktan silinir.
+    {
+      const allSeenNow = new Set(allOrders.map(f => String(f.market) + ':' + String(f.id)));
+      const nowTs = Date.now();
+      const keepP = [];
+      const dropP = [];
+      for (const p of pending) {
+        const key = String((p && p.nid) || '');
+        if (!key) { keepP.push(p); continue; }
+        const mk = String((p && p.market) || '');
+        // API'ye erişilemedi (hata) → boş liste güvenilmez: bu tur silme sayılmaz, süre de işlemez.
+        if (mk && !marketOkRuns.has(mk)) {
+          waAbsentSince.delete(key);
+          keepP.push(p);
+          continue;
+        }
+        const present = allSeenNow.has(key) || cancelledIds.has(key);
+        if (present) {
+          waAbsentSince.delete(key);
+          keepP.push(p);
+        } else {
+          const since = waAbsentSince.get(key) || nowTs;
+          waAbsentSince.set(key, since);
+          if (nowTs - since >= WA_ABSENT_GUARD_MS) {
+            dropP.push(p);
+          } else {
+            keepP.push(p);
+          }
+        }
+      }
+      if (dropP.length) {
+        waChanged = true;
+        pending = keepP;
+        db.addLog('Pazaryeri listesinde görünmeyen ' + dropP.length + ' bekleyen barkod kuyruktan silindi (iptal/teslim oldu): ' + dropP.map(p => p.nid).join(', '));
+      }
+    }
+
     // 1) Bekleyen kuyruktaki siparişleri gönder (telefon açılmış/bağlanmış olabilir)
     //    Sıra: önce Trendyol, sonra Hepsiburada, sonra idefix (kullanıcı isteği)
     //    GÖNDERMEDEN ÖNCE: canlı sipariş durumuna göre iptal edilenler kuyruktan silinir.
@@ -914,6 +1172,7 @@ async function checkOrders() {
         }
       }
       pending = remaining;
+      waChanged = true;
     }
 
     // 2) Yeni tespit edilen siparişler: pencere içindeyse hemen; dışındaysa kuyruğa.
@@ -952,7 +1211,7 @@ async function checkOrders() {
 
     // 3) Sonsuz büyümesin, güncelliği koru
     pending = pending.filter(p => !waNotified.has(p.nid)).slice(-300);
-    if (win || pending.length > 0) {
+    if (waChanged || win || pending.length > 0) {
       db.setSettings({ whatsapp: { ...wcfgAll, notifiedOrderIds: Array.from(waNotified).slice(-500), pendingOrderIds: pending, seenCargo: Array.from(seenCargo).slice(-3000) } });
     }
 
@@ -1139,15 +1398,35 @@ async function checkInvoiceStatus({ market, id, order }) {
   }
 }
 
-async function trackShipment({ market, orderNo, trackingNo, status, statusDescription, provider }) {
+function extractCustomerName(market, o) {
+  if (!o) return '';
+  const addr = o.shipmentAddress || o.shippingAddress || o.adres || {};
+  const cust = o.customer || {};
+  const n = o.customerName || o.buyerName || o.recipientName || o.customerContactName ||
+    [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim() ||
+    addr.fullName || [addr.firstName, addr.lastName].filter(Boolean).join(' ').trim() ||
+    cust.name || cust.fullName || '';
+  return String(n || '').trim();
+}
+
+async function trackShipment({ market, orderNo, trackingNo, status, statusDescription, provider, customerName }) {
   if (!trackingNo || !orderNo) return;
   // Teslim durumu bilinemeyen siparişi izleme (yanlış "5 gün" alarmı üretmemek için)
   const st = String(status || '').toLowerCase();
   const stDesc = String(statusDescription || '').toLowerCase();
   if (!st && !stDesc) return;
   const now = Date.now();
-  const delivered = st.indexOf('deliver') !== -1 || st === 'delivered' ||
-    stDesc.indexOf('deliver') !== -1 || stDesc.indexOf('teslim') !== -1;
+  // 05.09 DÜZELTME: teslim tespiti sağlamlaştırıldı.
+  // "undelivered/deliveryfailed/iade" TESLİM DEĞİL; "kargoya teslim edildi" değil, müşteri teslimi.
+  const raw = st + ' ' + stDesc;
+  const words = raw.replace(/_/g, ' ').split(/[^a-zçğıöşü0-9]/).filter(Boolean);
+  const undeliv = words.includes('undelivered') || words.includes('deliveryfailed') ||
+    words.includes('iade') || words.includes('edilemedi') || words.includes('returned');
+  const engDeliver = (words.includes('delivered') || words.includes('deliver')) && !words.includes('un');
+  const trkDeliver = words.includes('teslimedildi') ||
+    (words.includes('teslim') && words.includes('edildi') && !words.includes('kargo') &&
+      !words.includes('kargoya') && !words.includes('nakliy') && !words.includes('saticiya'));
+  const delivered = (engDeliver || trkDeliver) && !undeliv;
   const old = db.getShipment(market, orderNo);
   const rec = {
     orderNo: String(orderNo),
@@ -1156,6 +1435,7 @@ async function trackShipment({ market, orderNo, trackingNo, status, statusDescri
     provider: String(provider || ''),
     status: st,
     statusDescription: stDesc,
+    customerName: String(customerName || (old && old.customerName) || ''),
     shippedAt: (old && old.shippedAt) || now,
     delivered: delivered || !!(old && old.delivered),
     deliveredAt: delivered ? now : (old && old.deliveredAt) || null,
@@ -1166,6 +1446,33 @@ async function trackShipment({ market, orderNo, trackingNo, status, statusDescri
   }
 
   db.upsertShipment(rec);
+}
+
+// 05.09: Bazı pazaryerleri (Hepsiburada) API'den SADECE AÇIK/aktif paketleri döndürür;
+// teslim edilen paket listeden kaybolur → sistem "delivered" göremediği için hep "Kargoda" kalırdı.
+// Çözüm: o pazarda X gün önce kargoya verilmiş ama bu sorguda HİÇ görünmeyen gönderiler teslim sayılır.
+function markGoneAsDelivered(market, seenIds, minAgeMs, isExcluded) {
+  const now = Date.now();
+  let changed = 0;
+  for (const s of db.getShipments()) {
+    if (s.market !== market || s.delivered) continue;
+    if (seenIds.has(String(s.orderNo))) continue;
+    const age = now - (Number(s.shippedAt) || 0);
+    if (age < minAgeMs) continue;
+    if (typeof isExcluded === 'function' && isExcluded(String(s.status || ''), String(s.statusDescription || ''))) continue;
+    s.delivered = true;
+    s.deliveredAt = s.deliveredAt || now;
+    s.deliveredKind = 'deduced'; // listede kaybolma yüzünden — teslim VEYA iptal olabilir
+    db.upsertShipment(s);
+    changed++;
+  }
+  if (changed) {
+    db.addLog(market + ': listeden kaybolan ' + changed + ' eski gönderim teslim edildi sayıldı');
+    try {
+      sendTelegramText('BİLGİ (' + market + '): listeden kaybolan ' + changed + ' gönderim "Kapandı" olarak işaretlendi (teslim veya iptal olabilir). Stok işlemi yapılmadı.');
+    } catch (e) { /* sessiz */ }
+  }
+  return changed;
 }
 
 const lastStockWrite = new Map();
@@ -1300,7 +1607,7 @@ async function getRecentMarketOrderQty(kind) {
     // saatler sonra gelen stale 0 okumasını "satış" olarak onaylıyordu → yankı satislar)
     const url = 'https://oms-external.hepsiburada.com/packages/merchantid/' + encodeURIComponent(user) +
       '?timespan=4&limit=100&Offset=0';
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, { headers, signal: AbortSignal.timeout(20000) });
     if (!res.ok) throw new Error('HB OMS ' + res.status);
     const data = await res.json();
     list = Array.isArray(data) ? data : ((data && data.items) || []);
@@ -1308,6 +1615,23 @@ async function getRecentMarketOrderQty(kind) {
   } else if (kind === 'idefix' && cfg.apiKey && cfg.apiSecret && cfg.vendorId) {
     list = await idefix.fetchOrders(cfg, {});
     usable = Array.isArray(list);
+  } else if (kind === 'trendyol' && cfg.apiKey && cfg.apiSecret && cfg.sellerId) {
+    // 05.09 (kullanici kurali): Trendyol dususu de siparisle teyit edilir.
+    const auth = 'Basic ' + Buffer.from(cfg.apiKey + ':' + cfg.apiSecret).toString('base64');
+    const qs = new URLSearchParams({
+      startDate: String(Date.now() - ORDER_VERIFY_WINDOW_MS),
+      endDate: String(Date.now()),
+      page: '0',
+      size: '100'
+    });
+    const res = await fetch('https://apigw.trendyol.com/integration/order/sellers/' + cfg.sellerId + '/orders?' + qs, {
+      headers: { 'Authorization': auth, 'x-seller-id': String(cfg.sellerId), 'User-Agent': String(cfg.sellerId) + ' - SelfIntegration' },
+      signal: AbortSignal.timeout(20000)
+    });
+    if (!res.ok) throw new Error('Trendyol siparis ' + res.status);
+    const data = await res.json();
+    list = (data && data.content) || [];
+    usable = true;
   } else {
     return null;
   }
@@ -1337,6 +1661,7 @@ function marketHasOrderVerify(kind) {
   if (kind === 'pttavm') return !!(cfg.apiKey && cfg.accessToken);
   if (kind === 'hepsiburada') return !!(cfg.merchantId && cfg.password);
   if (kind === 'idefix') return !!(cfg.apiKey && cfg.apiSecret && cfg.vendorId);
+  if (kind === 'trendyol') return !!(cfg.apiKey && cfg.apiSecret && cfg.sellerId);
   return false;
 }
 async function marketOrderConfirmsSale(kind, barcode) {
@@ -1461,7 +1786,8 @@ async function syncSharedStock() {
     // Her pazarin qty degerini, o pazardaki siparis toplamiyla sinirla.
     if (shared !== null && shared !== undefined) {
       for (const e of entries) {
-        if (e.kind === 'trendyol') continue; // Trendyol kendi stogunun sahibidir
+        // KULLANICI KURALI (05.09): Trendyol DAHIL her pazarda stok dususu ancak
+        // siparis adedi kadar olur; siparis yoksa dusmez.
         const drop = Number(shared) - Number(e.qty);
         if (drop <= 0) continue; // dusus yok veya artis var
         try {
@@ -1760,4 +2086,185 @@ async function pushNewProducts() {
   return { created, errors };
 }
 
-module.exports = { syncMarketplace, checkStocks, checkFinancialTransfers, checkQuestions, syncSharedStock, pushNewProducts, checkOrders, markStockAdjustment, MARKETS, kindLabel, marketConfiguredKinds };
+// ========= SENKRON İZLEME (kullanıcı isteği; senkron KAPALIYKEN de çalışır) =========
+// Başka bir sistem eşitlemeyi yönetiyor; bazen ürünler eşitlenmiyor. Amacımız:
+// satışı olan bir ürün ~2 dk sonra pazaryerleri arasında EŞİTLENMEMİŞ ise bir kez haber vermek
+// (sürekli yazmaz) ve gün sonunda bu konunun ayrı raporunu göndermek.
+const SYNC_ISSUE_CONFIRM_MS = 2 * 60 * 1000;
+const SOLD_RECENT_WINDOW_MS = 60 * 60 * 1000;
+const NEW_PRODUCT_WINDOW_MS = 2 * 60 * 60 * 1000;
+const syncHealthMarkets = ['trendyol', 'hepsiburada', 'pttavm', 'idefix', 'n11'];
+const syncIssueSince = new Map(); // barcode -> { first, sig, reported }
+let syncIssueToday = [];
+let syncIssueTodayDay = '';
+let lastSyncHealthCheckTs = 0;
+let lastSyncReportSentDay = '';
+
+function localDayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+async function sendTelegramText(text) {
+  try {
+    const tg = db.getSettings().telegram;
+    if (!(tg && tg.enabled && tg.botToken && tg.chatId)) return false;
+    const res = await fetch('https://api.telegram.org/bot' + tg.botToken + '/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: String(tg.chatId), text }),
+      signal: AbortSignal.timeout(15000)
+    });
+    return res.ok;
+  } catch (e) {
+    db.addLog('Senkron izleme Telegram hatası: ' + e.message);
+    return false;
+  }
+}
+
+function marketLabelS(m) {
+  return { trendyol: 'Trendyol', hepsiburada: 'Hepsiburada', pttavm: 'PTT AVM', idefix: 'idefix', n11: 'N11' }[m] || m;
+}
+
+async function checkSyncHealthIssues() {
+  const now = Date.now();
+  if (now - lastSyncHealthCheckTs < 15 * 1000) return { skipped: true };
+  lastSyncHealthCheckTs = now;
+
+  // İZLENENLER: (a) son 60 dk'da SATIŞI olan + (b) son 120 dk'da yeni EKLENEN/güncellenen ürünler.
+  const monitored = new Set();
+  for (const s of (db.getDailySales() || [])) {
+    const t = new Date(s.ts || s.date).getTime();
+    if (!isNaN(t) && now - t <= SOLD_RECENT_WINDOW_MS && (s.barcode || '')) monitored.add(String(s.barcode).toLowerCase());
+  }
+  for (const p of db.getProducts()) {
+    const ca = new Date(p.createdAt || 0).getTime();
+    if (!isNaN(ca) && now - ca <= NEW_PRODUCT_WINDOW_MS && (p.barcode || '')) monitored.add(String(p.barcode).toLowerCase());
+  }
+  if (monitored.size === 0) {
+    for (const k of syncIssueSince.keys()) syncIssueSince.delete(k);
+    return { checked: 0 };
+  }
+
+  const day = localDayStr();
+  if (day !== syncIssueTodayDay) {
+    syncIssueTodayDay = day;
+    syncIssueToday = [];
+  }
+
+  let notified = 0;
+  for (const p of db.getProducts()) {
+    const bc = String(p.barcode || '').toLowerCase();
+    if (!monitored.has(bc)) { syncIssueSince.delete(bc); continue; }
+    const vals = {};
+    for (const k of syncHealthMarkets) {
+      const v = p[k + 'Stock'];
+      if (v !== null && v !== undefined && Number.isFinite(Number(v))) vals[k] = Number(v);
+    }
+    const keys = Object.keys(vals);
+    if (keys.length === 0) { syncIssueSince.delete(bc); continue; }
+
+    let mismatch = keys.length >= 2 && new Set(keys.map(k => vals[k])).size >= 2;
+    let detail = keys.slice().sort().map(k => marketLabelS(k) + ': ' + vals[k]).join(' — ');
+    if (!mismatch && keys.length === 1 && p.pushed) {
+      // Sadece 1 pazarda görünüyor ama diğer pazarlara PUSH edilmiş (eklenmemiş/eşitlenmemiş)
+      const missing = syncHealthMarkets.filter(k => !vals[k] && p.pushed[k] === true);
+      if (missing.length > 0) {
+        mismatch = true;
+        detail = detail + ' — EKSİK: ' + missing.map(marketLabelS).join(', ');
+      }
+    }
+    if (!mismatch) { syncIssueSince.delete(bc); continue; }
+
+    const sig = keys.slice().sort().map(k => k + '=' + vals[k]).join(',') + '#' + String(!!detail);
+    const st = syncIssueSince.get(bc);
+    if (!st) {
+      syncIssueSince.set(bc, { first: now, sig, reported: false });
+      continue;
+    }
+    if (st.sig !== sig) {
+      st.first = now;
+      st.sig = sig;
+      st.reported = false;
+      continue;
+    }
+    if (!st.reported && now - st.first >= SYNC_ISSUE_CONFIRM_MS) {
+      st.reported = true;
+      const msg = 'SENKRON SORUNU (' + p.barcode + ')\n\n' + detail +
+        '\n\n2 dakikadır eşitlenmedi. (Tekrar bildirilmeyecek, düzeldiğinde izleme sıfırlanır.)';
+      await sendTelegramText(msg);
+      syncIssueToday.push({ barcode: p.barcode, detail, ts: new Date().toISOString() });
+      db.addLog('Senkron sorunu bildirildi: ' + p.barcode);
+      notified++;
+    }
+  }
+  return { checked: monitored.size, notified };
+}
+
+function valuesOf(v) {
+  return v;
+}
+
+async function sendDailySyncIssueReport() {
+  try {
+    const day = localDayStr();
+    if (day !== syncIssueTodayDay) syncIssueToday = [];
+    const lines = syncIssueToday.map(x => {
+      const t = new Date(x.ts);
+      const saat = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+      return '(' + saat + ') ' + x.barcode + '\n   ' + x.detail;
+    });
+    const text = 'GÜN SONU SENKRON SORUN RAPORU\n--------------------------------\n' +
+      (lines.length ? lines.join('\n') + '\n\nToplam sorun: ' + lines.length : 'Bugün senkron sorunu tespit edilmedi.');
+    await sendTelegramText(text);
+    db.addLog('Gün sonu senkron sorun raporu gönderildi (' + lines.length + ' sorun)');
+    syncIssueToday = [];
+    syncIssueSince.clear();
+    return { sent: true, count: lines.length };
+  } catch (e) {
+    db.addLog('Gün sonu senkron sorun raporu hatası: ' + e.message);
+    return { error: e.message };
+  }
+}
+
+// 05.09 (kullanıcı isteği): SADECE GÖRÜNTÜLEME için salt-okuma stok yenilemesi.
+// Senkron KAPALIYKEN her ~1 dk çağrılır: pazaryerlerinden stoklar OKUNUR ve DB'deki gösterge
+// güncellenir. Pazaryerine HİÇBİR ŞEY YAZILMAZ; satış tespiti/bildirim/senkron çalışmaz.
+let lastRefreshErrTs = 0;
+async function refreshStocksReadOnly() {
+  const kinds = marketConfiguredKinds();
+  const now = new Date().toISOString();
+  let updated = 0;
+  const errors = [];
+  for (const kind of kinds) {
+    try {
+      const stockMap = await fetchMarketStockMap(kind);
+      for (const [barcode, qty] of stockMap.entries()) {
+        let p = db.findProductByBarcode(barcode);
+        if (!p) p = db.getProducts().find(x => x.idefixBarcode === barcode) || null;
+        if (!p && kind === 'idefix') {
+          const plain = String(barcode).replace(/^0+/, '');
+          p = db.getProducts().find(x => normalizeBarcodeKey(x.barcode) === normalizeBarcodeKey(plain)) || null;
+        }
+        if (!p) continue;
+        const upd = { [stockField(kind)]: Number(qty), lastSeenAt: now, lastSync: now };
+        if (kind === 'trendyol') upd.sharedStock = Number(qty);
+        db.updateProduct(p.id, upd);
+        updated++;
+      }
+    } catch (e) {
+      marketFailed(kind, e.message);
+      errors.push(kindLabel(kind) + ': ' + e.message);
+    }
+  }
+  if (errors.length) {
+    const k = Date.now();
+    if (k - lastRefreshErrTs > 5 * 60 * 1000) {
+      lastRefreshErrTs = k;
+      db.addLog('Stok yenileme (salt okuma) kısmi hatalar: ' + errors.join(' | '));
+    }
+  }
+  return { updated, errors };
+}
+
+module.exports = { syncMarketplace, checkStocks, checkFinancialTransfers, checkQuestions, syncSharedStock, pushNewProducts, checkOrders, markStockAdjustment, refreshStocksReadOnly, checkSyncHealthIssues, sendDailySyncIssueReport, MARKETS, kindLabel, marketConfiguredKinds };

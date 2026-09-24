@@ -15,6 +15,7 @@ const barcode = require('./src/barcode');
 const whatsapp = require('./src/whatsapp');
 const siralama = require('./src/siralama');
 const cron = require('node-cron');
+const costr = require('./src/costr');
 const noteRender = require('./src/noteRender');
 const printer = require('./src/printer');
 
@@ -150,9 +151,60 @@ app.delete('/api/products/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// Surukle-birak ile urun siralamasi (panel)  sirali barkod listesi yollar, sortOrder kaydedilir.
+app.post('/api/products/order', (req, res) => {
+  try {
+    const list = Array.isArray(req.body && req.body.barcodes) ? req.body.barcodes : [];
+    let n = 0;
+    for (const b of list) {
+      const p = db.findProductByBarcode(String(b));
+      if (p) {
+        db.updateProduct(p.id, { sortOrder: ++n });
+      }
+    }
+    db.addLog('Urun siralamasi kaydedildi: ' + n + ' urun');
+    res.json({ ok: true, saved: n });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Kargo hareketleri (gonderilen siparislerin takibi)
 app.get('/api/shipments', (req, res) => {
   res.json(db.getShipments());
+});
+
+app.post('/api/shipments/reconcile', (req, res) => {
+  try {
+    const list = db.getShipments();
+    const orderHistoryNames = new Map();
+    for (const h of db.getOrderHistory()) orderHistoryNames.set(String(h.market) + ":" + String(h.orderNo), (h.customerName || ""));
+    let deliveredCount = 0;
+    let changed = 0;
+    const wordsOf = (raw) => String(raw || '').replace(/_/g, ' ').toLowerCase().split(/[^a-z0-9]/).filter(Boolean);
+    for (const s of list) {
+      const words = wordsOf((s.status || '') + ' ' + (s.statusDescription || ''));
+      const undeliv = words.includes('undelivered') || words.includes('deliveryfailed') || words.includes('iade') || words.includes('edilemedi') || words.includes('returned');
+      const engD = (words.includes('delivered') || words.includes('deliver')) && !words.includes('un');
+      const trkD = words.includes('teslimedildi') || (words.includes('teslim') && words.includes('edildi') && !words.includes('kargo') && !words.includes('kargoya') && !words.includes('nakliy') && !words.includes('saticiya'));
+      const isDel = (engD || trkD) && !undeliv;
+      const wasDel = !!s.delivered;
+      s.delivered = isDel || wasDel;
+      if (isDel && !s.deliveredAt) s.deliveredAt = Date.now();
+      if (s.delivered !== wasDel) changed++;
+      if (s.delivered) deliveredCount++;
+      if (!s.customerName) {
+        const ohKey = String(s.market) + ':' + String(s.orderNo);
+        const ohName = orderHistoryNames.get(ohKey);
+        if (ohName) s.customerName = ohName;
+      }
+      db.upsertShipment(s);
+    }
+    db.addLog('Kargo durum kontrolu: ' + list.length + ' kayit, teslim=' + deliveredCount + ', degisen=' + changed);
+    res.json({ total: list.length, delivered: deliveredCount, changed });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // Tekrar satin alma flag (buton yanipti sonmesi icin)
@@ -368,6 +420,57 @@ app.get('/api/finance/summary', (req, res) => {
   res.json({ mode, start: sKey, end: eKey, ...summary });
 });
 
+app.get('/api/finance/payouts', (req, res) => {
+  try {
+    const days = Math.min(90, Math.max(7, Number(req.query.days) || 60));
+    const settings = db.getSettings();
+    const real = (db.getFinanceRecords() || [])
+      .filter(r => Number(r.amount) > 0)
+      .map(r => ({ date: r.date || '', market: r.market || 'Trendyol', type: r.type || 'Ostur', amount: Number(r.amount) || 0, description: r.description || '' }))
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const cutoffKey = db.localDayKey(cutoff);
+    const sales = (db.getDailySales() || []).filter(x => (x.date || '') >= cutoffKey);
+    const expected = [];
+    const seenShip = new Set();
+    let totalNet = 0;
+    for (const x of sales) {
+      const qty = Math.max(0, Number(x.qty) || 0);
+      const unit = Number(x.price) || 0;
+      if (qty <= 0) continue;
+      const gross = Math.round(qty * unit * 100) / 100;
+      if (gross <= 0) continue;
+      const mCfg = (settings.cost || {})[x.market] || {};
+      const commPct = Number(mCfg.commissionPercent) || 0;
+      const vatPct = Number(mCfg.vatPercent) || 0;
+      const fee = Number(mCfg.fee) || 0;
+      const shipping = Number(mCfg.shipping) || 0;
+      const commission = gross * commPct / 100;
+      const vat = gross * vatPct / 100;
+      const feeTotal = fee * qty;
+      const shipKey = String(x.market) + '|' + ((x.orderNo && String(x.orderNo)) || ('ts:' + x.ts));
+      const shipForThis = (!seenShip.has(shipKey) && shipping > 0) ? shipping : 0;
+      seenShip.add(shipKey);
+      const net = Math.round((gross - commission - vat - feeTotal - shipForThis) * 100) / 100;
+      totalNet += net;
+      expected.push({
+        date: x.date || '',
+        market: x.market || '',
+        barcode: x.barcode || '',
+        name: x.name || '',
+        qty,
+        gross,
+        net
+      });
+    }
+    expected.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    res.json({ real, expected, totalNet: Math.round(totalNet * 100) / 100, generatedAt: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Pazar yeri bazinda yatmis paralar (financeRecords)
 app.get('/api/finance/deposits', (req, res) => {
   const recs = db.getFinanceRecords().slice().reverse();
@@ -428,6 +531,42 @@ app.put('/api/settings', (req, res) => {
   scheduleCron();
   scheduleSiralama();
   res.json(settings);
+});
+
+app.post('/api/cost-sync', async (req, res) => {
+  try {
+    const r = await costr.syncCostRates();
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ---- Barkod etiketi yazıcısı (kargo) ----
+app.get('/api/barkod-yazici/status', (req, res) => {
+  const bz = require('./src/barkodYazici');
+  const s = bz.cfg();
+  res.json({ enabled: !!(s.enabled), host: s.host || '', port: Number(s.port) || 9100, printedCount: Array.isArray(s.copiedTrackings) ? s.copiedTrackings.length : 0 });
+});
+
+app.post('/api/barkod-yazici/test', async (req, res) => {
+  try {
+    const bz = require('./src/barkodYazici');
+    const no = String((req.body && req.body.trackingNo) || '112181634592219').trim();
+    const r = await bz.printCargoLabel({ trackingNo: no, market: 'TEST', desi: 1 });
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/stocks/refresh', async (req, res) => {
+  try {
+    const r = await sync.refreshStocksReadOnly();
+    res.json(r);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ---- Log ----
@@ -1128,7 +1267,38 @@ function scheduleSiralama() {
 }
 let siralamaRunning = false;
 
-const port = process.env.PORT || 3000;
+// Haftal1k kesinti oranlar1: her Pazartesi 06:00 pazaryerlerinden komisyon/KDV �ekilir.
+let costJob = null;
+function scheduleCostRates() {
+  if (costJob) {
+    costJob.stop();
+    costJob = null;
+  }
+  costJob = cron.schedule('0 6 * * 1', () => {
+    costr.syncCostRates()
+      .then(r => db.addLog('Haftal1k kesinti g�ncellemesi: ' + (r.updated && r.updated.length ? r.updated.join(', ') : 'dei_iklik yok')))
+      .catch(e => db.addLog('Haftal1k kesinti g�ncelleme hatas1: ' + e.message));
+  });
+  db.addLog('Kesinti oranlar1 haftal1k g�ncelleme planland1: her Pazartesi 06:00');
+}
+
+
+
+// Stok yenileme (salt okuma): senkron KAPALIYKEN her 60 sn'de pazaryerlerinden stok okur,
+// sadece DB gostergesini gunceller. Eslitleme/uretim yapmaz.
+let stockRefreshTimer = null;
+let stockRefreshing = false;
+function scheduleStockRefresh() {
+  if (stockRefreshTimer) clearInterval(stockRefreshTimer);
+  stockRefreshTimer = setInterval(() => {
+    if (stockRefreshing) return;
+    stockRefreshing = true;
+    sync.refreshStocksReadOnly()
+      .catch(e => db.addLog('Stok yenileme hatasi: ' + e.message))
+      .finally(() => { stockRefreshing = false; });
+  }, 15 * 1000);
+  db.addLog('Stok yenileme (salt okuma) planlandi: her 15 saniyede bir');
+}const port = process.env.PORT || 3000;
 
 async function start() {
   await backup.restore();
@@ -1144,6 +1314,9 @@ async function start() {
   db.addLog('Uygulama başlatıldı (port ' + port + ')');
   scheduleCron();
   scheduleSiralama();
+  scheduleCostRates();
+  scheduleStockRefresh();
+
   telegramBot.start();
   if ((db.getSettings().whatsapp || {}).enabled) {
     whatsapp.start();

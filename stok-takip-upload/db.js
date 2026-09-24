@@ -26,6 +26,7 @@ function defaultData() {
       sepet: { enabled: true },
       siralama: { enabled: true, everyHours: 2, keyword: 'istavrit çaparisi', markets: ['hepsiburada', 'idefix'] },
       printer: { enabled: false, emailPrint: '', from: '', password: '', smtpHost: 'smtp-mail.outlook.com', smtpPort: 587, printedOrderIds: [], coupons: {} },
+      barkodYazici: { enabled: false, host: '', port: 9100, copiedTrackings: [] },
       ignoreBarcodes: [],
       productPush: {
         enabled: false,
@@ -141,6 +142,7 @@ function defaultProduct(data) {
     id: genId(),
     name: data.name || '',
     barcode: (data.barcode || '').trim(),
+    sortOrder: Number(data.sortOrder) || 0,
     trendyolStock: data.trendyolStock !== undefined && data.trendyolStock !== null ? Number(data.trendyolStock) : null,
     hepsiburadaStock: data.hepsiburadaStock !== undefined && data.hepsiburadaStock !== null ? Number(data.hepsiburadaStock) : null,
     pttavmStock: data.pttavmStock !== undefined && data.pttavmStock !== null ? Number(data.pttavmStock) : null,
@@ -226,6 +228,7 @@ function updateProduct(id, data) {
   if (data.price !== undefined) merged.price = data.price === null ? null : Number(data.price);
   if (data.listPrice !== undefined) merged.listPrice = data.listPrice === null ? null : Number(data.listPrice);
   if (data.cost !== undefined) merged.cost = data.cost === null ? null : Number(data.cost);
+  if (data.sortOrder !== undefined) merged.sortOrder = Number(data.sortOrder) || 0;
   if (data.priceUpdatedAt !== undefined) merged.priceUpdatedAt = data.priceUpdatedAt;
   if (data.lastSeenAt !== undefined) merged.lastSeenAt = data.lastSeenAt;
   if (data.disappearedNotified !== undefined) merged.disappearedNotified = !!data.disappearedNotified;
@@ -270,6 +273,7 @@ function mergeSettings(base, partial) {
     sepet: { ...(base.sepet || {}), ...(partial.sepet || {}) },
     siralama: { ...(base.siralama || {}), ...(partial.siralama || {}) },
     printer: { ...(base.printer || {}), ...(partial.printer || {}) },
+    barkodYazici: { ...(base.barkodYazici || {}), ...(partial.barkodYazici || {}) },
     ignoreBarcodes: Array.isArray(partial.ignoreBarcodes) ? partial.ignoreBarcodes : (Array.isArray(base.ignoreBarcodes) ? base.ignoreBarcodes : []),
     cost: { ...(base.cost || {}), ...(partial.cost || {}) },
     productPush: mergeProductPush(base.productPush || {}, partial.productPush || {})
@@ -376,6 +380,7 @@ function getFinanceRecords() {
 // Aralik key'leri 'YYYY-MM-DD' biciminde (start/end dahil).
 function getFinanceSummary(startKey, endKey) {
   load();
+  const settingsCost = (state.settings && state.settings.cost) || {};
   const sales = (state.dailySales || []).filter(s => {
     if (!s.date) return false;
     if (startKey && String(s.date) < String(startKey)) return false;
@@ -384,6 +389,7 @@ function getFinanceSummary(startKey, endKey) {
   });
   const pByMarket = {};
   const pTotals = { ciro: 0, kar: 0, maliyet: 0, adet: 0 };
+  const shipSeen = new Set();
   for (const s of sales) {
     const mk = s.market || 'Diğer';
     if (!pByMarket[mk]) pByMarket[mk] = { ciro: 0, kar: 0, maliyet: 0, adet: 0 };
@@ -397,11 +403,25 @@ function getFinanceSummary(startKey, endKey) {
     }
     cost = Math.max(0, cost);
     const ciro = qty * price;
-    const maliyet = qty * cost;
+    // Pazardaki kesintiler (Kargo & Komisyon ayarlarından): komisyon, KDV, işlem ücreti, kargo.
+    const mCfg = settingsCost[mk] || {};
+    const commPct = Number(mCfg.commissionPercent) || 0;
+    const vatPct = Number(mCfg.vatPercent) || 0;
+    const fee = Number(mCfg.fee) || 0;
+    const shipping = Number(mCfg.shipping) || 0;
+    const shipKey = mk + '|' + ((s.orderNo && String(s.orderNo)) || ('ts:' + s.ts));
+    const shipFor = (!shipSeen.has(shipKey) && shipping > 0) ? shipping : 0;
+    shipSeen.add(shipKey);
+    const kesintiler = qty * cost +
+      ciro * commPct / 100 +
+      ciro * vatPct / 100 +
+      qty * fee +
+      shipFor;
+    const kar = ciro - kesintiler;
     for (const o of [pTotals, pByMarket[mk]]) {
       o.ciro += ciro;
-      o.maliyet += maliyet;
-      o.kar += (ciro - maliyet);
+      o.maliyet += kesintiler;
+      o.kar += kar;
       o.adet += qty;
     }
   }
@@ -809,7 +829,8 @@ function addDailySale(sale) {
     market: sale.market || '',
     qty: Math.max(0, Number(sale.qty) || 0),
     price: Number(sale.price) > 0 ? Number(sale.price) : null,
-    cost: Number(sale.cost) > 0 ? Number(sale.cost) : null
+    cost: Number(sale.cost) > 0 ? Number(sale.cost) : null,
+    orderNo: sale.orderNo || ''
   });
   save();
   return state.dailySales;
@@ -840,6 +861,7 @@ function removeDailySales(filter) {
     if (f.market && String(s.market) !== String(f.market)) return true;
     if (f.qty !== undefined && f.qty !== null && String(f.qty) !== '' && Number(s.qty) !== Number(f.qty)) return true;
     if (f.date && String(s.date) !== String(f.date)) return true;
+    if (f.orderNo && String(s.orderNo) !== String(f.orderNo)) return true;
     return false;
   });
   save();
